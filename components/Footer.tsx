@@ -39,13 +39,12 @@ export function Footer() {
             <p className="text-[10px] tracking-[0.3em] uppercase text-white/35 mb-5">Compliance</p>
             <ul className="space-y-3">
               <li>
+                {/* Council Registration Certificate Proof Section */}
                 <a
-                  href="/food-business-certificate.pdf"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="mailto:admin@stllhaus.co?subject=Council Registration Certificate Request"
                   className="text-xs tracking-[0.15em] uppercase text-white/50 hover:text-white transition-colors duration-300"
                 >
-                  Food Certificate
+                  Council Registration
                 </a>
               </li>
               <li>
@@ -78,9 +77,12 @@ export function Footer() {
         </div>
 
         <div className="mt-16 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <p className="text-[10px] tracking-[0.25em] uppercase text-white/25">
-            © {new Date().getFullYear()} STLL HAUS · All rights reserved
-          </p>
+          <div className="flex items-center gap-3">
+            <img src="/logo-matcha.png" alt="STLL Haus Logo" className="w-7 h-7 object-contain" />
+            <p className="text-[10px] tracking-[0.25em] uppercase text-white/25">
+              © {new Date().getFullYear()} STLL HAUS · All rights reserved
+            </p>
+          </div>
           <p className="text-[10px] tracking-[0.25em] uppercase text-white/25">
             stllhaus.co
           </p>

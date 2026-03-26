@@ -8,6 +8,12 @@ const nextConfig: NextConfig = {
         search: "**",
       },
     ],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "api.qrserver.com",
+      },
+    ],
   },
 };
 

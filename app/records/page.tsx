@@ -26,10 +26,6 @@ export default function RecordsPage() {
             </p>
             <div className="space-y-3">
               <div className="flex items-center justify-between py-3 border-b border-stll-charcoal/8">
-                <span className="text-xs tracking-[0.15em] uppercase text-stll-charcoal/60">Food Safety Supervisor Certificate</span>
-                <span className="text-xs text-stll-muted/50 italic">Document coming soon</span>
-              </div>
-              <div className="flex items-center justify-between py-3 border-b border-stll-charcoal/8">
                 <span className="text-xs tracking-[0.15em] uppercase text-stll-charcoal/60">Staff Training Completion Records</span>
                 <span className="text-xs text-stll-muted/50 italic">Document coming soon</span>
               </div>
@@ -72,10 +68,10 @@ export default function RecordsPage() {
           <p className="text-xs tracking-[0.2em] uppercase text-stll-muted/60">
             For access to specific records or additional documentation, contact us at{" "}
             <a
-              href="mailto:hello@stllhaus.co"
+              href="mailto:admin@stllhaus.co"
               className="text-stll-charcoal hover:underline"
             >
-              hello@stllhaus.co
+              admin@stllhaus.co
             </a>
           </p>
         </section>

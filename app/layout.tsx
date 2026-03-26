@@ -30,6 +30,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
+      <head>
+        <link rel="icon" href="/icon.png" type="image/png" />
+      </head>
       <body className="min-h-full bg-stll-cream text-stll-charcoal">
         <CartProvider>
           <Navbar />

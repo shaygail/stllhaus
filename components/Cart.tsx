@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { useCart } from "@/components/CartContext";
-import { useLoyalty } from "@/components/LoyaltyContext";
 import { getStripe } from "@/lib/stripe-client";
 
 const pickupOptions = [
@@ -16,12 +15,12 @@ const pickupOptions = [
 
 export function Cart() {
   const { cart, removeItem, updateQuantity, total, clearCart } = useCart();
-  const { card, pointsPerDollar } = useLoyalty();
+  // Loyalty program is disabled
   const [pickupTime, setPickupTime] = useState(pickupOptions[0]);
   const [notes, setNotes] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const pointsEarned = Math.floor(total * pointsPerDollar);
+
 
   const handleCheckout = async () => {
     if (!cart.length) return;
@@ -136,13 +135,8 @@ export function Cart() {
           className="mt-3 w-full rounded-xl border border-stll-light bg-linear-to-br from-white to-stll-cream/20 px-4 py-3 text-sm text-stll-charcoal placeholder:text-stll-muted transition-all duration-300 hover:border-stll-accent/50 focus:border-stll-accent focus:ring-2 focus:ring-stll-accent/20 focus:outline-none resize-none"
         />
 
-        {card && (
-          <div className="mt-5 rounded-xl bg-stll-sage/10 p-3">
-            <p className="text-xs font-medium text-stll-sage">
-              ⭐ You&apos;ll earn {pointsEarned} loyalty points on this order
-            </p>
-          </div>
-        )}
+
+
 
         <div className="mt-5 flex items-center justify-between">
           <p className="text-lg font-medium text-stll-charcoal">Total: ${total.toFixed(2)}</p>

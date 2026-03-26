@@ -29,14 +29,13 @@ export default function Home() {
               STLL HAUS
             </h1>
             <p className="mt-4 text-white/60 text-[11px] tracking-[0.5em] uppercase">
-              Coffee Bar
+              Matcha and Coffee Bar
             </p>
           </div>
 
           {/* bottom-left tagline */}
           <p className="text-white/65 text-sm leading-relaxed max-w-sm">
-            A specialty drink studio with an intentional selection of matcha, botanical blends,
-            and slow-crafted beverages for every still moment.
+            A space for stillness — serving matcha, <br></br>cold brew, and slow-crafted drinks for your quiet moments.
           </p>
         </div>
       </section>

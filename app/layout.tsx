@@ -4,7 +4,6 @@ import "./globals.css";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CartProvider } from "@/components/CartContext";
-import { LoyaltyProvider } from "@/components/LoyaltyContext";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -33,11 +32,9 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full bg-stll-cream text-stll-charcoal">
         <CartProvider>
-          <LoyaltyProvider>
-            <Navbar />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </LoyaltyProvider>
+          <Navbar />
+          <main className="flex-1">{children}</main>
+          <Footer />
         </CartProvider>
       </body>
     </html>

@@ -32,7 +32,7 @@ export function HeroImage({
         className="object-cover transition-transform duration-700 group-hover:scale-105"
         priority
       />
-      <div className={`absolute inset-0 pointer-events-none ${darken ? 'bg-gradient-to-b from-black/20 via-transparent to-black/40' : 'bg-gradient-to-b from-black/10 via-transparent to-black/20'}`} />
+      <div className={`absolute inset-0 pointer-events-none ${darken ? 'bg-linear-to-b from-black/20 via-transparent to-black/40' : 'bg-linear-to-b from-black/10 via-transparent to-black/20'}`} />
       
       {overlayContent && (
         <div className="absolute inset-0 flex items-center justify-center z-10">

@@ -1,57 +1,51 @@
-import { getServerStripe } from "@/lib/stripe";
+import { sendOrderNotification } from "@/lib/email";
 import { NextRequest, NextResponse } from "next/server";
-
-type CheckoutRequest = {
-  items: Array<{
-    id: string;
-    name: string;
-    price: number;
-    quantity: number;
-  }>;
-  pickupTime: string;
-  notes: string;
-};
 
 export async function POST(request: NextRequest) {
   try {
-    const body: CheckoutRequest = await request.json();
+    const contentType = request.headers.get("content-type") || "";
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      const customerName = formData.get("customerName") as string;
+      const pickupTime = formData.get("pickupTime") as string;
+      const notes = formData.get("notes") as string;
+      const paymentMethod = formData.get("paymentMethod") as string;
+      const items = JSON.parse(formData.get("items") as string);
+      const proof = formData.get("proof");
 
-    if (!process.env.NEXT_PUBLIC_APP_URL) {
-      throw new Error("Missing NEXT_PUBLIC_APP_URL");
+      type CartItem = { price: number; quantity: number };
+      const total = (items as CartItem[]).reduce((sum: number, item) => sum + item.price * item.quantity, 0);
+
+      let attachment = undefined;
+      if (paymentMethod === "bank_transfer" && proof && typeof proof === "object" && "arrayBuffer" in proof) {
+        const buffer = Buffer.from(await proof.arrayBuffer());
+        attachment = {
+          filename: (proof as File).name || "proof.jpg",
+          content: buffer,
+          contentType: (proof as File).type || "image/jpeg",
+        };
+      }
+
+      await sendOrderNotification({
+        customerName: customerName || "Unknown",
+        items,
+        total,
+        contact: "",
+        notes,
+        pickupTime,
+        toEmail: process.env.ORDER_NOTIFICATION_EMAIL || "your@email.com",
+        attachment,
+      });
+
+      return NextResponse.json({ success: true });
+    } else {
+      return NextResponse.json({ error: "Invalid content type" }, { status: 400 });
     }
-
-    const stripe = getServerStripe();
-
-    const lineItems = body.items.map((item) => ({
-      price_data: {
-        currency: "usd",
-        product_data: {
-          name: item.name,
-          metadata: {
-            pickupTime: body.pickupTime,
-            notes: body.notes,
-          },
-        },
-        unit_amount: Math.round(item.price * 100),
-      },
-      quantity: item.quantity,
-    }));
-
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items: lineItems,
-      mode: "payment",
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/cancel`,
-      metadata: {
-        pickupTime: body.pickupTime,
-        notes: body.notes,
-      },
-    });
-
-    return NextResponse.json({ sessionId: session.id });
   } catch (error) {
     console.error("Checkout error:", error);
-    return NextResponse.json({ error: "Failed to create checkout session" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to place order" },
+      { status: 500 }
+    );
   }
 }

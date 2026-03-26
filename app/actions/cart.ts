@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { getServerStripe } from "@/lib/stripe";
-import { sendOrderToPOS } from "@/lib/pos";
+
 
 const SIZE_LABELS: Record<string, string> = { T: "Tall", G: "Grande", V: "Venti" };
 
@@ -167,48 +167,38 @@ export async function placeOrderAction(formData: FormData) {
   const paymentMethod = (formData.get("paymentMethod") as string) || "stripe";
   const pickupTime = (formData.get("pickupTime") as string) || "ASAP";
   const notes = (formData.get("notes") as string) || "";
+  const customerName = (formData.get("customerName") as string) || "";
 
-  if (paymentMethod === "stripe") {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      redirect("/checkout?error=stripe_not_configured");
+  // Always call /api/checkout to trigger email notification and handle order
+  try {
+    const res = await fetch("/api/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        items: cart,
+        pickupTime,
+        notes,
+        customerName,
+        contact: "", // Add contact if available
+      }),
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      redirect("/checkout?error=order_failed");
       return;
     }
-    if (!process.env.NEXT_PUBLIC_APP_URL) {
-      redirect("/checkout?error=missing_app_url");
-      return;
-    }
-    try {
+    const data = await res.json();
+    if (paymentMethod === "stripe" && data.sessionId) {
+      // Stripe payment: redirect to Stripe checkout
       const stripe = getServerStripe();
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ["card"],
-        line_items: cart.map((item) => ({
-          price_data: {
-            currency: "usd",
-            product_data: { name: item.name },
-            unit_amount: Math.round(item.price * 100),
-          },
-          quantity: item.quantity,
-        })),
-        mode: "payment",
-        success_url: `${process.env.NEXT_PUBLIC_APP_URL}/success?method=stripe`,
-        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/cancel`,
-        metadata: { pickupTime, notes },
-      });
+      const session = await stripe.checkout.sessions.retrieve(data.sessionId);
       redirect(session.url!);
       return;
-    } catch {
-      redirect("/checkout?error=stripe_failed");
-      return;
+    } else {
+      // Other payment: redirect to success page
+      redirect(`/success?method=${paymentMethod}`);
     }
-  } else {
-    // Send order to POS for cash/bank_transfer
-    const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    await sendOrderToPOS({
-      items: cart,
-      subtotal,
-      payment_method: paymentMethod,
-    });
-    // Optionally: send SMS/email notification here
-    redirect(`/success?method=${paymentMethod}`);
+  } catch {
+    redirect("/checkout?error=order_failed");
   }
 }

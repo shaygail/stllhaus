@@ -24,38 +24,45 @@ type CartContextValue = {
 const CartContext = createContext<CartContextValue | null>(null);
 const STORAGE_KEY = "stll-cart";
 
+
+function readCartFromStorage(): CartItem[] {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [];
+}
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  useEffect(() => {
-    let loaded: CartItem[] = [];
-
-    // Primary: cookie written by the server action (works even if localStorage is unavailable)
-    try {
-      const match = document.cookie
-        .split(";")
-        .find((c) => c.trim().startsWith("stll-cart="));
-      if (match) {
-        const val = decodeURIComponent(match.trim().substring("stll-cart=".length));
-        const parsed = JSON.parse(val);
-        if (Array.isArray(parsed) && parsed.length > 0) loaded = parsed;
-      }
-    } catch {}
-
-    // Fallback: localStorage (for items added in previous sessions before cookie approach)
-    if (!loaded.length) {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) loaded = parsed;
-        }
-      } catch {}
-    }
-
-    setCart(loaded);
+  const loadCart = () => {
+    const fromStorage = readCartFromStorage();
+    setCart(fromStorage);
     setIsLoaded(true);
+  };
+
+  useEffect(() => {
+    loadCart();
+  }, []);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        loadCart();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("focus", loadCart);
+    return () => window.removeEventListener("focus", loadCart);
   }, []);
 
   useEffect(() => {
@@ -63,7 +70,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
       } catch {}
-      // Also keep the cookie in sync so server action reads the latest state
       try {
         document.cookie = `stll-cart=${encodeURIComponent(JSON.stringify(cart))}; path=/; max-age=86400; samesite=lax`;
       } catch {}
@@ -77,7 +83,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         return prev.map((cartItem) =>
           cartItem.id === item.id
             ? { ...cartItem, quantity: cartItem.quantity + 1 }
-            : cartItem,
+            : cartItem
         );
       }
       return [...prev, { ...item, quantity: 1 }];
@@ -94,26 +100,32 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     setCart((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, quantity } : item)),
+      prev.map((item) => (item.id === id ? { ...item, quantity } : item))
     );
   };
 
-  const clearCart = () => setCart([]);
+  const clearCart = () => {
+    setCart([]);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      document.cookie = `stll-cart=; path=/; max-age=0; samesite=lax`;
+    } catch {}
+  };
 
   const cartCount = useMemo(
     () => cart.reduce((count, item) => count + item.quantity, 0),
-    [cart],
+    [cart]
   );
 
   const total = useMemo(
     () => cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
-    [cart],
+    [cart]
   );
 
   const value: CartContextValue = useMemo(
     () => ({ cart, addItem, removeItem, updateQuantity, clearCart, cartCount, total }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [cart, cartCount, total],
+    [cart, cartCount, total]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

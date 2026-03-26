@@ -9,7 +9,7 @@ export function Footer() {
           <div className="col-span-2 sm:col-span-1">
             <p className="text-sm font-bold tracking-[0.35em] uppercase">STLL HAUS</p>
             <p className="mt-4 text-xs text-white/45 leading-relaxed max-w-50">
-              Slow drinks, soft moments. A studio for the still.
+              a quiet place, <br></br>made for slowing down.
             </p>
           </div>
 
@@ -82,7 +82,10 @@ export function Footer() {
             © {new Date().getFullYear()} STLL HAUS · All rights reserved
           </p>
           <p className="text-[10px] tracking-[0.25em] uppercase text-white/25">
-            stllhaus.com
+            stllhaus.co
+          </p>
+          <p className="text-[10px] tracking-[0.25em] uppercase text-white/25">
+            Designed by <a href="https://shaygaliste.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-white/50">SGDesign</a>
           </p>
         </div>
       </div>

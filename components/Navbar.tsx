@@ -3,19 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/components/CartContext";
-import { useLoyalty } from "@/components/LoyaltyContext";
 import { useEffect, useState } from "react";
 
 const navItems = [
   { href: "/", label: "Home" },
   { href: "/gallery", label: "Menu" },
-  { href: "/loyalty", label: "Loyalty" },
+  { href: "/contact", label: "Contact" },
 ];
 
 export function Navbar() {
   const pathname = usePathname();
   const { cartCount } = useCart();
-  const { card } = useLoyalty();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const isHome = pathname === "/";
@@ -26,7 +24,6 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close menu on route change
   useEffect(() => {
     setTimeout(() => setMenuOpen(false), 0);
   }, [pathname]);
@@ -40,7 +37,6 @@ export function Navbar() {
 
   return (
     <>
-      {/* Hidden checkbox — powers the mobile menu via pure CSS, works even before React hydrates */}
       <input
         type="checkbox"
         id="mobile-menu-check"
@@ -57,7 +53,6 @@ export function Navbar() {
         }`}
       >
         <nav className="flex items-center justify-between px-6 sm:px-12 lg:px-16 py-5">
-          {/* Brand */}
           <Link
             href="/"
             className={`text-sm font-bold tracking-[0.35em] uppercase transition-colors duration-500 ${
@@ -67,7 +62,6 @@ export function Navbar() {
             STLL HAUS
           </Link>
 
-          {/* Nav links — centered, desktop only */}
           <ul className="hidden md:flex items-center gap-10">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
@@ -92,23 +86,7 @@ export function Navbar() {
             })}
           </ul>
 
-          {/* Right: loyalty points + cart + hamburger */}
           <div className="flex items-center gap-5">
-            {card && (
-              <Link
-                href="/loyalty"
-                className={`hidden sm:block text-[11px] tracking-[0.25em] uppercase font-medium transition-colors duration-500 ${
-                  transparent
-                    ? "text-white/70 hover:text-white"
-                    : "text-stll-muted hover:text-stll-charcoal"
-                }`}
-                title={`${card.totalPoints} loyalty points`}
-              >
-                ★ {card.totalPoints} pts
-              </Link>
-            )}
-
-            {/* Cart — always visible */}
             <Link
               href="/checkout"
               className={`text-[11px] tracking-[0.25em] uppercase font-medium transition-colors duration-500 flex items-center gap-2 ${
@@ -131,7 +109,6 @@ export function Navbar() {
               )}
             </Link>
 
-            {/* Hamburger label — triggers checkbox directly, no JS needed */}
             <label
               htmlFor="mobile-menu-check"
               aria-label={menuOpen ? "Close menu" : "Open menu"}
@@ -141,7 +118,7 @@ export function Navbar() {
             >
               <span
                 className={`block w-5 h-px bg-current transition-all duration-300 origin-center ${
-                  menuOpen ? "rotate-45 translate-y-1.75" : ""
+                  menuOpen ? "rotate-45 translate-y-1.25" : ""
                 }`}
               />
               <span
@@ -151,7 +128,7 @@ export function Navbar() {
               />
               <span
                 className={`block w-5 h-px bg-current transition-all duration-300 origin-center ${
-                  menuOpen ? "-rotate-45 -translate-y-1.75" : ""
+                  menuOpen ? "-rotate-45 -translate-y-1.25" : ""
                 }`}
               />
             </label>
@@ -159,10 +136,6 @@ export function Navbar() {
         </nav>
       </header>
 
-      {/* Mobile full-screen menu
-           Always display:flex, hidden by sliding above viewport (-translate-y-full).
-           Revealed by translating to 0 — via CSS peer-checked OR React state.
-           This avoids any display:none vs display:flex conflict. */}
       <div
         className={`fixed inset-0 z-40 flex flex-col px-8 pt-28 pb-16 bg-[#FAF8F5] md:hidden
           transition-transform duration-300 ease-in-out
@@ -173,48 +146,38 @@ export function Navbar() {
               : "-translate-y-full pointer-events-none"
           }`}
       >
-          {/* Main nav links */}
-          <nav className="flex-1">
-            <ul className="space-y-1">
-              {navItems.map((item, i) => {
-                const isActive = pathname === item.href;
-                return (
-                  <li
-                    key={item.href}
-                    style={{ animationDelay: `${i * 60}ms`, animationFillMode: "both" }}
-                    className="animate-slideUp"
+        <nav className="flex-1">
+          <ul className="space-y-1">
+            {navItems.map((item, i) => {
+              const isActive = pathname === item.href;
+              return (
+                <li
+                  key={item.href}
+                  style={{ animationDelay: `${i * 60}ms`, animationFillMode: "both" }}
+                  className="animate-slideUp"
+                >
+                  <Link
+                    href={item.href}
+                    className={`block text-4xl font-black uppercase tracking-tight py-3 transition-colors duration-200 ${
+                      isActive ? "text-stll-charcoal" : "text-stll-charcoal/40 hover:text-stll-charcoal"
+                    }`}
                   >
-                    <Link
-                      href={item.href}
-                      className={`block text-4xl font-black uppercase tracking-tight py-3 transition-colors duration-200 ${
-                        isActive ? "text-stll-charcoal" : "text-stll-charcoal/40 hover:text-stll-charcoal"
-                      }`}
-                    >
-                      {item.label}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
 
-          {/* Bottom: loyalty + tagline */}
-          <div
-            style={{ animationDelay: "240ms", animationFillMode: "both" }}
-            className="border-t border-stll-charcoal/10 pt-8 animate-slideUp"
-          >
-            {card && (
-              <Link
-                href="/loyalty"
-                className="block text-[11px] tracking-[0.3em] uppercase text-stll-muted mb-4"
-              >
-                ★ {card.totalPoints} loyalty points
-              </Link>
-            )}
-            <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted/40">
-              stllhaus.co
-            </p>
-          </div>
+        <div
+          style={{ animationDelay: "240ms", animationFillMode: "both" }}
+          className="border-t border-stll-charcoal/10 pt-8 animate-slideUp"
+        >
+          <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted/40">
+            stllhaus.co
+          </p>
+        </div>
       </div>
     </>
   );

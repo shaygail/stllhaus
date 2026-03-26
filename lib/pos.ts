@@ -1,9 +1,17 @@
 // POS integration for order posting
 
-export async function sendOrderToPOS({ items, subtotal, payment_method }) {
+type POSItem = { id: string | number; quantity: number };
+type SendOrderToPOSParams = {
+  items: POSItem[];
+  subtotal: number;
+  payment_method: string;
+  customer_name?: string;
+};
+
+export async function sendOrderToPOS({ items, subtotal, payment_method, customer_name }: SendOrderToPOSParams) {
   // Map items to POS format: [{ product_id, quantity }]
-  const posItems = items.map((item) => ({
-    product_id: parseInt(item.id, 10) || item.id, // fallback if not numeric
+  const posItems = items.map((item: POSItem) => ({
+    product_id: typeof item.id === 'string' && !isNaN(Number(item.id)) ? parseInt(item.id, 10) : item.id,
     quantity: item.quantity,
   }));
 
@@ -11,6 +19,7 @@ export async function sendOrderToPOS({ items, subtotal, payment_method }) {
     items: posItems,
     subtotal,
     payment_method,
+    customer_name: customer_name || "",
   };
 
   const POS_URL = process.env.POS_API_URL || "http://localhost:8000/orders/";

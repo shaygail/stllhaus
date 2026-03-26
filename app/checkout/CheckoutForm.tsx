@@ -27,7 +27,6 @@ export default function CheckoutForm() {
     bankName: process.env.NEXT_PUBLIC_BANK_NAME ?? "Your Bank Name",
     accountName: process.env.NEXT_PUBLIC_BANK_ACCOUNT_NAME ?? "STLL HAUS",
     accountNumber: process.env.NEXT_PUBLIC_BANK_ACCOUNT_NUMBER ?? "0000 0000",
-    sortCode: process.env.NEXT_PUBLIC_BANK_SORT_CODE ?? "00-00-00",
     reference: "STLL ORDER",
   };
 
@@ -252,14 +251,11 @@ export default function CheckoutForm() {
                     <dd className="font-medium text-stll-charcoal">{BANK_DETAILS.accountNumber}</dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-stll-muted">Sort Code</dt>
-                    <dd className="font-medium text-stll-charcoal">{BANK_DETAILS.sortCode}</dd>
-                  </div>
-                  <div className="flex justify-between">
                     <dt className="text-stll-muted">Reference</dt>
                     <dd className="font-medium text-stll-charcoal">{BANK_DETAILS.reference}</dd>
                   </div>
                 </dl>
+                <p className="text-xs text-stll-muted mb-2">Please use <span className="font-semibold">your name</span> as the payment reference.</p>
                 <label className="block text-xs text-stll-muted font-medium mb-1" htmlFor="proof-upload">Upload proof of payment <span className="text-red-500">*</span>:</label>
                 <input
                   id="proof-upload"

@@ -61,6 +61,19 @@ export default function CheckoutForm() {
     const customerName = formData.get("customerName") as string;
     const pickupTime = formData.get("pickupTime") as string;
     const notes = formData.get("notes") as string;
+    const contactPhone = formData.get("contactPhone") as string;
+    const contactInstagram = formData.get("contactInstagram") as string;
+    const contactEmail = formData.get("contactEmail") as string;
+    if (!contactPhone || contactPhone.trim() === "") {
+      setError("Phone number is required for order updates.");
+      setIsLoading(false);
+      return;
+    }
+    if (!contactEmail || contactEmail.trim() === "") {
+      setError("Email is required for receipts and updates.");
+      setIsLoading(false);
+      return;
+    }
 
     if (paymentMethod === "bank_transfer" && !proofFile) {
       setProofError("Please upload proof of payment for bank transfer.");
@@ -74,8 +87,14 @@ export default function CheckoutForm() {
       form.append("customerName", customerName);
       form.append("pickupTime", pickupTime);
       form.append("notes", notes);
+      form.append("contactPhone", contactPhone);
+      form.append("contactInstagram", contactInstagram);
+      form.append("contactEmail", contactEmail);
       form.append("paymentMethod", paymentMethod);
       form.append("items", JSON.stringify(cart));
+      if (formData.get("sendReceipt") === "on") {
+        form.append("sendReceipt", "on");
+      }
       if (paymentMethod === "bank_transfer" && proofFile) {
         form.append("proof", proofFile);
       }
@@ -84,6 +103,22 @@ export default function CheckoutForm() {
         body: form,
       });
       if (!res.ok) throw new Error("Order failed");
+      const data = (await res.json()) as { orderId?: string };
+      try {
+        const snapshot = {
+          customerEmail: contactEmail.trim(),
+          customerName: (customerName as string).trim(),
+          items: cart.map(({ name, quantity, price }) => ({ name, quantity, price })),
+          total,
+          pickupTime,
+          paymentMethod,
+          orderId: data.orderId,
+          notes: (notes as string) || "",
+        };
+        sessionStorage.setItem("stll-last-order", JSON.stringify(snapshot));
+      } catch {
+        /* ignore */
+      }
       window.localStorage.removeItem("stll-cart");
       router.push("/success?method=" + paymentMethod);
     } catch {
@@ -194,6 +229,39 @@ export default function CheckoutForm() {
             />
           </div>
 
+          {/* Contact for updates */}
+          <div>
+            <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-2">
+              Phone Number <span className="text-red-400">*</span> or Instagram (for order updates)
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 mb-3">
+              <input
+                name="contactPhone"
+                type="tel"
+                pattern="[0-9+()\-\s]*"
+                placeholder="Phone (e.g. 021 123 4567)"
+                required
+                className="w-full border border-stll-charcoal/25 bg-transparent px-4 py-3 text-[11px] tracking-[0.1em] text-stll-charcoal placeholder:text-stll-muted/50 focus:outline-none focus:border-stll-charcoal"
+              />
+              <input
+                name="contactInstagram"
+                type="text"
+                placeholder="Instagram (e.g. @yourhandle)"
+                className="w-full border border-stll-charcoal/25 bg-transparent px-4 py-3 text-[11px] tracking-[0.1em] text-stll-charcoal placeholder:text-stll-muted/50 focus:outline-none focus:border-stll-charcoal"
+              />
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                name="contactEmail"
+                type="email"
+                placeholder="Email (for receipts and updates)"
+                required
+                className="w-full border border-stll-charcoal/25 bg-transparent px-4 py-3 text-[11px] tracking-[0.1em] text-stll-charcoal placeholder:text-stll-muted/50 focus:outline-none focus:border-stll-charcoal"
+              />
+            </div>
+            <p className="text-[10px] text-stll-muted/70 mt-1">Phone number and email are required for order updates and receipts.</p>
+          </div>
+
           {/* Pickup time */}
           <div>
             <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-2">Pickup Time</p>
@@ -284,6 +352,23 @@ export default function CheckoutForm() {
               </div>
             </div>
           )}
+
+          {/* Email receipt */}
+          <div className="border border-stll-charcoal/10 p-5 flex items-start gap-3">
+            <input
+              type="checkbox"
+              name="sendReceipt"
+              id="sendReceipt"
+              defaultChecked
+              className="mt-0.5 h-4 w-4 shrink-0 border-stll-charcoal/40 accent-stll-charcoal"
+            />
+            <label htmlFor="sendReceipt" className="cursor-pointer">
+              <span className="block text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-1">Email receipt</span>
+              <span className="text-[11px] tracking-[0.1em] text-stll-charcoal leading-relaxed">
+                Send me an email receipt with this order&apos;s details.
+              </span>
+            </label>
+          </div>
 
           {/* Total + actions */}
           <div className="border-t border-stll-charcoal/10 pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

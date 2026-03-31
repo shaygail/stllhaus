@@ -62,16 +62,36 @@ export function Footer() {
           <div>
             <p className="text-[10px] tracking-[0.3em] uppercase text-white/35 mb-5">Social</p>
             <ul className="space-y-3">
-              {["Instagram", "TikTok", "Email"].map((s) => (
-                <li key={s}>
-                  <a
-                    href="#"
-                    className="text-xs tracking-[0.15em] uppercase text-white/50 hover:text-white transition-colors duration-300"
-                  >
-                    {s}
-                  </a>
-                </li>
-              ))}
+              <li>
+                <a
+                  href="https://www.facebook.com/stllhausco"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs tracking-[0.15em] uppercase text-white/50 hover:text-white transition-colors duration-300"
+                >
+                  Facebook
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://www.instagram.com/stllhausco/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs tracking-[0.15em] uppercase text-white/50 hover:text-white transition-colors duration-300"
+                >
+                  Instagram
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://www.tiktok.com/@stllhausco?_r=1&_t=ZS-958siGnPFdS"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs tracking-[0.15em] uppercase text-white/50 hover:text-white transition-colors duration-300"
+                >
+                  TikTok
+                </a>
+              </li>
             </ul>
           </div>
         </div>

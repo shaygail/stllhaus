@@ -1,16 +1,14 @@
+import { Suspense } from "react";
+import SuccessClient from "./SuccessClient";
+
 export const metadata = {
   title: "Order Success - STLL HAUS",
 };
 
-import SuccessClient from "./SuccessClient";
-
-export default async function SuccessPage({ searchParams }: { searchParams: Promise<{ method?: string }> }) {
-  const { method } = await searchParams;
+export default function SuccessPage() {
   return (
-    <div className="bg-[#FAF8F5] min-h-screen">
-      <div className="px-6 sm:px-12 lg:px-20 pt-16 pb-24">
-        <SuccessClient />
-      </div>
-    </div>
+    <Suspense fallback={<div className="bg-[#FAF8F5] min-h-screen pt-32 pb-24 px-6 sm:px-12 lg:px-20" />}>
+      <SuccessClient />
+    </Suspense>
   );
 }

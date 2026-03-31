@@ -1,4 +1,5 @@
-import { sendOrderNotification } from "@/lib/email";
+import { sendCustomerReceiptEmail, sendOrderNotification } from "@/lib/email";
+import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -26,18 +27,44 @@ export async function POST(request: NextRequest) {
         };
       }
 
+      // Get contact info from form
+      const contactPhone = formData.get("contactPhone") as string;
+      const contactInstagram = formData.get("contactInstagram") as string;
+      const contactEmail = formData.get("contactEmail") as string;
+      const sendReceipt = formData.get("sendReceipt") === "on";
+      // Prefer email for receipts and notifications
+      const contact = contactEmail || contactPhone || contactInstagram || "";
+
+      // Step 1: Generate a unique orderId for tracking
+      const orderId = randomUUID();
+
       await sendOrderNotification({
         customerName: customerName || "Unknown",
         items,
         total,
-        contact: "",
+        contact,
         notes,
         pickupTime,
         toEmail: process.env.ORDER_NOTIFICATION_EMAIL || "your@email.com",
         attachment,
+        customerEmail: contactEmail,
+        orderId,
       });
 
-      return NextResponse.json({ success: true });
+      if (sendReceipt && contactEmail?.trim()) {
+        await sendCustomerReceiptEmail({
+          customerName: customerName || "Unknown",
+          customerEmail: contactEmail.trim(),
+          items,
+          total,
+          pickupTime,
+          paymentMethod,
+          orderId,
+          notes: notes || undefined,
+        });
+      }
+
+      return NextResponse.json({ success: true, orderId });
     } else {
       return NextResponse.json({ error: "Invalid content type" }, { status: 400 });
     }

@@ -1,5 +1,7 @@
 "use client";
 
+import { createClient } from "@/lib/supabase/client";
+import { POINTS_PER_DOLLAR, getLoyaltyTier } from "@/lib/loyalty";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
@@ -20,6 +22,7 @@ export default function SuccessClient() {
   const searchParams = useSearchParams();
   const method = searchParams.get("method");
   const [lastOrder, setLastOrder] = useState<LastOrder | null>(null);
+  const [awardedPoints, setAwardedPoints] = useState<number | null>(null);
   const [receiptEmail, setReceiptEmail] = useState("");
   const [receiptStatus, setReceiptStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
   const [receiptError, setReceiptError] = useState("");
@@ -38,6 +41,58 @@ export default function SuccessClient() {
       /* ignore */
     }
   }, []);
+
+  useEffect(() => {
+    if (!lastOrder) return;
+
+    const awardLoyaltyPoints = async () => {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      const pointsEarned = Math.max(0, Math.floor(lastOrder.total * POINTS_PER_DOLLAR));
+      if (pointsEarned <= 0) return;
+
+      const orderFingerprint =
+        lastOrder.orderId ??
+        `${lastOrder.total}-${lastOrder.pickupTime}-${lastOrder.items
+          .map((item) => `${item.name}:${item.quantity}`)
+          .join("|")}`;
+      const sessionKey = `stll-loyalty-awarded:${orderFingerprint}`;
+
+      if (sessionStorage.getItem(sessionKey) === "1") return;
+
+      const metadata = user.user_metadata ?? {};
+      const currentPoints = Number(metadata.loyalty_points ?? 0) || 0;
+      const currentPurchases = Number(metadata.loyalty_total_purchases ?? 0) || 0;
+      const currentSpent = Number(metadata.loyalty_total_spent ?? 0) || 0;
+
+      const nextPoints = currentPoints + pointsEarned;
+      const nextSpent = currentSpent + lastOrder.total;
+
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          ...metadata,
+          loyalty_points: nextPoints,
+          loyalty_total_purchases: currentPurchases + 1,
+          loyalty_total_spent: Number(nextSpent.toFixed(2)),
+          loyalty_tier: getLoyaltyTier(nextPoints),
+          loyalty_last_awarded_order: orderFingerprint,
+          loyalty_last_awarded_at: new Date().toISOString(),
+        },
+      });
+
+      if (!error) {
+        sessionStorage.setItem(sessionKey, "1");
+        setAwardedPoints(pointsEarned);
+      }
+    };
+
+    void awardLoyaltyPoints();
+  }, [lastOrder]);
 
   const handleResendReceipt = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,11 +152,16 @@ export default function SuccessClient() {
             <p className="text-sm text-stll-muted mb-12 leading-relaxed">
               We will send you an email or text message when your order is being made.
             </p>
+            {awardedPoints !== null && (
+              <p className="text-sm text-stll-charcoal mb-8 leading-relaxed">
+                Loyalty updated: <span className="font-semibold">+{awardedPoints} points</span> added to your account.
+              </p>
+            )}
 
             {lastOrder && (
               <section className="mb-12 border border-stll-charcoal/10 p-6 sm:p-8">
                 <p className="text-[10px] tracking-[0.3em] uppercase text-stll-muted mb-3">Receipt</p>
-                <p className="text-[11px] tracking-[0.1em] text-stll-charcoal mb-6 leading-relaxed">
+                <p className="text-[11px] tracking-widest text-stll-charcoal mb-6 leading-relaxed">
                   If you opted in at checkout, a receipt was sent to your email. You can also resend it to any address
                   below.
                 </p>
@@ -119,7 +179,7 @@ export default function SuccessClient() {
                         value={receiptEmail}
                         onChange={(e) => setReceiptEmail(e.target.value)}
                         required
-                        className="w-full border border-stll-charcoal/25 bg-transparent px-4 py-3 text-[11px] tracking-[0.1em] text-stll-charcoal placeholder:text-stll-muted/50 focus:outline-none focus:border-stll-charcoal"
+                        className="w-full border border-stll-charcoal/25 bg-transparent px-4 py-3 text-[11px] tracking-widest text-stll-charcoal placeholder:text-stll-muted/50 focus:outline-none focus:border-stll-charcoal"
                         placeholder="you@email.com"
                       />
                     </div>

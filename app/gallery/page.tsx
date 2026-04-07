@@ -10,10 +10,42 @@ type MenuItemData = {
   description: string;
   image: string;
   sizes: Size[];
+  /** When set, replaces the section default. Use `[]` to hide milk choice for this drink. */
+  milkOptionsOverride?: string[];
 };
 
 const SIZE_LABELS: Record<string, string> = { T: "Small", G: "Regular", V: "Large" };
-const SYRUPS = ["Ube", "Earl Grey", "Strawberry", "Brown Sugar"] as const;
+const MILK_SURCHARGE = 1;
+const PREMIUM_MILKS = new Set(["Almond", "Soy"]);
+
+const SYRUPS = [
+  "Ube",
+  "Earl Grey",
+  "Strawberry",
+  "Brown Sugar",
+  "Agave",
+  "Maple Syrup",
+] as const;
+
+/** Extra syrup add-on per pump/flavor (Brown Sugar: no charge). */
+const SYRUP_SURCHARGE_USD: Record<string, number> = {
+  Ube: 1,
+  "Earl Grey": 0.5,
+  Strawberry: 1,
+  Agave: 1,
+  "Maple Syrup": 1,
+};
+
+function syrupSurchargeUsd(name: string): number {
+  return SYRUP_SURCHARGE_USD[name] ?? 0;
+}
+
+function formatSyrupPriceLabel(amount: number): string {
+  if (amount <= 0) return "";
+  if (amount === 0.5) return " +$0.50";
+  if (amount === 1) return " +$1";
+  return ` +$${amount.toFixed(2)}`;
+}
 
 function slugify(s: string) {
   return s.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
@@ -29,7 +61,13 @@ const matchaItems: MenuItemData[] = [
 
 const coldBrewItems: MenuItemData[] = [
   { name: "OG Cold Brew",                description: "", image: "", sizes: [{ label: "T", price: "$6" }, { label: "G", price: "$8" }, { label: "V", price: "$10" }] },
-  { name: "Ube Cream Coldbrew Latte",    description: "", image: "", sizes: [{ label: "T", price: "$7" }, { label: "G", price: "$8" }, { label: "V", price: "$10" }] },
+  {
+    name: "Ube Cream Coldbrew Latte",
+    description: "",
+    image: "",
+    sizes: [{ label: "T", price: "$7" }, { label: "G", price: "$8" }, { label: "V", price: "$10" }],
+    milkOptionsOverride: [],
+  },
   { name: "Brown Sugar Cold Brew",       description: "", image: "", sizes: [{ label: "T", price: "$7" }, { label: "G", price: "$8" }, { label: "V", price: "$10" }] },
   { name: "Black Pearl Cold Brew Latte", description: "", image: "", sizes: [{ label: "T", price: "$7" }, { label: "G", price: "$8" }, { label: "V", price: "$10" }] },
   { name: "Spanish Latte Cold Brew",     description: "", image: "", sizes: [{ label: "T", price: "$7" }, { label: "G", price: "$8" }, { label: "V", price: "$10" }] },
@@ -41,14 +79,23 @@ const cloudItems: MenuItemData[] = [
   { name: "Twilight Coconut Cloud",    description: "Refreshing coconut water and homemade ube cloud foam.", image: "", sizes: [{ label: "G", price: "$8" }, { label: "V", price: "$10" }] },
 ];
 
-function MenuItemRow({ item, milkOptions }: { item: MenuItemData; milkOptions?: string[] }) {
+function MenuItemRow({
+  item,
+  milkOptions,
+  showSyrups = true,
+}: {
+  item: MenuItemData;
+  milkOptions?: string[];
+  showSyrups?: boolean;
+}) {
   const isMatcha = item.name.toLowerCase().includes("matcha");
   const validSizes = item.sizes.filter((s) => s.price !== "N/A");
   const slug = slugify(item.name);
+  const rowMilkOptions = item.milkOptionsOverride !== undefined ? item.milkOptionsOverride : milkOptions;
   const { addItem } = useCart();
   const [selectedSize, setSelectedSize] = useState(validSizes[0]?.label || "");
   const [selectedSyrups, setSelectedSyrups] = useState<string[]>([]);
-  const [selectedMilk, setSelectedMilk] = useState(milkOptions ? milkOptions[0] : "");
+  const [selectedMilk, setSelectedMilk] = useState(rowMilkOptions?.length ? rowMilkOptions[0] : "");
   const [sweetness, setSweetness] = useState("Sweet");
   const [matchaStrength, setMatchaStrength] = useState("default");
 
@@ -62,7 +109,7 @@ function MenuItemRow({ item, milkOptions }: { item: MenuItemData; milkOptions?: 
     e.preventDefault();
     const sizeLabel = selectedSize;
     const sizeName = SIZE_LABELS[sizeLabel] ?? sizeLabel;
-    const sortedSyrups = [...selectedSyrups].sort();
+    const sortedSyrups = showSyrups ? [...selectedSyrups].sort() : [];
     const displayName = `${item.name} (${sizeName})`;
     const id = `${slug}-${sizeLabel}-${sortedSyrups.join("-") || "plain"}-${selectedMilk || "nomilk"}-${sweetness}-${matchaStrength}`;
     let price = parseFloat(validSizes.find((s) => s.label === sizeLabel)?.price.replace("$", "") || "0");
@@ -71,10 +118,24 @@ function MenuItemRow({ item, milkOptions }: { item: MenuItemData; milkOptions?: 
       if (matchaStrength === "extra") { price += 0.5; matchaDesc = "Extra Strong (6g, +$0.50)"; }
       else if (matchaStrength === "strongest") { price += 1; matchaDesc = "Strongest (8g, +$1.00)"; }
     }
+    let milkDesc = selectedMilk;
+    if (selectedMilk && PREMIUM_MILKS.has(selectedMilk)) {
+      price += MILK_SURCHARGE;
+      milkDesc = `${selectedMilk} (+$${MILK_SURCHARGE})`;
+    }
+    let syrupExtras = 0;
+    const syrupDescParts = sortedSyrups.map((s) => {
+      const add = syrupSurchargeUsd(s);
+      syrupExtras += add;
+      if (add === 0) return s;
+      const suffix = add === 0.5 ? "+$0.50" : add === 1 ? "+$1" : `+$${add.toFixed(2)}`;
+      return `${s} (${suffix})`;
+    });
+    price += syrupExtras;
     const descArr = [];
     if (isMatcha) descArr.push(`Matcha: ${matchaDesc}`);
-    if (sortedSyrups.length) descArr.push(`Syrups: ${sortedSyrups.join(", ")}`);
-    if (selectedMilk) descArr.push(`Milk: ${selectedMilk}`);
+    if (sortedSyrups.length) descArr.push(`Syrups: ${syrupDescParts.join(", ")}`);
+    if (selectedMilk) descArr.push(`Milk: ${milkDesc}`);
     if (sweetness) descArr.push(`Sweetness: ${sweetness}`);
     const description = descArr.join(" | ");
     addItem({ id, name: displayName, description, price });
@@ -118,15 +179,16 @@ function MenuItemRow({ item, milkOptions }: { item: MenuItemData; milkOptions?: 
 
           {/* Milk + Sweetness side by side */}
           <div className="flex gap-6 flex-wrap items-start">
-            {milkOptions && (
+            {rowMilkOptions && rowMilkOptions.length > 0 && (
               <div>
                 <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-2">Milk Choice</p>
                 <div className="flex gap-2 flex-wrap">
-                  {milkOptions.map((milk) => (
+                  {rowMilkOptions.map((milk) => (
                     <label key={milk} className="cursor-pointer">
                       <input type="radio" name="milk" value={milk} checked={selectedMilk === milk} onChange={() => setSelectedMilk(milk)} className="sr-only peer" />
                       <span className="block px-4 py-2 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal/25 text-stll-charcoal peer-checked:bg-stll-charcoal peer-checked:text-white peer-checked:border-stll-charcoal">
                         {milk}
+                        {PREMIUM_MILKS.has(milk) ? " +$1" : ""}
                       </span>
                     </label>
                   ))}
@@ -173,20 +235,23 @@ function MenuItemRow({ item, milkOptions }: { item: MenuItemData; milkOptions?: 
             </div>
           )}
 
-          {/* Syrups */}
-          <div>
-            <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-2">Add Extra Syrup</p>
-            <div className="flex gap-2 flex-wrap">
-              {SYRUPS.map((syrup) => (
-                <label key={syrup} className="cursor-pointer">
-                  <input type="checkbox" name="syrup" value={syrup} checked={selectedSyrups.includes(syrup)} onChange={() => handleSyrupChange(syrup)} className="sr-only peer" />
-                  <span className="block px-4 py-2 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal/25 text-stll-charcoal peer-checked:bg-stll-charcoal peer-checked:text-white peer-checked:border-stll-charcoal">
-                    {syrup}
-                  </span>
-                </label>
-              ))}
+          {/* Syrups — not offered on coconut cloud drinks */}
+          {showSyrups && (
+            <div>
+              <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-2">Add Extra Syrup</p>
+              <div className="flex gap-2 flex-wrap">
+                {SYRUPS.map((syrup) => (
+                  <label key={syrup} className="cursor-pointer">
+                    <input type="checkbox" name="syrup" value={syrup} checked={selectedSyrups.includes(syrup)} onChange={() => handleSyrupChange(syrup)} className="sr-only peer" />
+                    <span className="block px-4 py-2 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal/25 text-stll-charcoal peer-checked:bg-stll-charcoal peer-checked:text-white peer-checked:border-stll-charcoal">
+                      {syrup}
+                      {formatSyrupPriceLabel(syrupSurchargeUsd(syrup))}
+                    </span>
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <button type="submit" className="w-full sm:w-auto px-8 py-3 text-[11px] tracking-[0.3em] uppercase border bg-stll-charcoal border-stll-charcoal text-white text-center cursor-pointer">
             Add to Order
@@ -197,7 +262,21 @@ function MenuItemRow({ item, milkOptions }: { item: MenuItemData; milkOptions?: 
   );
 }
 
-function MenuSection({ title, subtitle, items, milkOptions, milkNote }: { title: string; subtitle: string; items: MenuItemData[]; milkOptions?: string[]; milkNote?: string }) {
+function MenuSection({
+  title,
+  subtitle,
+  items,
+  milkOptions,
+  milkNote,
+  showSyrups = true,
+}: {
+  title: string;
+  subtitle: string;
+  items: MenuItemData[];
+  milkOptions?: string[];
+  milkNote?: string;
+  showSyrups?: boolean;
+}) {
   return (
     <section className="mb-20">
       <div className="flex items-baseline gap-4 mb-1">
@@ -209,7 +288,7 @@ function MenuSection({ title, subtitle, items, milkOptions, milkNote }: { title:
       {milkNote && <p className="text-xs text-stll-muted mb-2">{milkNote}</p>}
       <div className="flex flex-col divide-y divide-stll-charcoal/10">
         {items.map((item) => (
-          <MenuItemRow key={item.name} item={item} milkOptions={milkOptions} />
+          <MenuItemRow key={item.name} item={item} milkOptions={milkOptions} showSyrups={showSyrups} />
         ))}
       </div>
     </section>
@@ -230,20 +309,21 @@ export default function GalleryPage() {
           title="Matcha Lattes"
           subtitle="Premium Kyoto Matcha from Thea Matcha, Oat milk base"
           items={matchaItems}
-          milkOptions={["Oat", "Almond", "Soy"]}
-          milkNote="Oat milk is default. Almond/Soy available upon request."
+          milkOptions={["Oat", "Whole", "Almond", "Soy"]}
+          milkNote="Oat or Whole at menu price. Almond or Soy +$1."
         />
         <MenuSection
           title="Cold Brew Coffees"
           subtitle="Slow steeped, oat milk base"
           items={coldBrewItems}
           milkOptions={["Oat", "Whole", "Almond", "Soy"]}
-          milkNote="Oat milk is default. Whole/Almond/Soy available upon request."
+          milkNote="Oat or Whole at menu price. Almond or Soy +$1."
         />
         <MenuSection
           title="Coconut Cloud Drinks"
           subtitle="Coconut water, house-made cloud foams"
           items={cloudItems}
+          showSyrups={false}
         />
       </div>
     </div>

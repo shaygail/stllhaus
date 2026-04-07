@@ -1,6 +1,6 @@
 # STLL HAUS - Modern Beverage Ecommerce Platform
 
-A beautifully designed, minimal ecommerce website for STLL HAUS, a premium beverage brand. Built with Next.js 16, React, TypeScript, and Tailwind CSS with integrated Stripe payments and digital loyalty rewards program.
+A beautifully designed, minimal ecommerce website for STLL HAUS, a premium beverage brand. Built with Next.js 16, React, TypeScript, Tailwind CSS, Stripe checkout, and Supabase-based account loyalty.
 
 ## Features
 
@@ -18,17 +18,15 @@ A beautifully designed, minimal ecommerce website for STLL HAUS, a premium bever
 - 🏆 **Three-Tier Membership** - Bronze → Silver → Gold progression
 - 🎁 **Exclusive Benefits** - Tier-specific discounts (10-20% off) and perks
 - 📊 **Progress Tracking** - Visual cards showing tier status and advancement
-- 💾 **Persistent Storage** - Loyalty data saved across sessions
-- 🔗 **Seamless Integration** - Points preview at checkout, automatic awards at purchase
-
-Learn more: [LOYALTY_FEATURE.md](./LOYALTY_FEATURE.md)
+- 👤 **Account-Linked** - Rewards tied to signed-in users
+- 🔗 **Seamless Integration** - Automatic point awarding at order success
 
 ## Tech Stack
 
 - **Framework**: Next.js 16.2.0 (App Router)
 - **Language**: TypeScript 5.x
 - **Styling**: Tailwind CSS 4
-- **State**: React Context API + localStorage
+- **Auth + Loyalty Storage**: Supabase Auth (user metadata)
 - **Payments**: Stripe API
 - **Deployment**: Vercel-ready
 
@@ -66,10 +64,10 @@ Use Stripe test card: `4242 4242 4242 4242`
 
 ### Testing Loyalty
 
-1. Visit `/loyalty` to sign up for loyalty card
+1. Visit `/login` and sign in with email magic link
 2. Add items to cart and checkout
-3. Points automatically awarded on `/success` page
-4. View loyalty card to see tier progression
+3. Points are awarded on `/success` page
+4. Visit `/account` to view points, tier, and benefits
 
 ## Project Structure
 
@@ -81,19 +79,18 @@ app/
 ├── checkout/page.tsx      # Checkout page
 ├── success/page.tsx       # Order success (awards loyalty points)
 ├── cancel/page.tsx        # Order cancelled
-├── loyalty/page.tsx       # Loyalty program page
+├── loyalty/page.tsx       # Redirects to /account
+├── account/page.tsx       # Account + loyalty dashboard
+├── login/page.tsx         # Email magic-link sign in
 └── api/checkout/route.ts  # Stripe checkout API
 
 components/
-├── Navbar.tsx             # Navigation with cart & loyalty badge
+├── Navbar.tsx             # Navigation with account link
 ├── Footer.tsx             # Footer
 ├── Button.tsx             # Reusable button component
 ├── Card.tsx               # Reusable card component
 ├── Cart.tsx               # Shopping cart display
-├── CartContext.tsx        # Cart state management
-├── LoyaltyContext.tsx     # Loyalty state management
-├── LoyaltyCardDisplay.tsx # Loyalty card visual component
-└── SuccessHandler.tsx     # Handles loyalty points award on purchase
+└── CartContext.tsx        # Cart state management
 
 data/
 └── menu-items.ts          # Product menu data
@@ -125,18 +122,17 @@ Update `data/menu-items.ts` to add/modify beverages
 
 ### Loyalty Rewards
 
-Adjust in `components/LoyaltyContext.tsx`:
+Adjust in `lib/loyalty.ts`:
 
 - `POINTS_PER_DOLLAR`: Points earned per dollar (default: 10)
-- Tier thresholds in `determineTier()` function
-- Benefits in `getTierBenefits()` function
+- Tier thresholds in `getLoyaltyTier()`
+- Benefits in `getTierBenefits()`
 
 ## Documentation
 
 - [START.md](./START.md) - Quick start guide
 - [SETUP.md](./SETUP.md) - Detailed setup instructions
 - [BUILD_COMPLETE.md](./BUILD_COMPLETE.md) - Build completion checklist
-- [LOYALTY_FEATURE.md](./LOYALTY_FEATURE.md) - Loyalty system details
 
 ## Future Enhancements
 

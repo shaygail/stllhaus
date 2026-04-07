@@ -140,7 +140,7 @@ export default function CheckoutForm() {
         <div className="px-6 sm:px-12 lg:px-20 pt-16 pb-24">
           <p className="text-sm text-stll-muted mb-8">Your cart is empty. Add a drink from the menu to begin.</p>
           <Link
-            href="/gallery"
+            href="/menu"
             className="inline-block px-8 py-3 text-[11px] tracking-[0.3em] uppercase border bg-stll-charcoal border-stll-charcoal text-white"
           >
             Browse Menu

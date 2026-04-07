@@ -92,7 +92,7 @@ export default async function AccountPage() {
       <div className="flex flex-wrap gap-4">
         <SignOutButton />
         <Link
-          href="/gallery"
+          href="/menu"
           className="inline-flex items-center text-[11px] tracking-[0.2em] uppercase text-stll-muted hover:text-stll-charcoal border border-transparent hover:border-stll-charcoal/20 px-4 py-2"
         >
           Browse menu

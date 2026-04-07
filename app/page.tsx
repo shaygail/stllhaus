@@ -144,7 +144,7 @@ export default function Home() {
             Built from a passion for craft, every drink is created with intention — for your everyday pause.
           </p>
           <Link
-            href="/gallery"
+            href="/menu"
             className="mt-10 self-start inline-block border border-white/25 text-white text-[11px] tracking-[0.3em] uppercase px-8 py-4 hover:bg-white hover:text-stll-charcoal transition-all duration-400"
           >
             View Menu
@@ -171,7 +171,7 @@ export default function Home() {
             MAKE IT YOUR<br />STLL MOMENT
           </h2>
           <Link
-            href="/gallery"
+            href="/menu"
             className="mt-10 inline-block border border-white text-white text-[11px] tracking-[0.35em] uppercase px-12 py-4 hover:bg-white hover:text-stll-charcoal transition-all duration-400"
           >
             Order Now

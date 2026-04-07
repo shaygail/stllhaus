@@ -18,7 +18,7 @@ export function Footer() {
             <p className="text-[10px] tracking-[0.3em] uppercase text-white/35 mb-5">Pages</p>
             <ul className="space-y-3">
               {[
-                { href: "/gallery", label: "Menu" },
+                { href: "/menu", label: "Menu" },
                 { href: "/account", label: "Rewards" },
                 { href: "/checkout", label: "Checkout" },
               ].map((item) => (

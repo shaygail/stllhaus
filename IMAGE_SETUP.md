@@ -74,9 +74,9 @@ The Project uses Next.js Image component which automatically:
 
 ## Using Images in Components
 
-### In Gallery Page
+### In Menu Page
 
-Edit `/app/gallery/page.tsx`:
+Edit `/app/menu/page.tsx`:
 
 ```tsx
 <HeroImage
@@ -151,5 +151,5 @@ Images automatically scale:
 1. ✅ Create `/public/images` folder
 2. ✅ Add your images
 3. ✅ Update image paths in components
-4. ✅ Visit `/gallery` to see results
+4. ✅ Visit `/menu` to see results
 5. ✅ Customize styling as needed

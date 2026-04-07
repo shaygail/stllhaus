@@ -56,7 +56,7 @@ export function Cart() {
         </h2>
         <p className="text-sm text-stll-muted mb-8">Add a drink from the menu to begin your order.</p>
         <Link
-          href="/gallery"
+          href="/menu"
           className="inline-block px-8 py-3 text-[11px] tracking-[0.3em] uppercase border bg-stll-charcoal border-stll-charcoal text-white text-center cursor-pointer"
         >
           Browse Menu

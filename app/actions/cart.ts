@@ -59,8 +59,8 @@ export async function addToCartAction(formData: FormData) {
     httpOnly: false,
   });
 
-  // Redirect back to gallery with success indicator in URL
-  redirect(`/gallery?added=${encodeURIComponent(displayName)}`);
+  // Redirect back to menu with success indicator in URL
+  redirect(`/menu?added=${encodeURIComponent(displayName)}`);
 }
 
 export async function removeFromCartAction(formData: FormData) {

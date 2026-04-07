@@ -201,10 +201,10 @@ Brand identity/story sections with text and image.
 
 ## 📍 Where to Find Components
 
-### Gallery Page Layout
+### Menu Page Layout
 
-**URL**: `/gallery`
-**File**: `/app/gallery/page.tsx`
+**URL**: `/menu`
+**File**: `/app/menu/page.tsx`
 
 This page showcases all components in action!
 
@@ -261,9 +261,9 @@ All components are mobile-first designed!
 2. Add your product images
 3. See `IMAGE_SETUP.md` for specifications
 
-### Step 2: Update Gallery Page
+### Step 2: Update Menu Page
 
-Edit `/app/gallery/page.tsx`:
+Edit `/app/menu/page.tsx`:
 
 - Replace placeholder image URLs
 - Update product showcase items
@@ -319,7 +319,7 @@ Everything is optimized and ready:
 
 - `IMAGE_SETUP.md` - Image setup instructions
 - `IMAGE_LAYOUT_GUIDE.md` - Detailed component guide
-- `/app/gallery/page.tsx` - Gallery page example
+- `/app/menu/page.tsx` - Menu page example
 - `/components/HeroImage.tsx` - Hero component
 - `/components/SplitSection.tsx` - Split component
 - `/components/ProductShowcase.tsx` - Showcase component
@@ -384,5 +384,5 @@ Refer to:
 
 - Component usage examples above
 - Individual component files
-- Gallery page implementation
+- Menu page implementation
 - IMAGE_SETUP.md documentation

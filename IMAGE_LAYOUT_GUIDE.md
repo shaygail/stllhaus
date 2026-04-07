@@ -75,9 +75,9 @@ Place your images in `/public/images/`:
 - Product images (500x500 recommended)
 - Drink images (600x500 recommended)
 
-### Step 2: Update Gallery Page
+### Step 2: Update Menu Page
 
-Edit `/app/gallery/page.tsx` and replace placeholder URLs:
+Edit `/app/menu/page.tsx` and replace placeholder URLs:
 
 **Before:**
 
@@ -98,9 +98,9 @@ src = "/images/your-image.jpg";
 - Use responsive sizes for mobile
 - WebP format recommended for better performance
 
-## Gallery Page Location
+## Menu Page Location
 
-Visit: `/gallery`
+Visit: `/menu`
 
 The gallery showcases all new layout components in action!
 

@@ -10,35 +10,102 @@ export function LoginClient() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/account";
   const [error, setError] = useState<string | null>(null);
-  const [pendingEmail, setPendingEmail] = useState(false);
+  const [pending, setPending] = useState<"idle" | "signin" | "signup">("idle");
   const [email, setEmail] = useState("");
   const [emailSent, setEmailSent] = useState(false);
 
-  async function signInWithEmailLink(e: React.FormEvent) {
-    e.preventDefault();
+  const base = () => getClientAuthRedirectBaseUrl();
+  const redirectTo = () =>
+    `${base()}/auth/callback?next=${encodeURIComponent(next)}`;
+
+  async function sendSignInLink() {
     setError(null);
+    setEmailSent(false);
     const trimmed = email.trim();
     if (!trimmed) {
       setError("Enter your email address.");
       return;
     }
-    setPendingEmail(true);
-    setEmailSent(false);
+    setPending("signin");
     try {
       const supabase = createClient();
-      const base = getClientAuthRedirectBaseUrl();
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: trimmed,
         options: {
-          emailRedirectTo: `${base}/auth/callback?next=${encodeURIComponent(next)}`,
+          shouldCreateUser: false,
+          emailRedirectTo: redirectTo(),
         },
       });
-      if (otpError) setError(otpError.message);
-      else setEmailSent(true);
+      if (otpError) {
+        const msg = otpError.message.toLowerCase();
+        if (msg.includes("signups not allowed") || msg.includes("user not found") || msg.includes("not registered")) {
+          setError(
+            "No account exists for this email yet. Use “Create account” below, or check the address for typos."
+          );
+        } else {
+          setError(otpError.message);
+        }
+        return;
+      }
+      setEmailSent(true);
     } catch {
       setError("Could not send the link. Try again.");
     } finally {
-      setPendingEmail(false);
+      setPending("idle");
+    }
+  }
+
+  async function sendSignUpLink() {
+    setError(null);
+    setEmailSent(false);
+    const trimmed = email.trim();
+    if (!trimmed) {
+      setError("Enter your email address.");
+      return;
+    }
+    setPending("signup");
+    try {
+      const res = await fetch("/api/auth/email-exists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed }),
+      });
+      const data = (await res.json()) as { exists?: boolean; error?: string };
+
+      if (res.status === 503) {
+        setError(
+          "New account registration is not fully configured on the server. Please contact Stll Haus or try “Email me a sign-in link” if you already have an account."
+        );
+        return;
+      }
+      if (!res.ok) {
+        setError(data.error === "invalid_email" ? "Enter a valid email address." : "Could not check this email. Try again.");
+        return;
+      }
+      if (data.exists) {
+        setError(
+          "This email is already registered. Use “Email me a sign-in link” above instead of creating another account."
+        );
+        return;
+      }
+
+      const supabase = createClient();
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: trimmed,
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: redirectTo(),
+        },
+      });
+      if (otpError) {
+        setError(otpError.message);
+        return;
+      }
+      setEmailSent(true);
+    } catch {
+      setError("Could not send the link. Try again.");
+    } finally {
+      setPending("idle");
     }
   }
 
@@ -49,10 +116,10 @@ export function LoginClient() {
         Sign in
       </h1>
       <p className="text-sm text-stll-muted text-center max-w-md mb-10">
-        Use any email and we&apos;ll send you a one-time sign-in link. This account will be used for loyalty rewards.
+        One email per account. Sign in if you already ordered with us, or create an account if you&apos;re new.
       </p>
 
-      <form onSubmit={signInWithEmailLink} className="w-full max-w-sm flex flex-col gap-3">
+      <div className="w-full max-w-sm flex flex-col gap-3">
         <label htmlFor="login-email" className="sr-only">
           Email
         </label>
@@ -67,16 +134,25 @@ export function LoginClient() {
           className="w-full px-4 py-3 text-sm border border-stll-charcoal/20 bg-white text-stll-charcoal placeholder:text-stll-muted/60 focus:outline-none focus:border-stll-charcoal/40"
         />
         <button
-          type="submit"
-          disabled={pendingEmail}
+          type="button"
+          onClick={() => void sendSignInLink()}
+          disabled={pending !== "idle"}
           className="w-full px-8 py-3.5 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal bg-stll-charcoal text-white hover:bg-stll-charcoal/90 transition-colors disabled:opacity-50"
         >
-          {pendingEmail ? "Sending…" : "Email me a sign-in link"}
+          {pending === "signin" ? "Sending…" : "Email me a sign-in link"}
         </button>
-      </form>
+        <button
+          type="button"
+          onClick={() => void sendSignUpLink()}
+          disabled={pending !== "idle"}
+          className="w-full px-8 py-3.5 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal/25 text-stll-charcoal hover:bg-stll-charcoal/5 transition-colors disabled:opacity-50"
+        >
+          {pending === "signup" ? "Sending…" : "Create account"}
+        </button>
+      </div>
       {emailSent && (
         <p className="mt-4 text-sm text-stll-charcoal text-center max-w-md">
-          Check your inbox for a link to sign in. It may take a minute to arrive.
+          Check your inbox for a link to continue. It may take a minute to arrive.
         </p>
       )}
       {error && <p className="mt-4 text-sm text-red-700 text-center max-w-md">{error}</p>}

@@ -1,6 +1,7 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import { mergeOrderHistory, parseOrderHistory, type OrderHistoryEntry } from "@/lib/order-history";
 import { POINTS_PER_DOLLAR, getLoyaltyTier } from "@/lib/loyalty";
 import Link from "next/link";
 import Image from "next/image";
@@ -53,9 +54,6 @@ export default function SuccessClient() {
 
       if (!user) return;
 
-      const pointsEarned = Math.max(0, Math.floor(lastOrder.total * POINTS_PER_DOLLAR));
-      if (pointsEarned <= 0) return;
-
       const orderFingerprint =
         lastOrder.orderId ??
         `${lastOrder.total}-${lastOrder.pickupTime}-${lastOrder.items
@@ -65,6 +63,8 @@ export default function SuccessClient() {
 
       if (sessionStorage.getItem(sessionKey) === "1") return;
 
+      const pointsEarned = Math.max(0, Math.floor(lastOrder.total * POINTS_PER_DOLLAR));
+
       const metadata = user.user_metadata ?? {};
       const currentPoints = Number(metadata.loyalty_points ?? 0) || 0;
       const currentPurchases = Number(metadata.loyalty_total_purchases ?? 0) || 0;
@@ -73,21 +73,48 @@ export default function SuccessClient() {
       const nextPoints = currentPoints + pointsEarned;
       const nextSpent = currentSpent + lastOrder.total;
 
+      const prevName = String(metadata.full_name ?? "").trim();
+      const checkoutName = String(lastOrder.customerName ?? "").trim();
+      const fullName = prevName || checkoutName;
+
+      const summary = lastOrder.items
+        .map((item) => `${item.quantity}× ${item.name}`)
+        .slice(0, 5)
+        .join(", ");
+
+      const entry: OrderHistoryEntry = {
+        id: orderFingerprint,
+        placedAt: new Date().toISOString(),
+        total: lastOrder.total,
+        summary,
+        pickupTime: lastOrder.pickupTime,
+        paymentMethod: lastOrder.paymentMethod,
+      };
+
+      const nextHistory = mergeOrderHistory(parseOrderHistory(metadata.order_history), entry);
+
+      const nextData: Record<string, unknown> = {
+        ...metadata,
+        full_name: fullName || metadata.full_name,
+        order_history: nextHistory,
+        loyalty_total_purchases: currentPurchases + 1,
+        loyalty_total_spent: Number(nextSpent.toFixed(2)),
+      };
+
+      if (pointsEarned > 0) {
+        nextData.loyalty_points = nextPoints;
+        nextData.loyalty_tier = getLoyaltyTier(nextPoints);
+        nextData.loyalty_last_awarded_order = orderFingerprint;
+        nextData.loyalty_last_awarded_at = new Date().toISOString();
+      }
+
       const { error } = await supabase.auth.updateUser({
-        data: {
-          ...metadata,
-          loyalty_points: nextPoints,
-          loyalty_total_purchases: currentPurchases + 1,
-          loyalty_total_spent: Number(nextSpent.toFixed(2)),
-          loyalty_tier: getLoyaltyTier(nextPoints),
-          loyalty_last_awarded_order: orderFingerprint,
-          loyalty_last_awarded_at: new Date().toISOString(),
-        },
+        data: nextData,
       });
 
       if (!error) {
         sessionStorage.setItem(sessionKey, "1");
-        setAwardedPoints(pointsEarned);
+        if (pointsEarned > 0) setAwardedPoints(pointsEarned);
       }
     };
 

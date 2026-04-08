@@ -7,7 +7,8 @@ export default function AuthCodeErrorPage() {
         Sign-in did not complete
       </h1>
       <p className="text-sm text-stll-muted text-center max-w-md mb-8">
-        Something went wrong while connecting your Google account. Try again, or contact us if this keeps happening.
+        The sign-in link may have expired, already been used, or your browser blocked cookies. Request a new link from
+        the sign-in page, or contact us if this keeps happening.
       </p>
       <Link
         href="/login"

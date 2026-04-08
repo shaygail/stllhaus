@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { parseOrderHistory } from "@/lib/order-history";
 import {
   getLoyaltyTier,
   getNextTierTarget,
@@ -21,6 +22,10 @@ export default async function AccountPage() {
 
   const email = user.email ?? "your account";
   const metadata = user.user_metadata ?? {};
+  const displayName =
+    String(metadata.full_name ?? "").trim() ||
+    (email.includes("@") ? email.split("@")[0] : email);
+  const orders = parseOrderHistory(metadata.order_history);
   const totalPoints = Number(metadata.loyalty_points ?? 0) || 0;
   const totalPurchases = Number(metadata.loyalty_total_purchases ?? 0) || 0;
   const totalSpent = Number(metadata.loyalty_total_spent ?? 0) || 0;
@@ -36,10 +41,10 @@ export default async function AccountPage() {
   const benefits = getTierBenefits(tier);
 
   return (
-    <div className="min-h-[70vh] px-6 sm:px-12 lg:px-20 py-24 max-w-lg mx-auto">
+    <div className="min-h-[70vh] px-6 sm:px-12 lg:px-20 py-24 max-w-2xl mx-auto">
       <p className="text-[10px] tracking-[0.35em] uppercase text-stll-muted mb-4">Account</p>
       <h1 className="text-3xl font-black uppercase tracking-tight text-stll-charcoal mb-2">
-        Welcome back
+        Welcome back{displayName ? `, ${displayName}` : ""}
       </h1>
       <p className="text-sm text-stll-muted mb-10">{email}</p>
 
@@ -87,6 +92,41 @@ export default async function AccountPage() {
             </ul>
           </div>
         </div>
+      </section>
+
+      <section className="border border-stll-charcoal/15 p-6 mb-8 bg-white/60">
+        <h2 className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-4">Recent orders</h2>
+        {orders.length === 0 ? (
+          <p className="text-sm text-stll-muted leading-relaxed">
+            No orders linked yet. Place an order while signed in — it will show up here with your points.
+          </p>
+        ) : (
+          <ul className="flex flex-col divide-y divide-stll-charcoal/10">
+            {orders.map((order) => (
+              <li key={order.id} className="py-4 first:pt-0">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="text-sm font-semibold text-stll-charcoal">
+                    ${order.total.toFixed(2)}
+                  </p>
+                  <p className="text-[10px] tracking-[0.2em] uppercase text-stll-muted">
+                    {new Date(order.placedAt).toLocaleString(undefined, {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </p>
+                </div>
+                {order.summary && (
+                  <p className="text-xs text-stll-muted mt-2 leading-relaxed">{order.summary}</p>
+                )}
+                {(order.pickupTime || order.paymentMethod) && (
+                  <p className="text-[10px] text-stll-muted/80 mt-2 tracking-wide">
+                    {[order.pickupTime, order.paymentMethod].filter(Boolean).join(" · ")}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <div className="flex flex-wrap gap-4">

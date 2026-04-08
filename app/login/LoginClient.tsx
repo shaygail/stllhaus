@@ -1,5 +1,6 @@
 "use client";
 
+import { getClientAuthRedirectBaseUrl } from "@/lib/auth-redirect";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -25,11 +26,11 @@ export function LoginClient() {
     setEmailSent(false);
     try {
       const supabase = createClient();
-      const origin = window.location.origin;
+      const base = getClientAuthRedirectBaseUrl();
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: trimmed,
         options: {
-          emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
+          emailRedirectTo: `${base}/auth/callback?next=${encodeURIComponent(next)}`,
         },
       });
       if (otpError) setError(otpError.message);

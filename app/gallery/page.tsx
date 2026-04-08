@@ -285,7 +285,9 @@ function MenuSection({
         </h2>
       </div>
       <p className="text-[10px] tracking-[0.3em] uppercase text-stll-muted mb-2">{subtitle}</p>
-      {milkNote && <p className="text-xs text-stll-muted mb-2">{milkNote}</p>}
+      {milkNote && (
+        <p className="text-xs text-stll-muted mb-2 uppercase tracking-[0.15em]">{milkNote}</p>
+      )}
       <div className="flex flex-col divide-y divide-stll-charcoal/10">
         {items.map((item) => (
           <MenuItemRow key={item.name} item={item} milkOptions={milkOptions} showSyrups={showSyrups} />
@@ -310,14 +312,14 @@ export default function GalleryPage() {
           subtitle="Premium Kyoto Matcha from Thea Matcha, Oat milk base"
           items={matchaItems}
           milkOptions={["Oat", "Whole", "Almond", "Soy"]}
-          milkNote="Oat or Whole at menu price. Almond or Soy +$1."
+          milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
         />
         <MenuSection
           title="Cold Brew Coffees"
           subtitle="Slow steeped, oat milk base"
           items={coldBrewItems}
           milkOptions={["Oat", "Whole", "Almond", "Soy"]}
-          milkNote="Oat or Whole at menu price. Almond or Soy +$1."
+          milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
         />
         <MenuSection
           title="Coconut Cloud Drinks"

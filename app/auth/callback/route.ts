@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { resolvePostLoginRedirect } from "@/lib/post-login-redirect";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
@@ -7,21 +8,14 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type");
-  const next = searchParams.get("next") ?? "/account";
+  const next = searchParams.get("next");
   const supabase = await createClient();
+  const successUrl = () => resolvePostLoginRedirect(request, next);
 
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      const forwardedHost = request.headers.get("x-forwarded-host");
-      const isLocalEnv = process.env.NODE_ENV === "development";
-      if (isLocalEnv) {
-        return NextResponse.redirect(`${origin}${next}`);
-      }
-      if (forwardedHost) {
-        return NextResponse.redirect(`https://${forwardedHost}${next}`);
-      }
-      return NextResponse.redirect(`${origin}${next}`);
+      return NextResponse.redirect(successUrl());
     }
   }
 
@@ -32,7 +26,7 @@ export async function GET(request: Request) {
       type: type as EmailOtpType,
     });
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+      return NextResponse.redirect(successUrl());
     }
   }
 

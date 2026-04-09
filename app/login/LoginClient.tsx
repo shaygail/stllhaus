@@ -1,6 +1,7 @@
 "use client";
 
 import { getClientAuthRedirectBaseUrl } from "@/lib/auth-redirect";
+import { POINTS_PER_DOLLAR } from "@/lib/loyalty";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -65,12 +66,12 @@ export function LoginClient() {
     }
     setPending("signup");
     try {
-      const res = await fetch("/api/auth/email-exists", {
+      const res = await fetch("/api/auth/signup-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: trimmed }),
+        body: JSON.stringify({ email: trimmed, next }),
       });
-      const data = (await res.json()) as { exists?: boolean; error?: string };
+      const data = (await res.json()) as { success?: boolean; error?: string };
 
       if (res.status === 503) {
         setError(
@@ -78,27 +79,14 @@ export function LoginClient() {
         );
         return;
       }
-      if (!res.ok) {
-        setError(data.error === "invalid_email" ? "Enter a valid email address." : "Could not check this email. Try again.");
-        return;
-      }
-      if (data.exists) {
+      if (res.status === 409 || data.error === "already_registered") {
         setError(
           "This email is already registered. Use “Email me a sign-in link” above instead of creating another account."
         );
         return;
       }
-
-      const supabase = createClient();
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: trimmed,
-        options: {
-          shouldCreateUser: true,
-          emailRedirectTo: redirectTo(),
-        },
-      });
-      if (otpError) {
-        setError(otpError.message);
+      if (!res.ok) {
+        setError(data.error === "invalid_email" ? "Enter a valid email address." : "Could not send the link. Try again.");
         return;
       }
       setEmailSent(true);
@@ -118,6 +106,20 @@ export function LoginClient() {
       <p className="text-sm text-stll-muted text-center max-w-md mb-10">
         One email per account. Sign in if you already ordered with us, or create an account if you&apos;re new.
       </p>
+
+      <section className="w-full max-w-sm border border-stll-charcoal/15 bg-white/60 p-4 mb-6">
+        <p className="text-[10px] tracking-[0.2em] uppercase text-stll-muted mb-2">Loyalty points</p>
+        <p className="text-sm text-stll-charcoal mb-2">
+          Earn <span className="font-semibold">{POINTS_PER_DOLLAR} points per $1</span> spent.
+        </p>
+        <p className="text-xs text-stll-muted leading-relaxed mb-3">
+          Bronze: 0+ points · Silver: 250+ points · Gold: 500+ points
+        </p>
+        <p className="text-xs text-stll-charcoal leading-relaxed">
+          Rewards milestones: <span className="font-semibold">10% off on the 5th order</span> and{" "}
+          <span className="font-semibold">a free drink on the 10th order</span>.
+        </p>
+      </section>
 
       <div className="w-full max-w-sm flex flex-col gap-3">
         <label htmlFor="login-email" className="sr-only">

@@ -8,7 +8,6 @@ import { useEffect, useState } from "react";
 const navItems = [
   { href: "/", label: "Home" },
   { href: "/menu", label: "Menu" },
-  { href: "/contact", label: "Contact" },
   { href: "/account", label: "Account" },
 ];
 

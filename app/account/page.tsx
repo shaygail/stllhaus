@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { parseOrderHistory } from "@/lib/order-history";
+import { parseRewardHistory } from "@/lib/reward-history";
 import {
   getLoyaltyTier,
   getNextTierTarget,
+  getPurchaseRewardsStatus,
   getTierBenefits,
   type LoyaltyTier,
 } from "@/lib/loyalty";
@@ -26,6 +28,7 @@ export default async function AccountPage() {
     String(metadata.full_name ?? "").trim() ||
     (email.includes("@") ? email.split("@")[0] : email);
   const orders = parseOrderHistory(metadata.order_history);
+  const rewards = parseRewardHistory(metadata.reward_history);
   const totalPoints = Number(metadata.loyalty_points ?? 0) || 0;
   const totalPurchases = Number(metadata.loyalty_total_purchases ?? 0) || 0;
   const totalSpent = Number(metadata.loyalty_total_spent ?? 0) || 0;
@@ -39,6 +42,7 @@ export default async function AccountPage() {
   const nextTarget = getNextTierTarget(totalPoints);
   const pointsToNext = nextTarget ? Math.max(0, nextTarget - totalPoints) : 0;
   const benefits = getTierBenefits(tier);
+  const rewardStatus = getPurchaseRewardsStatus(totalPurchases);
 
   return (
     <div className="min-h-[70vh] px-6 sm:px-12 lg:px-20 py-24 max-w-2xl mx-auto">
@@ -91,6 +95,28 @@ export default async function AccountPage() {
               ))}
             </ul>
           </div>
+
+          <div className="border-t border-stll-charcoal/10 pt-4">
+            <p className="text-[10px] tracking-[0.2em] uppercase text-stll-muted mb-2">Order Rewards</p>
+            <p className="text-sm text-stll-charcoal mb-1">
+              5th order: <span className="font-semibold">10% off</span> · 10th order:{" "}
+              <span className="font-semibold">Free drink</span>
+            </p>
+            {rewardStatus.tenPercentAvailable && (
+              <p className="text-sm text-stll-charcoal">You can claim your <span className="font-semibold">10% off</span> now.</p>
+            )}
+            {rewardStatus.freeDrinkAvailable && (
+              <p className="text-sm text-stll-charcoal">You can claim your <span className="font-semibold">free drink</span> now.</p>
+            )}
+            {!rewardStatus.tenPercentAvailable && !rewardStatus.freeDrinkAvailable && (
+              <p className="text-sm text-stll-charcoal">
+                Next: {rewardStatus.ordersUntilTenPercent} order
+                {rewardStatus.ordersUntilTenPercent === 1 ? "" : "s"} until 10% off, then{" "}
+                {rewardStatus.ordersUntilFreeDrink} order
+                {rewardStatus.ordersUntilFreeDrink === 1 ? "" : "s"} until free drink.
+              </p>
+            )}
+          </div>
         </div>
       </section>
 
@@ -125,6 +151,48 @@ export default async function AccountPage() {
                 )}
               </li>
             ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="border border-stll-charcoal/15 p-6 mb-8 bg-white/60">
+        <h2 className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-4">Reward history</h2>
+        {rewards.length === 0 ? (
+          <p className="text-sm text-stll-muted leading-relaxed">
+            No rewards recorded yet. Once you hit milestones, earned and redeemed rewards will appear here.
+          </p>
+        ) : (
+          <ul className="flex flex-col divide-y divide-stll-charcoal/10">
+            {rewards.map((reward) => {
+              const rewardLabel = reward.rewardType === "free_drink" ? "Free drink" : "10% off";
+              const sourceLabel = reward.source === "gold_retention" ? "Gold retention" : "Order milestone";
+              return (
+                <li key={reward.id} className="py-4 first:pt-0">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <p className="text-sm font-semibold text-stll-charcoal">{rewardLabel}</p>
+                    <p className="text-[10px] tracking-[0.2em] uppercase text-stll-muted">
+                      {new Date(reward.awardedAt).toLocaleString(undefined, {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </p>
+                  </div>
+                  <p className="text-xs text-stll-muted mt-1 leading-relaxed">
+                    Status: <span className="uppercase">{reward.status}</span> · {sourceLabel} · Awarded at order #
+                    {reward.orderCountAtAward}
+                  </p>
+                  {reward.redeemedAt && (
+                    <p className="text-[10px] text-stll-muted/80 mt-2 tracking-wide">
+                      Redeemed:{" "}
+                      {new Date(reward.redeemedAt).toLocaleString(undefined, {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </p>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

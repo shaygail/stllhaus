@@ -20,6 +20,7 @@ export function Footer() {
               {[
                 { href: "/menu", label: "Menu" },
                 { href: "/account", label: "Rewards" },
+                { href: "/contact", label: "Contact" },
                 { href: "/checkout", label: "Checkout" },
               ].map((item) => (
                 <li key={item.href}>

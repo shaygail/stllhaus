@@ -12,6 +12,10 @@ type MenuItemData = {
   sizes: Size[];
   /** When set, replaces the section default. Use `[]` to hide milk choice for this drink. */
   milkOptionsOverride?: string[];
+  /** When set, shows temperature choices for this drink. */
+  temperatureOptionsOverride?: string[];
+  /** When true, hides syrup and cold foam add-ons (e.g. OG Matcha: milk, temp, matcha strength only). */
+  hideAddOns?: boolean;
 };
 
 const SIZE_LABELS: Record<string, string> = { T: "Small", G: "Regular", V: "Large" };
@@ -44,19 +48,66 @@ function formatSyrupPriceLabel(amount: number): string {
   if (amount <= 0) return "";
   if (amount === 0.5) return " +$0.50";
   if (amount === 1) return " +$1";
+  if (amount === 2) return " +$2";
   return ` +$${amount.toFixed(2)}`;
+}
+
+/** Cold foam add-ons (Matcha, Cold Brew, Coffee Series, Coconut Cloud). */
+const COLD_FOAMS = [
+  "Sea Salt",
+  "Maple Cloud",
+  "Matcha Cloud",
+  "Ube Cream",
+  "Vanilla Sweet Cream",
+  "Black Pearl",
+] as const;
+
+const COLD_FOAM_SURCHARGE_USD: Record<string, number> = {
+  "Sea Salt": 1,
+  "Maple Cloud": 1,
+  "Matcha Cloud": 2,
+  "Ube Cream": 2,
+  "Vanilla Sweet Cream": 1,
+  "Black Pearl": 1,
+};
+
+function coldFoamSurchargeUsd(name: string): number {
+  return COLD_FOAM_SURCHARGE_USD[name] ?? 0;
 }
 
 function slugify(s: string) {
   return s.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 }
 
+function getDairyCreamBaseNote(itemName: string): string | null {
+  const name = itemName.toLowerCase();
+  const isCloudDrink = name.includes("cloud");
+  const isUbeCreamDrink = name.includes("ube cream");
+
+  if (!isCloudDrink && !isUbeCreamDrink) return null;
+  return "Contains dairy cream for the base.";
+}
+
 const matchaItems: MenuItemData[] = [
-  { name: "Earl Grey Matcha",            description: "Premium Kyoto matcha with earl grey notes. Choose your matcha strength below.", image: "", sizes: [{ label: "G", price: "$8" }, { label: "V", price: "N/A" }] },
-  { name: "OG Matcha Latte",             description: "Classic matcha latte. Default is 4g matcha, but you can select extra strong options.", image: "", sizes: [{ label: "G", price: "$7" }, { label: "V", price: "N/A" }] },
+  { name: "Earl Grey Matcha",            description: "Premium Kyoto matcha with earl grey notes. Choose your matcha strength below.", image: "", sizes: [{ label: "G", price: "$8" }, { label: "V", price: "N/A" }], temperatureOptionsOverride: ["Hot", "Iced"] },
+  {
+    name: "OG Matcha Latte",
+    description: "Simple matcha latte — milk, hot or iced, and matcha strength only. No syrup or cold foam add-ons.",
+    image: "",
+    sizes: [{ label: "G", price: "$7" }, { label: "V", price: "N/A" }],
+    temperatureOptionsOverride: ["Hot", "Iced"],
+    hideAddOns: true,
+  },
+  {
+    name: "Classic Matcha",
+    description: "Fully customisable — syrups, cold foams, milk, temperature, matcha strength, and sweetness.",
+    image: "",
+    sizes: [{ label: "G", price: "$7" }, { label: "V", price: "N/A" }],
+    temperatureOptionsOverride: ["Hot", "Iced"],
+  },
   { name: "Strawberry Matcha",           description: "Strawberry and matcha fusion. Adjust matcha strength as you like.", image: "", sizes: [{ label: "G", price: "$10" }, { label: "V", price: "N/A" }] },
-  { name: "Strawberry and Cloud Matcha", description: "Strawberry, cloud foam, and matcha. Choose your matcha strength.", image: "", sizes: [{ label: "G", price: "$11" }, { label: "V", price: "N/A" }] },
-  { name: "Ube Cream Matcha",            description: "Ube cream and matcha. Default is 4g matcha, but you can select extra strong options.", image: "", sizes: [{ label: "G", price: "$8" }, { label: "V", price: "$10" }] },
+  { name: "Strawberry Cloud Matcha", description: "Strawberry, cloud foam, and matcha. Choose your matcha strength.", image: "", sizes: [{ label: "G", price: "$11" }, { label: "V", price: "N/A" }] },
+  { name: "Ube Cream Matcha",            description: "Ube cream and matcha. Default is 4g matcha, but you can select extra strong options.", image: "", sizes: [{ label: "G", price: "$8" }, { label: "V", price: "$10" }], temperatureOptionsOverride: ["Hot", "Iced"] },
 ];
 
 const coldBrewItems: MenuItemData[] = [
@@ -73,6 +124,12 @@ const coldBrewItems: MenuItemData[] = [
   { name: "Spanish Latte Cold Brew",     description: "", image: "", sizes: [{ label: "T", price: "$7" }, { label: "G", price: "$8" }, { label: "V", price: "$10" }] },
 ];
 
+const coffeeItems: MenuItemData[] = [
+  { name: "Ube Spanish Latte", description: "", image: "", sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$11.00" }], temperatureOptionsOverride: ["Hot", "Iced"] },
+  { name: "Spanish Latte", description: "", image: "", sizes: [{ label: "G", price: "$8.00" }, { label: "V", price: "$10.00" }], temperatureOptionsOverride: ["Hot", "Iced"] },
+  { name: "Biscoff Latte", description: "", image: "", sizes: [{ label: "G", price: "$9.00" }, { label: "V", price: "$13.00" }], temperatureOptionsOverride: ["Hot", "Iced"] },
+];
+
 const cloudItems: MenuItemData[] = [
   { name: "Black Pearl Coconut Cloud", description: "Refreshing coconut water and homemade black gulaman cloud foam.", image: "", sizes: [{ label: "G", price: "$8" }, { label: "V", price: "$10" }] },
   { name: "Clover Coconut Cloud",      description: "Refreshing coconut water and premium Kyoto Thea matcha powder cloud foam.", image: "", sizes: [{ label: "G", price: "$8" }, { label: "V", price: "$10" }] },
@@ -83,21 +140,32 @@ function MenuItemRow({
   item,
   milkOptions,
   showSyrups = true,
+  showColdFoams = false,
 }: {
   item: MenuItemData;
   milkOptions?: string[];
   showSyrups?: boolean;
+  showColdFoams?: boolean;
 }) {
   const isMatcha = item.name.toLowerCase().includes("matcha");
+  const dairyCreamNote = getDairyCreamBaseNote(item.name);
   const validSizes = item.sizes.filter((s) => s.price !== "N/A");
   const slug = slugify(item.name);
   const rowMilkOptions = item.milkOptionsOverride !== undefined ? item.milkOptionsOverride : milkOptions;
+  const rowTemperatureOptions = item.temperatureOptionsOverride ?? [];
   const { addItem } = useCart();
   const [selectedSize, setSelectedSize] = useState(validSizes[0]?.label || "");
   const [selectedSyrups, setSelectedSyrups] = useState<string[]>([]);
+  const [selectedColdFoams, setSelectedColdFoams] = useState<string[]>([]);
   const [selectedMilk, setSelectedMilk] = useState(rowMilkOptions?.length ? rowMilkOptions[0] : "");
+  const [selectedTemperature, setSelectedTemperature] = useState(
+    rowTemperatureOptions.length ? rowTemperatureOptions[0] : ""
+  );
   const [sweetness, setSweetness] = useState("Sweet");
   const [matchaStrength, setMatchaStrength] = useState("default");
+
+  const rowShowSyrups = showSyrups && !item.hideAddOns;
+  const rowShowColdFoams = showColdFoams && !item.hideAddOns;
 
   const handleSyrupChange = (syrup: string) => {
     setSelectedSyrups((prev) =>
@@ -105,13 +173,20 @@ function MenuItemRow({
     );
   };
 
+  const handleColdFoamChange = (foam: string) => {
+    setSelectedColdFoams((prev) =>
+      prev.includes(foam) ? prev.filter((f) => f !== foam) : [...prev, foam]
+    );
+  };
+
   const handleAddToCart = (e: React.FormEvent) => {
     e.preventDefault();
     const sizeLabel = selectedSize;
     const sizeName = SIZE_LABELS[sizeLabel] ?? sizeLabel;
-    const sortedSyrups = showSyrups ? [...selectedSyrups].sort() : [];
-    const displayName = `${item.name} (${sizeName})`;
-    const id = `${slug}-${sizeLabel}-${sortedSyrups.join("-") || "plain"}-${selectedMilk || "nomilk"}-${sweetness}-${matchaStrength}`;
+    const sortedSyrups = rowShowSyrups ? [...selectedSyrups].sort() : [];
+    const sortedColdFoams = rowShowColdFoams ? [...selectedColdFoams].sort() : [];
+    const displayName = `${item.name} (${sizeName}${selectedTemperature ? `, ${selectedTemperature}` : ""})`;
+    const id = `${slug}-${sizeLabel}-${selectedTemperature || "notemp"}-${sortedSyrups.join("-") || "plain"}-${sortedColdFoams.join("-") || "nocfoam"}-${selectedMilk || "nomilk"}-${sweetness}-${matchaStrength}`;
     let price = parseFloat(validSizes.find((s) => s.label === sizeLabel)?.price.replace("$", "") || "0");
     let matchaDesc = "Default (4g)";
     if (isMatcha) {
@@ -132,10 +207,22 @@ function MenuItemRow({
       return `${s} (${suffix})`;
     });
     price += syrupExtras;
+    let coldFoamExtras = 0;
+    const coldFoamDescParts = sortedColdFoams.map((f) => {
+      const add = coldFoamSurchargeUsd(f);
+      coldFoamExtras += add;
+      if (add === 0) return f;
+      const suffix =
+        add === 0.5 ? "+$0.50" : add === 1 ? "+$1" : add === 2 ? "+$2" : `+$${add.toFixed(2)}`;
+      return `${f} (${suffix})`;
+    });
+    price += coldFoamExtras;
     const descArr = [];
     if (isMatcha) descArr.push(`Matcha: ${matchaDesc}`);
     if (sortedSyrups.length) descArr.push(`Syrups: ${syrupDescParts.join(", ")}`);
+    if (sortedColdFoams.length) descArr.push(`Cold foam (add-on): ${coldFoamDescParts.join(", ")}`);
     if (selectedMilk) descArr.push(`Milk: ${milkDesc}`);
+    if (selectedTemperature) descArr.push(`Temp: ${selectedTemperature}`);
     if (sweetness) descArr.push(`Sweetness: ${sweetness}`);
     const description = descArr.join(" | ");
     addItem({ id, name: displayName, description, price });
@@ -161,6 +248,14 @@ function MenuItemRow({
           {item.description && (
             <p className="text-xs text-stll-muted leading-relaxed">{item.description}</p>
           )}
+          {dairyCreamNote && (
+            <div className="rounded-md border border-stll-charcoal/15 bg-stll-charcoal/3 px-3 py-2">
+              <p className="text-[10px] tracking-[0.18em] uppercase text-stll-charcoal/85">
+                Dairy Notice
+              </p>
+              <p className="mt-1 text-xs text-stll-muted leading-relaxed">{dairyCreamNote}</p>
+            </div>
+          )}
 
           {/* Size */}
           <div>
@@ -179,6 +274,29 @@ function MenuItemRow({
 
           {/* Milk + Sweetness side by side */}
           <div className="flex gap-6 flex-wrap items-start">
+            {rowTemperatureOptions.length > 0 && (
+              <div>
+                <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-2">Temperature</p>
+                <div className="flex gap-2 flex-wrap">
+                  {rowTemperatureOptions.map((temperature) => (
+                    <label key={temperature} className="cursor-pointer">
+                      <input
+                        type="radio"
+                        name="temperature"
+                        value={temperature}
+                        checked={selectedTemperature === temperature}
+                        onChange={() => setSelectedTemperature(temperature)}
+                        className="sr-only peer"
+                      />
+                      <span className="block px-4 py-2 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal/25 text-stll-charcoal peer-checked:bg-stll-charcoal peer-checked:text-white peer-checked:border-stll-charcoal">
+                        {temperature}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {rowMilkOptions && rowMilkOptions.length > 0 && (
               <div>
                 <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-2">Milk Choice</p>
@@ -236,7 +354,7 @@ function MenuItemRow({
           )}
 
           {/* Syrups — not offered on coconut cloud drinks */}
-          {showSyrups && (
+          {rowShowSyrups && (
             <div>
               <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-2">Add Extra Syrup</p>
               <div className="flex gap-2 flex-wrap">
@@ -246,6 +364,30 @@ function MenuItemRow({
                     <span className="block px-4 py-2 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal/25 text-stll-charcoal peer-checked:bg-stll-charcoal peer-checked:text-white peer-checked:border-stll-charcoal">
                       {syrup}
                       {formatSyrupPriceLabel(syrupSurchargeUsd(syrup))}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {rowShowColdFoams && (
+            <div>
+              <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-2">Cold foam (add-on)</p>
+              <div className="flex gap-2 flex-wrap">
+                {COLD_FOAMS.map((foam) => (
+                  <label key={foam} className="cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="coldFoam"
+                      value={foam}
+                      checked={selectedColdFoams.includes(foam)}
+                      onChange={() => handleColdFoamChange(foam)}
+                      className="sr-only peer"
+                    />
+                    <span className="block px-4 py-2 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal/25 text-stll-charcoal peer-checked:bg-stll-charcoal peer-checked:text-white peer-checked:border-stll-charcoal">
+                      {foam}
+                      {formatSyrupPriceLabel(coldFoamSurchargeUsd(foam))}
                     </span>
                   </label>
                 ))}
@@ -269,6 +411,7 @@ function MenuSection({
   milkOptions,
   milkNote,
   showSyrups = true,
+  showColdFoams = false,
 }: {
   title: string;
   subtitle: string;
@@ -276,6 +419,7 @@ function MenuSection({
   milkOptions?: string[];
   milkNote?: string;
   showSyrups?: boolean;
+  showColdFoams?: boolean;
 }) {
   return (
     <section className="mb-20">
@@ -290,7 +434,13 @@ function MenuSection({
       )}
       <div className="flex flex-col divide-y divide-stll-charcoal/10">
         {items.map((item) => (
-          <MenuItemRow key={item.name} item={item} milkOptions={milkOptions} showSyrups={showSyrups} />
+          <MenuItemRow
+            key={item.name}
+            item={item}
+            milkOptions={milkOptions}
+            showSyrups={showSyrups}
+            showColdFoams={showColdFoams}
+          />
         ))}
       </div>
     </section>
@@ -313,6 +463,7 @@ export default function GalleryPage() {
           items={matchaItems}
           milkOptions={["Oat", "Whole", "Almond", "Soy"]}
           milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
+          showColdFoams
         />
         <MenuSection
           title="Cold Brew Coffees"
@@ -320,12 +471,22 @@ export default function GalleryPage() {
           items={coldBrewItems}
           milkOptions={["Oat", "Whole", "Almond", "Soy"]}
           milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
+          showColdFoams
+        />
+        <MenuSection
+          title="Coffee Series"
+          subtitle="House coffee lattes"
+          items={coffeeItems}
+          milkOptions={["Oat", "Whole", "Almond", "Soy"]}
+          milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
+          showColdFoams
         />
         <MenuSection
           title="Coconut Cloud Drinks"
           subtitle="Coconut water, house-made cloud foams"
           items={cloudItems}
           showSyrups={false}
+          showColdFoams
         />
       </div>
     </div>

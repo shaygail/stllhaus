@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { mergeOrderHistory, parseOrderHistory, type OrderHistoryEntry } from "@/lib/order-history";
+import { mergeRewardHistory, parseRewardHistory, type RewardHistoryEntry } from "@/lib/reward-history";
 import { POINTS_PER_DOLLAR, getLoyaltyTier } from "@/lib/loyalty";
 import Link from "next/link";
 import Image from "next/image";
@@ -24,6 +25,7 @@ export default function SuccessClient() {
   const method = searchParams.get("method");
   const [lastOrder, setLastOrder] = useState<LastOrder | null>(null);
   const [awardedPoints, setAwardedPoints] = useState<number | null>(null);
+  const [awardedRewards, setAwardedRewards] = useState<RewardHistoryEntry[]>([]);
   const [receiptEmail, setReceiptEmail] = useState("");
   const [receiptStatus, setReceiptStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
   const [receiptError, setReceiptError] = useState("");
@@ -72,6 +74,8 @@ export default function SuccessClient() {
 
       const nextPoints = currentPoints + pointsEarned;
       const nextSpent = currentSpent + lastOrder.total;
+      const nextPurchases = currentPurchases + 1;
+      const nextTier = getLoyaltyTier(nextPoints);
 
       const prevName = String(metadata.full_name ?? "").trim();
       const checkoutName = String(lastOrder.customerName ?? "").trim();
@@ -92,18 +96,50 @@ export default function SuccessClient() {
       };
 
       const nextHistory = mergeOrderHistory(parseOrderHistory(metadata.order_history), entry);
+      const existingRewardHistory = parseRewardHistory(metadata.reward_history);
+      const rewardsAwardedNow: RewardHistoryEntry[] = [];
+      const nowIso = new Date().toISOString();
+
+      if (nextPurchases % 5 === 0) {
+        rewardsAwardedNow.push({
+          id: `${orderFingerprint}:milestone-5`,
+          rewardType: "ten_percent_off",
+          status: "earned",
+          source: "milestone",
+          orderId: orderFingerprint,
+          orderCountAtAward: nextPurchases,
+          pointsAtAward: nextPoints,
+          awardedAt: nowIso,
+          note: "5th order reward",
+        });
+      }
+
+      if (nextPurchases % 10 === 0) {
+        rewardsAwardedNow.push({
+          id: `${orderFingerprint}:milestone-10`,
+          rewardType: "free_drink",
+          status: "earned",
+          source: "milestone",
+          orderId: orderFingerprint,
+          orderCountAtAward: nextPurchases,
+          pointsAtAward: nextPoints,
+          awardedAt: nowIso,
+          note: "10th order reward",
+        });
+      }
 
       const nextData: Record<string, unknown> = {
         ...metadata,
         full_name: fullName || metadata.full_name,
         order_history: nextHistory,
-        loyalty_total_purchases: currentPurchases + 1,
+        reward_history: mergeRewardHistory(existingRewardHistory, rewardsAwardedNow),
+        loyalty_total_purchases: nextPurchases,
         loyalty_total_spent: Number(nextSpent.toFixed(2)),
       };
 
       if (pointsEarned > 0) {
         nextData.loyalty_points = nextPoints;
-        nextData.loyalty_tier = getLoyaltyTier(nextPoints);
+        nextData.loyalty_tier = nextTier;
         nextData.loyalty_last_awarded_order = orderFingerprint;
         nextData.loyalty_last_awarded_at = new Date().toISOString();
       }
@@ -115,6 +151,7 @@ export default function SuccessClient() {
       if (!error) {
         sessionStorage.setItem(sessionKey, "1");
         if (pointsEarned > 0) setAwardedPoints(pointsEarned);
+        if (rewardsAwardedNow.length > 0) setAwardedRewards(rewardsAwardedNow);
       }
     };
 
@@ -183,6 +220,19 @@ export default function SuccessClient() {
               <p className="text-sm text-stll-charcoal mb-8 leading-relaxed">
                 Loyalty updated: <span className="font-semibold">+{awardedPoints} points</span> added to your account.
               </p>
+            )}
+            {awardedRewards.length > 0 && (
+              <div className="mb-8">
+                {awardedRewards.map((reward) => (
+                  <p key={reward.id} className="text-sm text-stll-charcoal leading-relaxed">
+                    Reward earned:{" "}
+                    <span className="font-semibold">
+                      {reward.rewardType === "free_drink" ? "Free drink" : "10% off"}
+                    </span>{" "}
+                    added to your account history.
+                  </p>
+                ))}
+              </div>
             )}
 
             {lastOrder && (

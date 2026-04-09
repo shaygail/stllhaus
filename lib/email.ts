@@ -187,6 +187,52 @@ export async function sendSignupConfirmationEmail({
   console.log("[Resend] Signup confirmation email sent, id:", data?.id);
 }
 
+export async function sendSigninMagicLinkEmail({
+  email,
+  signInUrl,
+}: {
+  email: string;
+  signInUrl: string;
+}) {
+  const safeEmail = escapeHtml(email);
+  const safeSignInUrl = escapeHtml(signInUrl);
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto; color: #1a1a1a; padding: 32px 24px;">
+      <h2 style="font-size: 22px; font-weight: bold; margin-bottom: 4px;">Sign in to STLL HAUS</h2>
+      <p style="color: #888; margin-top: 0; font-size: 14px;">Use this secure link to access your account</p>
+
+      <hr style="border: none; border-top: 1px solid #f0f0f0; margin: 24px 0;" />
+
+      <p style="margin: 0 0 12px; font-size: 15px;">A sign-in link was requested for <strong>${safeEmail}</strong>.</p>
+      <p style="margin: 0 0 20px; font-size: 14px; color: #555;">Click below to continue.</p>
+
+      <a href="${safeSignInUrl}" style="display: inline-block; background: #222; color: #fff; text-decoration: none; border: none; padding: 12px 20px; font-size: 13px; border-radius: 4px;">
+        Sign in
+      </a>
+
+      <p style="font-size: 12px; color: #777; margin: 20px 0 0;">If the button does not work, copy and paste this link:</p>
+      <p style="font-size: 12px; color: #555; word-break: break-all; margin-top: 6px;">${safeSignInUrl}</p>
+
+      <p style="font-size: 11px; color: #bbb; margin: 24px 0 0;">STLL HAUS</p>
+    </div>
+  `;
+
+  const { data, error } = await resend.emails.send({
+    from: "noreply@stllhaus.co",
+    to: email,
+    subject: "Your sign-in link — STLL HAUS",
+    html,
+  });
+
+  if (error) {
+    console.error("[Resend] Error sending sign-in magic link email:", error);
+    throw new Error(error.message);
+  }
+
+  console.log("[Resend] Sign-in magic link email sent, id:", data?.id);
+}
+
 export async function sendOrderNotification({
   customerName,
   items,

@@ -1,8 +1,6 @@
 "use client";
 
-import { getClientAuthRedirectBaseUrl } from "@/lib/auth-redirect";
 import { POINTS_PER_DOLLAR } from "@/lib/loyalty";
-import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -15,10 +13,6 @@ export function LoginClient() {
   const [email, setEmail] = useState("");
   const [emailSent, setEmailSent] = useState(false);
 
-  const base = () => getClientAuthRedirectBaseUrl();
-  const redirectTo = () =>
-    `${base()}/auth/callback?next=${encodeURIComponent(next)}`;
-
   async function sendSignInLink() {
     setError(null);
     setEmailSent(false);
@@ -29,23 +23,27 @@ export function LoginClient() {
     }
     setPending("signin");
     try {
-      const supabase = createClient();
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: trimmed,
-        options: {
-          shouldCreateUser: false,
-          emailRedirectTo: redirectTo(),
-        },
+      const res = await fetch("/api/auth/signin-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed, next }),
       });
-      if (otpError) {
-        const msg = otpError.message.toLowerCase();
-        if (msg.includes("signups not allowed") || msg.includes("user not found") || msg.includes("not registered")) {
-          setError(
-            "No account exists for this email yet. Use “Create account” below, or check the address for typos."
-          );
-        } else {
-          setError(otpError.message);
-        }
+      const data = (await res.json()) as { success?: boolean; error?: string };
+
+      if (res.status === 503) {
+        setError(
+          "Sign-in link email is not fully configured on the server. Please contact Stll Haus."
+        );
+        return;
+      }
+      if (res.status === 404 || data.error === "not_registered") {
+        setError(
+          "No account exists for this email yet. Use “Create account” below, or check the address for typos."
+        );
+        return;
+      }
+      if (!res.ok) {
+        setError(data.error === "invalid_email" ? "Enter a valid email address." : "Could not send the link. Try again.");
         return;
       }
       setEmailSent(true);

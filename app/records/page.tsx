@@ -22,9 +22,10 @@ async function getRecentLogs(): Promise<{ logs: BusinessLogEntry[]; error: strin
 
 export default async function RecordsPage() {
   const { logs, error } = await getRecentLogs();
-  const complianceLogs = logs
-    .map((log) => ({ log, parsed: parseComplianceForm(log.details) }))
-    .filter((entry) => entry.parsed !== null);
+  const complianceLogs = logs.flatMap((log) => {
+    const parsed = parseComplianceForm(log.details);
+    return parsed ? [{ log, parsed }] : [];
+  });
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] pt-28 pb-20 px-8 sm:px-16 lg:px-24">

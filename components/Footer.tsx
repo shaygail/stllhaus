@@ -42,7 +42,9 @@ export function Footer() {
               <li>
                 {/* Council Registration Certificate Proof Section */}
                 <a
-                  href="mailto:admin@stllhaus.co?subject=Council Registration Certificate Request"
+                  href="/council-registration.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-xs tracking-[0.15em] uppercase text-white/50 hover:text-white transition-colors duration-300"
                 >
                   Council Registration

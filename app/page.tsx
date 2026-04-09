@@ -57,7 +57,7 @@ export default function Home() {
               <p className="text-sm text-white/55 leading-relaxed">
                 Inspired by the word &quot;still,&quot; our name reflects calm, simplicity, and intention — reimagined into something uniquely ours. What started as a small passion project is now a{" "}
                 <a
-                  href="https://mpi.my.salesforce-sites.com/publicregister/PublicRegisterSearch#"
+                  href="/council-registration.pdf"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline underline-offset-2 text-white/75 hover:text-white transition-colors"

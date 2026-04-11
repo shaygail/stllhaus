@@ -156,8 +156,8 @@ const nonCoffeeItems: MenuItemData[] = [
     hideAddOns: true,
   },
   {
-    name: "Iced / Hot Choco",
-    description: "Classic chocolate drink — served hot or iced. Oat or whole at menu price; almond or soy +$1.",
+    name: "Midnight Cocoa",
+    description: "Classic cocoa — served hot or iced. Oat or whole at menu price; almond or soy +$1.",
     image: "",
     sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.00" }],
     temperatureOptionsOverride: ["Hot", "Iced"],
@@ -169,6 +169,12 @@ const cloudItems: MenuItemData[] = [
   { name: "Black Pearl Coconut Cloud", description: "Refreshing coconut water and homemade black gulaman cloud foam.", image: "", sizes: [{ label: "G", price: "$8" }, { label: "V", price: "$10" }] },
   { name: "Clover Coconut Cloud",      description: "Refreshing coconut water and premium Kyoto Thea matcha powder cloud foam.", image: "", sizes: [{ label: "G", price: "$8" }, { label: "V", price: "$10" }] },
   { name: "Twilight Coconut Cloud",    description: "Refreshing coconut water and homemade ube cloud foam.", image: "", sizes: [{ label: "G", price: "$8" }, { label: "V", price: "$10" }] },
+  {
+    name: "Midnight Cloud",
+    description: "Refreshing coconut water with chocolate cream cloud foam.",
+    image: "",
+    sizes: [{ label: "G", price: "$8" }, { label: "V", price: "$10" }],
+  },
 ];
 
 function MenuItemRow({

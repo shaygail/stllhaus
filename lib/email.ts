@@ -58,18 +58,38 @@ function orderItemRowsHtml(items: OrderLineItem[]) {
       const desc =
         item.description?.trim() &&
         `<div style="font-size:12px;color:#666;margin-top:4px;line-height:1.35;">${escapeHtml(item.description.trim())}</div>`;
+      const each = item.price.toFixed(2);
+      const subtotal = (item.price * item.quantity).toFixed(2);
       return `
         <tr>
           <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px;">
             ${escapeHtml(item.name)}
             ${desc || ""}
           </td>
-          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; text-align: center;">x${item.quantity}</td>
-          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; text-align: right;">$${(item.price * item.quantity).toFixed(2)}</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; text-align: center;">${item.quantity}</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; text-align: right;">$${each}</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; text-align: right;">$${subtotal}</td>
         </tr>
       `;
     })
     .join("");
+}
+
+function orderItemsTableHtml(items: OrderLineItem[]) {
+  return `
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr>
+          <th style="text-align: left; font-size: 11px; color: #aaa; padding-bottom: 8px; font-weight: 500;">Item</th>
+          <th style="text-align: center; font-size: 11px; color: #aaa; padding-bottom: 8px; font-weight: 500;">Qty</th>
+          <th style="text-align: right; font-size: 11px; color: #aaa; padding-bottom: 8px; font-weight: 500;">Each</th>
+          <th style="text-align: right; font-size: 11px; color: #aaa; padding-bottom: 8px; font-weight: 500;">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${orderItemRowsHtml(items)}
+      </tbody>
+    </table>`;
 }
 
 export async function sendCustomerReceiptEmail({
@@ -91,7 +111,9 @@ export async function sendCustomerReceiptEmail({
   orderId?: string;
   notes?: string;
 }) {
-  const itemRows = orderItemRowsHtml(items);
+  const itemsTable = orderItemsTableHtml(items);
+  const linesSum = items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const totalMismatch = Math.abs(linesSum - total) > 0.02;
 
   const payLabel = paymentMethod ? paymentLabel[paymentMethod] ?? paymentMethod : "—";
 
@@ -112,21 +134,11 @@ export async function sendCustomerReceiptEmail({
       <hr style="border: none; border-top: 1px solid #f0f0f0; margin: 24px 0;" />
 
       <h3 style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #888; margin-bottom: 12px;">Items</h3>
-      <table style="width: 100%; border-collapse: collapse;">
-        <thead>
-          <tr>
-            <th style="text-align: left; font-size: 11px; color: #aaa; padding-bottom: 8px; font-weight: 500;">Item</th>
-            <th style="text-align: center; font-size: 11px; color: #aaa; padding-bottom: 8px; font-weight: 500;">Qty</th>
-            <th style="text-align: right; font-size: 11px; color: #aaa; padding-bottom: 8px; font-weight: 500;">Price</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${itemRows}
-        </tbody>
-      </table>
+      ${itemsTable}
 
       <div style="text-align: right; margin-top: 16px;">
         <p style="font-size: 16px; font-weight: bold; margin: 0;">Total: $${total.toFixed(2)}</p>
+        ${totalMismatch ? `<p style="font-size: 11px; color: #a44; margin: 8px 0 0;">Line items add to $${linesSum.toFixed(2)} — total above is what was submitted at checkout.</p>` : ""}
       </div>
 
       ${notes?.trim() ? `
@@ -274,7 +286,9 @@ export async function sendOrderNotification({
   customerEmail?: string;
   orderId?: string;
 }) {
-  const itemRows = orderItemRowsHtml(items);
+  const itemsTable = orderItemsTableHtml(items);
+  const linesSum = items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const totalMismatch = Math.abs(linesSum - total) > 0.02;
   const contactHtml = contact
     .split("\n")
     .map((line) => line.trim())
@@ -304,21 +318,11 @@ export async function sendOrderNotification({
       <hr style="border: none; border-top: 1px solid #f0f0f0; margin: 24px 0;" />
 
       <h3 style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #888; margin-bottom: 12px;">Order Items</h3>
-      <table style="width: 100%; border-collapse: collapse;">
-        <thead>
-          <tr>
-            <th style="text-align: left; font-size: 11px; color: #aaa; padding-bottom: 8px; font-weight: 500;">Item</th>
-            <th style="text-align: center; font-size: 11px; color: #aaa; padding-bottom: 8px; font-weight: 500;">Qty</th>
-            <th style="text-align: right; font-size: 11px; color: #aaa; padding-bottom: 8px; font-weight: 500;">Price</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${itemRows}
-        </tbody>
-      </table>
+      ${itemsTable}
 
       <div style="text-align: right; margin-top: 16px;">
         <p style="font-size: 16px; font-weight: bold; margin: 0;">Total: $${total.toFixed(2)}</p>
+        ${totalMismatch ? `<p style="font-size: 11px; color: #a44; margin: 8px 0 0;">Line items add to $${linesSum.toFixed(2)} — check cart vs total.</p>` : ""}
       </div>
 
       ${notes?.trim() ? `

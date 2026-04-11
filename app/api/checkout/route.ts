@@ -11,11 +11,19 @@ export async function POST(request: NextRequest) {
       const pickupTime = formData.get("pickupTime") as string;
       const notes = formData.get("notes") as string;
       const paymentMethod = formData.get("paymentMethod") as string;
-      const items = JSON.parse(formData.get("items") as string);
-      const proof = formData.get("proof");
+      const rawItems = JSON.parse(formData.get("items") as string);
+      type Line = { name: string; price: number; quantity: number; description?: string };
+      const items: Line[] = Array.isArray(rawItems)
+        ? rawItems.map((row: Record<string, unknown>) => ({
+            name: String(row.name ?? "Item"),
+            price: Math.max(0, Number(row.price) || 0),
+            quantity: Math.min(999, Math.max(1, Math.floor(Number(row.quantity) || 1))),
+            description: typeof row.description === "string" ? row.description : "",
+          }))
+        : [];
 
-      type CartItem = { price: number; quantity: number };
-      const total = (items as CartItem[]).reduce((sum: number, item) => sum + item.price * item.quantity, 0);
+      const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      const proof = formData.get("proof");
 
       let attachment = undefined;
       if (paymentMethod === "bank_transfer" && proof && typeof proof === "object" && "arrayBuffer" in proof) {

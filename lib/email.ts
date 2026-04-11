@@ -95,6 +95,8 @@ function orderItemsTableHtml(items: OrderLineItem[]) {
 export async function sendCustomerReceiptEmail({
   customerName,
   customerEmail,
+  contactPhone,
+  contactInstagram,
   items,
   total,
   pickupTime,
@@ -104,6 +106,8 @@ export async function sendCustomerReceiptEmail({
 }: {
   customerName: string;
   customerEmail: string;
+  contactPhone?: string;
+  contactInstagram?: string;
   items: OrderLineItem[];
   total: number;
   pickupTime?: string;
@@ -130,6 +134,13 @@ export async function sendCustomerReceiptEmail({
       <p style="margin: 0; font-size: 15px;">${escapeHtml(pickupTime || "Not specified")}</p>
 
       <p style="margin: 12px 0 0; font-size: 13px; color: #555;">Payment: ${escapeHtml(payLabel)}</p>
+
+      <hr style="border: none; border-top: 1px solid #f0f0f0; margin: 24px 0;" />
+
+      <h3 style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #888; margin-bottom: 8px;">Your contact on this order</h3>
+      <p style="margin: 0; font-size: 14px; color: #333;">Email: ${escapeHtml(customerEmail)}</p>
+      ${contactPhone?.trim() ? `<p style="margin: 6px 0 0; font-size: 14px; color: #333;">Phone: ${escapeHtml(contactPhone.trim())}</p>` : ""}
+      ${contactInstagram?.trim() ? `<p style="margin: 6px 0 0; font-size: 14px; color: #333;">Instagram: ${escapeHtml(contactInstagram.trim())}</p>` : ""}
 
       <hr style="border: none; border-top: 1px solid #f0f0f0; margin: 24px 0;" />
 

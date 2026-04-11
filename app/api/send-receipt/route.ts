@@ -1,7 +1,7 @@
 import { sendCustomerReceiptEmail } from "@/lib/email";
 import { NextRequest, NextResponse } from "next/server";
 
-type Item = { name: string; quantity: number; price: number };
+type Item = { name: string; quantity: number; price: number; description?: string };
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -13,6 +13,8 @@ export async function POST(request: NextRequest) {
     const {
       customerEmail,
       customerName,
+      contactPhone,
+      contactInstagram,
       items,
       total,
       pickupTime,
@@ -22,6 +24,8 @@ export async function POST(request: NextRequest) {
     } = body as {
       customerEmail?: string;
       customerName?: string;
+      contactPhone?: string;
+      contactInstagram?: string;
       items?: Item[];
       total?: number;
       pickupTime?: string;
@@ -52,15 +56,27 @@ export async function POST(request: NextRequest) {
       ) {
         return NextResponse.json({ error: "Invalid item data" }, { status: 400 });
       }
+      if (item.description !== undefined && (typeof item.description !== "string" || item.description.length > 4000)) {
+        return NextResponse.json({ error: "Invalid item data" }, { status: 400 });
+      }
     }
     if (typeof total !== "number" || total < 0 || total > 999999) {
       return NextResponse.json({ error: "Invalid total" }, { status: 400 });
     }
 
+    const normalizedItems = items.map((row) => ({
+      name: row.name,
+      quantity: row.quantity,
+      price: row.price,
+      description: typeof row.description === "string" ? row.description : "",
+    }));
+
     await sendCustomerReceiptEmail({
       customerName: customerName.trim(),
       customerEmail: customerEmail.trim(),
-      items,
+      contactPhone: typeof contactPhone === "string" ? contactPhone.trim() || undefined : undefined,
+      contactInstagram: typeof contactInstagram === "string" ? contactInstagram.trim() || undefined : undefined,
+      items: normalizedItems,
       total,
       pickupTime: typeof pickupTime === "string" ? pickupTime : undefined,
       paymentMethod: typeof paymentMethod === "string" ? paymentMethod : undefined,

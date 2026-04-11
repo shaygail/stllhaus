@@ -12,7 +12,9 @@ import { useEffect, useState } from "react";
 type LastOrder = {
   customerEmail: string;
   customerName: string;
-  items: Array<{ name: string; quantity: number; price: number }>;
+  contactPhone?: string;
+  contactInstagram?: string;
+  items: Array<{ name: string; quantity: number; price: number; description?: string }>;
   total: number;
   pickupTime: string;
   paymentMethod: string;
@@ -170,6 +172,8 @@ export default function SuccessClient() {
         body: JSON.stringify({
           customerEmail: receiptEmail.trim(),
           customerName: lastOrder.customerName,
+          contactPhone: lastOrder.contactPhone,
+          contactInstagram: lastOrder.contactInstagram,
           items: lastOrder.items,
           total: lastOrder.total,
           pickupTime: lastOrder.pickupTime,

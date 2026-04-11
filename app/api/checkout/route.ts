@@ -75,6 +75,8 @@ export async function POST(request: NextRequest) {
         await sendCustomerReceiptEmail({
           customerName: customerName || "Unknown",
           customerEmail: contactEmail.trim(),
+          contactPhone: contactPhone?.trim() || undefined,
+          contactInstagram: contactInstagram?.trim() || undefined,
           items,
           total,
           pickupTime,

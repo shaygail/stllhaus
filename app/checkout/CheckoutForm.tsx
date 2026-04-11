@@ -108,7 +108,14 @@ export default function CheckoutForm() {
         const snapshot = {
           customerEmail: contactEmail.trim(),
           customerName: (customerName as string).trim(),
-          items: cart.map(({ name, quantity, price }) => ({ name, quantity, price })),
+          contactPhone: contactPhone.trim(),
+          contactInstagram: (contactInstagram as string)?.trim() || "",
+          items: cart.map(({ name, quantity, price, description }) => ({
+            name,
+            quantity,
+            price,
+            description: description?.trim() || "",
+          })),
           total,
           pickupTime,
           paymentMethod,

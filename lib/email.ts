@@ -50,6 +50,28 @@ export async function sendOrderReceivedNotification({
   console.log("[Resend] Order received notification sent, id:", data?.id);
 }
 
+type OrderLineItem = { name: string; quantity: number; price: number; description?: string };
+
+function orderItemRowsHtml(items: OrderLineItem[]) {
+  return items
+    .map((item) => {
+      const desc =
+        item.description?.trim() &&
+        `<div style="font-size:12px;color:#666;margin-top:4px;line-height:1.35;">${escapeHtml(item.description.trim())}</div>`;
+      return `
+        <tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px;">
+            ${escapeHtml(item.name)}
+            ${desc || ""}
+          </td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; text-align: center;">x${item.quantity}</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; text-align: right;">$${(item.price * item.quantity).toFixed(2)}</td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
 export async function sendCustomerReceiptEmail({
   customerName,
   customerEmail,
@@ -62,24 +84,14 @@ export async function sendCustomerReceiptEmail({
 }: {
   customerName: string;
   customerEmail: string;
-  items: Array<{ name: string; quantity: number; price: number }>;
+  items: OrderLineItem[];
   total: number;
   pickupTime?: string;
   paymentMethod?: string;
   orderId?: string;
   notes?: string;
 }) {
-  const itemRows = items
-    .map(
-      (item) => `
-        <tr>
-          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px;">${escapeHtml(item.name)}</td>
-          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; text-align: center;">x${item.quantity}</td>
-          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; text-align: right;">$${(item.price * item.quantity).toFixed(2)}</td>
-        </tr>
-      `
-    )
-    .join("");
+  const itemRows = orderItemRowsHtml(items);
 
   const payLabel = paymentMethod ? paymentLabel[paymentMethod] ?? paymentMethod : "—";
 
@@ -238,35 +250,38 @@ export async function sendOrderNotification({
   items,
   total,
   contact,
+  contactCompact,
   notes,
   pickupTime,
+  paymentMethod,
   toEmail,
   attachment,
   customerEmail,
   orderId,
 }: {
   customerName: string;
-  items: Array<{ name: string; quantity: number; price: number }>;
+  items: OrderLineItem[];
   total: number;
+  /** Multi-line contact block for email display (plain text; will be escaped). */
   contact: string;
+  /** Single-line value for hidden form fields (e.g. email | phone | instagram). */
+  contactCompact: string;
   notes?: string;
   pickupTime?: string;
+  paymentMethod?: string;
   toEmail: string;
   attachment?: { filename: string; content: Buffer; contentType: string };
   customerEmail?: string;
   orderId?: string;
 }) {
-  const itemRows = items
-    .map(
-      (item) => `
-        <tr>
-          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px;">${item.name}</td>
-          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; text-align: center;">x${item.quantity}</td>
-          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; text-align: right;">$${(item.price * item.quantity).toFixed(2)}</td>
-        </tr>
-      `
-    )
-    .join("");
+  const itemRows = orderItemRowsHtml(items);
+  const contactHtml = contact
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => escapeHtml(line))
+    .join("<br/>");
+  const payLabel = paymentMethod ? paymentLabel[paymentMethod] ?? paymentMethod : "—";
 
   const html = `
     <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto; color: #1a1a1a; padding: 32px 24px;">
@@ -276,14 +291,15 @@ export async function sendOrderNotification({
       <hr style="border: none; border-top: 1px solid #f0f0f0; margin: 24px 0;" />
 
       <h3 style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #888; margin-bottom: 8px;">Customer</h3>
-      <p style="margin: 0; font-size: 15px; font-weight: 600;">${customerName}</p>
-      ${contact ? `<p style="margin: 4px 0 0; font-size: 13px; color: #555;">${contact}</p>` : ""}
-      ${orderId ? `<p style=\"margin: 4px 0 0; font-size: 12px; color: #888;\"><strong>Order ID:</strong> ${orderId}</p>` : ""}
+      <p style="margin: 0; font-size: 15px; font-weight: 600;">${escapeHtml(customerName)}</p>
+      ${contactHtml ? `<p style="margin: 6px 0 0; font-size: 13px; color: #555; line-height: 1.5;">${contactHtml}</p>` : ""}
+      ${orderId ? `<p style="margin: 6px 0 0; font-size: 12px; color: #888;"><strong>Order ID:</strong> ${escapeHtml(orderId)}</p>` : ""}
+      <p style="margin: 8px 0 0; font-size: 13px; color: #555;">Payment: ${escapeHtml(payLabel)}</p>
 
       <hr style="border: none; border-top: 1px solid #f0f0f0; margin: 24px 0;" />
 
       <h3 style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #888; margin-bottom: 8px;">Pickup Time</h3>
-      <p style="margin: 0; font-size: 15px;">${pickupTime || "Not specified"}</p>
+      <p style="margin: 0; font-size: 15px;">${escapeHtml(pickupTime || "Not specified")}</p>
 
       <hr style="border: none; border-top: 1px solid #f0f0f0; margin: 24px 0;" />
 
@@ -305,18 +321,18 @@ export async function sendOrderNotification({
         <p style="font-size: 16px; font-weight: bold; margin: 0;">Total: $${total.toFixed(2)}</p>
       </div>
 
-      ${notes ? `
+      ${notes?.trim() ? `
         <hr style="border: none; border-top: 1px solid #f0f0f0; margin: 24px 0;" />
         <h3 style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #888; margin-bottom: 8px;">Notes</h3>
-        <p style="margin: 0; font-size: 14px; color: #333;">${notes}</p>
+        <p style="margin: 0; font-size: 14px; color: #333;">${escapeHtml(notes.trim())}</p>
       ` : ""}
 
       <hr style="border: none; border-top: 1px solid #f0f0f0; margin: 24px 0;" />
       <form action="${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/notify-received" method="POST">
-        <input type="hidden" name="contact" value="${contact}" />
-        <input type="hidden" name="customerName" value="${customerName}" />
-        <input type="hidden" name="customerEmail" value="${customerEmail || contact}" />
-        <input type="hidden" name="orderId" value="${orderId || ""}" />
+        <input type="hidden" name="contact" value="${escapeHtml(contactCompact)}" />
+        <input type="hidden" name="customerName" value="${escapeHtml(customerName)}" />
+        <input type="hidden" name="customerEmail" value="${escapeHtml((customerEmail || contactCompact).trim())}" />
+        <input type="hidden" name="orderId" value="${escapeHtml(orderId || "")}" />
         <button type="submit" style="background: #222; color: #fff; border: none; padding: 12px 24px; font-size: 14px; border-radius: 4px; cursor: pointer;">Send Order Received Notification</button>
       </form>
       <p style="font-size: 11px; color: #bbb; margin: 0; margin-top: 16px;">STLL HAUS · Order Notification</p>

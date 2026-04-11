@@ -32,8 +32,18 @@ export async function POST(request: NextRequest) {
       const contactInstagram = formData.get("contactInstagram") as string;
       const contactEmail = formData.get("contactEmail") as string;
       const sendReceipt = formData.get("sendReceipt") === "on";
-      // Prefer email for receipts and notifications
-      const contact = contactEmail || contactPhone || contactInstagram || "";
+
+      const contactDetail = [
+        contactEmail?.trim() && `Email: ${contactEmail.trim()}`,
+        contactPhone?.trim() && `Phone: ${contactPhone.trim()}`,
+        contactInstagram?.trim() && `Instagram: ${contactInstagram.trim()}`,
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+      const contactCompact = [contactEmail?.trim(), contactPhone?.trim(), contactInstagram?.trim()]
+        .filter(Boolean)
+        .join(" | ");
 
       // Step 1: Generate a unique orderId for tracking
       const orderId = randomUUID();
@@ -42,9 +52,11 @@ export async function POST(request: NextRequest) {
         customerName: customerName || "Unknown",
         items,
         total,
-        contact,
+        contact: contactDetail || contactCompact,
+        contactCompact: contactCompact || contactEmail?.trim() || "",
         notes,
         pickupTime,
+        paymentMethod,
         toEmail: process.env.ORDER_NOTIFICATION_EMAIL || "your@email.com",
         attachment,
         customerEmail: contactEmail,

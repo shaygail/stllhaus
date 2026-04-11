@@ -52,11 +52,12 @@ function formatSyrupPriceLabel(amount: number): string {
   return ` +$${amount.toFixed(2)}`;
 }
 
-/** Cold foam add-ons (Matcha, Cold Brew, Coffee Series, Coconut Cloud). */
+/** Cream / cold foam add-ons (Matcha, Cold Brew, Coffee Series, Coconut Cloud). */
 const COLD_FOAMS = [
   "Sea Salt",
-  "Maple Cloud",
-  "Matcha Cloud",
+  "Maple Cream",
+  "Matcha Cream",
+  "Strawberry Cream",
   "Ube Cream",
   "Vanilla Sweet Cream",
   "Black Pearl",
@@ -64,8 +65,9 @@ const COLD_FOAMS = [
 
 const COLD_FOAM_SURCHARGE_USD: Record<string, number> = {
   "Sea Salt": 1,
-  "Maple Cloud": 1,
-  "Matcha Cloud": 2,
+  "Maple Cream": 1,
+  "Matcha Cream": 2,
+  "Strawberry Cream": 1,
   "Ube Cream": 2,
   "Vanilla Sweet Cream": 1,
   "Black Pearl": 1,
@@ -86,6 +88,12 @@ function getDairyCreamBaseNote(itemName: string): string | null {
   }
   if (name.includes("choco cream")) {
     return "Chocolate cream top. Contains dairy.";
+  }
+  if (name.includes("strawberry cream") && !name.includes("coconut")) {
+    return "Strawberry cream top. Contains dairy.";
+  }
+  if (name.includes("strawberry cloud") && !name.includes("coconut") && !name.includes("matcha")) {
+    return "Strawberry cloud foam top. Contains dairy.";
   }
   const isCloudDrink = name.includes("cloud");
   const isUbeCreamDrink = name.includes("ube cream");
@@ -156,6 +164,24 @@ const nonCoffeeItems: MenuItemData[] = [
     hideAddOns: true,
   },
   {
+    name: "Strawberry Cloud",
+    description:
+      "Strawberry cloud foam top with your choice of milk. Oat or whole at menu price; almond or soy +$1. Syrups not included.",
+    image: "",
+    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.00" }],
+    temperatureOptionsOverride: ["Hot", "Iced"],
+    hideAddOns: true,
+  },
+  {
+    name: "Strawberry Cream",
+    description:
+      "Strawberry cream top with your choice of milk. Oat or whole at menu price; almond or soy +$1. Syrups not included.",
+    image: "",
+    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.00" }],
+    temperatureOptionsOverride: ["Hot", "Iced"],
+    hideAddOns: true,
+  },
+  {
     name: "Midnight Cocoa",
     description: "Classic cocoa — served hot or iced. Oat or whole at menu price; almond or soy +$1.",
     image: "",
@@ -170,7 +196,7 @@ const cloudItems: MenuItemData[] = [
   { name: "Clover Coconut Cloud",      description: "Refreshing coconut water and premium Kyoto Thea matcha powder cloud foam.", image: "", sizes: [{ label: "G", price: "$8" }, { label: "V", price: "$10" }] },
   { name: "Twilight Coconut Cloud",    description: "Refreshing coconut water and homemade ube cloud foam.", image: "", sizes: [{ label: "G", price: "$8" }, { label: "V", price: "$10" }] },
   {
-    name: "Midnight Cloud",
+    name: "Midnight Coconut Cloud",
     description: "Refreshing coconut water with chocolate cream cloud foam.",
     image: "",
     sizes: [{ label: "G", price: "$8" }, { label: "V", price: "$10" }],

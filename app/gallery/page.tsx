@@ -81,6 +81,12 @@ function slugify(s: string) {
 
 function getDairyCreamBaseNote(itemName: string): string | null {
   const name = itemName.toLowerCase();
+  if (name.includes("twilight cream") && !name.includes("coconut")) {
+    return "Ube cream top. Contains dairy.";
+  }
+  if (name === "choco" || name.startsWith("choco ")) {
+    return "Chocolate cream top. Contains dairy.";
+  }
   const isCloudDrink = name.includes("cloud");
   const isUbeCreamDrink = name.includes("ube cream");
 
@@ -128,6 +134,35 @@ const coffeeItems: MenuItemData[] = [
   { name: "Ube Spanish Latte", description: "", image: "", sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$11.00" }], temperatureOptionsOverride: ["Hot", "Iced"] },
   { name: "Spanish Latte", description: "", image: "", sizes: [{ label: "G", price: "$8.00" }, { label: "V", price: "$10.00" }], temperatureOptionsOverride: ["Hot", "Iced"] },
   { name: "Biscoff Latte", description: "", image: "", sizes: [{ label: "G", price: "$9.00" }, { label: "V", price: "$13.00" }], temperatureOptionsOverride: ["Hot", "Iced"] },
+];
+
+const nonCoffeeItems: MenuItemData[] = [
+  {
+    name: "Twilight Cream",
+    description:
+      "Ube cream top with your choice of milk. Oat or whole at menu price; almond or soy +$1. Syrups not included.",
+    image: "",
+    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.00" }],
+    temperatureOptionsOverride: ["Hot", "Iced"],
+    hideAddOns: true,
+  },
+  {
+    name: "Choco",
+    description:
+      "Chocolate cream top with your choice of milk. Oat or whole at menu price; almond or soy +$1. Syrups not included.",
+    image: "",
+    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.00" }],
+    temperatureOptionsOverride: ["Hot", "Iced"],
+    hideAddOns: true,
+  },
+  {
+    name: "Iced / Hot Choco",
+    description: "Classic chocolate drink — served hot or iced. Oat or whole at menu price; almond or soy +$1.",
+    image: "",
+    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.00" }],
+    temperatureOptionsOverride: ["Hot", "Iced"],
+    hideAddOns: true,
+  },
 ];
 
 const cloudItems: MenuItemData[] = [
@@ -480,6 +515,15 @@ export default function GalleryPage() {
           milkOptions={["Oat", "Whole", "Almond", "Soy"]}
           milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
           showColdFoams
+        />
+        <MenuSection
+          title="Non Coffee Series"
+          subtitle="Cream-topped and classic chocolate — no syrup add-ons"
+          items={nonCoffeeItems}
+          milkOptions={["Oat", "Whole", "Almond", "Soy"]}
+          milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
+          showSyrups={false}
+          showColdFoams={false}
         />
         <MenuSection
           title="Coconut Cloud Drinks"

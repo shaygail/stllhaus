@@ -84,7 +84,7 @@ function getDairyCreamBaseNote(itemName: string): string | null {
   if (name.includes("twilight cream") && !name.includes("coconut")) {
     return "Ube cream top. Contains dairy.";
   }
-  if (name === "choco" || name.startsWith("choco ")) {
+  if (name.includes("choco cream")) {
     return "Chocolate cream top. Contains dairy.";
   }
   const isCloudDrink = name.includes("cloud");
@@ -147,7 +147,7 @@ const nonCoffeeItems: MenuItemData[] = [
     hideAddOns: true,
   },
   {
-    name: "Choco",
+    name: "Choco Cream",
     description:
       "Chocolate cream top with your choice of milk. Oat or whole at menu price; almond or soy +$1. Syrups not included.",
     image: "",

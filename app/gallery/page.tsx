@@ -67,7 +67,7 @@ const COLD_FOAM_SURCHARGE_USD: Record<string, number> = {
   "Sea Salt": 1,
   "Maple Cream": 1,
   "Matcha Cream": 2,
-  "Strawberry Cream": 1,
+  "Strawberry Cream": 2,
   "Ube Cream": 2,
   "Vanilla Sweet Cream": 1,
   "Black Pearl": 1,

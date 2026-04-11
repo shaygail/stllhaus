@@ -16,6 +16,8 @@ type MenuItemData = {
   temperatureOptionsOverride?: string[];
   /** When true, hides syrup and cold foam add-ons (e.g. OG Matcha: milk, temp, matcha strength only). */
   hideAddOns?: boolean;
+  /** When true with hideAddOns, syrups stay off but cream / cold foam add-ons are still offered. */
+  coldFoamsAddOnOnly?: boolean;
 };
 
 const SIZE_LABELS: Record<string, string> = { T: "Small", G: "Regular", V: "Large" };
@@ -177,6 +179,16 @@ const nonCoffeeItems: MenuItemData[] = [
     temperatureOptionsOverride: ["Hot", "Iced"],
     hideAddOns: true,
   },
+  {
+    name: "Midnight Cream",
+    description:
+      "Iced chocolate. Add house cream cold foams (priced per selection). Oat or whole at menu price; almond or soy +$1. Syrups not included.",
+    image: "",
+    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.00" }],
+    temperatureOptionsOverride: ["Iced"],
+    hideAddOns: true,
+    coldFoamsAddOnOnly: true,
+  },
 ];
 
 const cloudItems: MenuItemData[] = [
@@ -220,7 +232,8 @@ function MenuItemRow({
   const [matchaStrength, setMatchaStrength] = useState("default");
 
   const rowShowSyrups = showSyrups && !item.hideAddOns;
-  const rowShowColdFoams = showColdFoams && !item.hideAddOns;
+  const rowShowColdFoams =
+    (showColdFoams && !item.hideAddOns) || Boolean(item.coldFoamsAddOnOnly);
 
   const handleSyrupChange = (syrup: string) => {
     setSelectedSyrups((prev) =>

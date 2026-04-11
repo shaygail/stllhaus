@@ -86,9 +86,6 @@ function getDairyCreamBaseNote(itemName: string): string | null {
   if (name.includes("twilight cream") && !name.includes("coconut")) {
     return "Ube cream top. Contains dairy.";
   }
-  if (name.includes("choco cream")) {
-    return "Chocolate cream top. Contains dairy.";
-  }
   if (name.includes("strawberry cream") && !name.includes("coconut")) {
     return "Strawberry cream top. Contains dairy.";
   }
@@ -149,15 +146,6 @@ const nonCoffeeItems: MenuItemData[] = [
     name: "Twilight Cream",
     description:
       "Ube cream top with your choice of milk. Oat or whole at menu price; almond or soy +$1. Syrups not included.",
-    image: "",
-    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.00" }],
-    temperatureOptionsOverride: ["Hot", "Iced"],
-    hideAddOns: true,
-  },
-  {
-    name: "Choco Cream",
-    description:
-      "Chocolate cream top with your choice of milk. Oat or whole at menu price; almond or soy +$1. Syrups not included.",
     image: "",
     sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.00" }],
     temperatureOptionsOverride: ["Hot", "Iced"],

@@ -4,6 +4,7 @@ export type OrderHistoryEntry = {
   total: number;
   summary: string;
   pickupTime?: string;
+  pickupLocationLabel?: string;
   paymentMethod?: string;
 };
 
@@ -25,6 +26,8 @@ export function parseOrderHistory(raw: unknown): OrderHistoryEntry[] {
       total: i.total as number,
       summary: typeof i.summary === "string" ? i.summary : "",
       pickupTime: typeof i.pickupTime === "string" ? i.pickupTime : undefined,
+      pickupLocationLabel:
+        typeof i.pickupLocationLabel === "string" ? i.pickupLocationLabel : undefined,
       paymentMethod: typeof i.paymentMethod === "string" ? i.paymentMethod : undefined,
     }));
 }

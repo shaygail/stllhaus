@@ -1,4 +1,5 @@
 import { sendCustomerReceiptEmail } from "@/lib/email";
+import { isPickupLocationId, pickupLocationForEmail } from "@/lib/pickup-locations";
 import { NextRequest, NextResponse } from "next/server";
 
 type Item = { name: string; quantity: number; price: number; description?: string };
@@ -18,6 +19,9 @@ export async function POST(request: NextRequest) {
       items,
       total,
       pickupTime,
+      pickupLocationId,
+      fulfillment,
+      deliveryAddress,
       paymentMethod,
       orderId,
       notes,
@@ -29,10 +33,36 @@ export async function POST(request: NextRequest) {
       items?: Item[];
       total?: number;
       pickupTime?: string;
+      pickupLocationId?: string;
+      fulfillment?: string;
+      deliveryAddress?: string;
       paymentMethod?: string;
       orderId?: string;
       notes?: string;
     };
+
+    const isDelivery = String(fulfillment ?? "").trim().toLowerCase() === "delivery";
+
+    let pickupLocationTitle: string | undefined;
+    let pickupLocationDetail: string | undefined;
+    if (isDelivery) {
+      const addr = String(deliveryAddress ?? "").trim();
+      if (addr.length < 8 || addr.length > 2000) {
+        return NextResponse.json({ error: "Invalid delivery address" }, { status: 400 });
+      }
+      pickupLocationTitle = "Delivery";
+      pickupLocationDetail = `Address:\n${addr}`;
+    } else if (pickupLocationId !== undefined && pickupLocationId !== null && pickupLocationId !== "") {
+      const raw = String(pickupLocationId).trim();
+      if (!isPickupLocationId(raw)) {
+        return NextResponse.json({ error: "Invalid pickup location" }, { status: 400 });
+      }
+      const loc = pickupLocationForEmail(raw);
+      if (loc) {
+        pickupLocationTitle = loc.title;
+        pickupLocationDetail = loc.detail;
+      }
+    }
 
     if (!customerEmail?.trim() || !isValidEmail(customerEmail.trim())) {
       return NextResponse.json({ error: "Valid email is required" }, { status: 400 });
@@ -79,6 +109,8 @@ export async function POST(request: NextRequest) {
       items: normalizedItems,
       total,
       pickupTime: typeof pickupTime === "string" ? pickupTime : undefined,
+      pickupLocationTitle,
+      pickupLocationDetail,
       paymentMethod: typeof paymentMethod === "string" ? paymentMethod : undefined,
       orderId: typeof orderId === "string" ? orderId : undefined,
       notes: typeof notes === "string" ? notes : undefined,

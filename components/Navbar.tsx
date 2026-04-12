@@ -96,17 +96,18 @@ export function Navbar() {
               }`}
             >
               <span>Cart</span>
-              {cartCount > 0 && (
-                <span
-                  className={`inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 text-[9px] font-bold ${
-                    transparent
-                      ? "bg-white text-stll-charcoal"
-                      : "bg-stll-charcoal text-white"
-                  }`}
-                >
-                  {cartCount}
-                </span>
-              )}
+              <span
+                aria-label={`${cartCount} items in cart`}
+                className={`inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 text-[9px] font-bold tabular-nums ${
+                  cartCount === 0 ? "opacity-40" : ""
+                } ${
+                  transparent
+                    ? "bg-white text-stll-charcoal"
+                    : "bg-stll-charcoal text-white"
+                }`}
+              >
+                {cartCount}
+              </span>
             </Link>
 
             <label

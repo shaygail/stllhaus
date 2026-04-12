@@ -144,9 +144,9 @@ export default async function AccountPage() {
                 {order.summary && (
                   <p className="text-xs text-stll-muted mt-2 leading-relaxed">{order.summary}</p>
                 )}
-                {(order.pickupTime || order.paymentMethod) && (
+                {(order.pickupTime || order.pickupLocationLabel || order.paymentMethod) && (
                   <p className="text-[10px] text-stll-muted/80 mt-2 tracking-wide">
-                    {[order.pickupTime, order.paymentMethod].filter(Boolean).join(" · ")}
+                    {[order.pickupTime, order.pickupLocationLabel, order.paymentMethod].filter(Boolean).join(" · ")}
                   </p>
                 )}
               </li>

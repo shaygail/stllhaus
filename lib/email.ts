@@ -1,3 +1,4 @@
+import { publicSiteUrl } from "@/lib/site-url";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -12,7 +13,7 @@ function escapeHtml(s: string) {
 
 const paymentLabel: Record<string, string> = {
   bank_transfer: "Bank transfer",
-  cash: "Cash at pickup",
+  cash: "CASH / EFTPOS at pickup",
 };
 
 export async function sendOrderReceivedNotification({
@@ -100,6 +101,8 @@ export async function sendCustomerReceiptEmail({
   items,
   total,
   pickupTime,
+  pickupLocationTitle,
+  pickupLocationDetail,
   paymentMethod,
   orderId,
   notes,
@@ -111,6 +114,8 @@ export async function sendCustomerReceiptEmail({
   items: OrderLineItem[];
   total: number;
   pickupTime?: string;
+  pickupLocationTitle?: string;
+  pickupLocationDetail?: string;
   paymentMethod?: string;
   orderId?: string;
   notes?: string;
@@ -130,8 +135,22 @@ export async function sendCustomerReceiptEmail({
 
       ${orderId ? `<p style="font-size: 12px; color: #888; margin: 0 0 16px;"><strong>Order ID:</strong> ${escapeHtml(orderId)}</p>` : ""}
 
-      <h3 style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #888; margin-bottom: 8px;">Pickup</h3>
+      <h3 style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #888; margin-bottom: 8px;">Time</h3>
       <p style="margin: 0; font-size: 15px;">${escapeHtml(pickupTime || "Not specified")}</p>
+
+      ${
+        pickupLocationTitle?.trim()
+          ? `
+      <h3 style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #888; margin: 20px 0 8px;">Where</h3>
+      <p style="margin: 0; font-size: 15px;">${escapeHtml(pickupLocationTitle.trim())}</p>
+      ${
+        pickupLocationDetail?.trim()
+          ? `<p style="margin: 8px 0 0; font-size: 13px; color: #555; line-height: 1.45;">${escapeHtml(pickupLocationDetail.trim())}</p>`
+          : ""
+      }
+      `
+          : ""
+      }
 
       <p style="margin: 12px 0 0; font-size: 13px; color: #555;">Payment: ${escapeHtml(payLabel)}</p>
 
@@ -276,11 +295,14 @@ export async function sendOrderNotification({
   contactCompact,
   notes,
   pickupTime,
+  pickupLocationTitle,
+  pickupLocationDetail,
   paymentMethod,
   toEmail,
   attachment,
   customerEmail,
   orderId,
+  subjectLocationSuffix,
 }: {
   customerName: string;
   items: OrderLineItem[];
@@ -291,11 +313,15 @@ export async function sendOrderNotification({
   contactCompact: string;
   notes?: string;
   pickupTime?: string;
+  pickupLocationTitle?: string;
+  pickupLocationDetail?: string;
   paymentMethod?: string;
   toEmail: string;
   attachment?: { filename: string; content: Buffer; contentType: string };
   customerEmail?: string;
   orderId?: string;
+  /** Short location text for the email subject line (e.g. "STLL HAUS (Bell Block)"). */
+  subjectLocationSuffix?: string;
 }) {
   const itemsTable = orderItemsTableHtml(items);
   const linesSum = items.reduce((s, i) => s + i.price * i.quantity, 0);
@@ -323,8 +349,22 @@ export async function sendOrderNotification({
 
       <hr style="border: none; border-top: 1px solid #f0f0f0; margin: 24px 0;" />
 
-      <h3 style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #888; margin-bottom: 8px;">Pickup Time</h3>
+      <h3 style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #888; margin-bottom: 8px;">Time</h3>
       <p style="margin: 0; font-size: 15px;">${escapeHtml(pickupTime || "Not specified")}</p>
+
+      ${
+        pickupLocationTitle?.trim()
+          ? `
+      <h3 style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #888; margin: 20px 0 8px;">Where</h3>
+      <p style="margin: 0; font-size: 15px;">${escapeHtml(pickupLocationTitle.trim())}</p>
+      ${
+        pickupLocationDetail?.trim()
+          ? `<p style="margin: 8px 0 0; font-size: 13px; color: #555; line-height: 1.45;">${escapeHtml(pickupLocationDetail.trim())}</p>`
+          : ""
+      }
+      `
+          : ""
+      }
 
       <hr style="border: none; border-top: 1px solid #f0f0f0; margin: 24px 0;" />
 
@@ -343,13 +383,14 @@ export async function sendOrderNotification({
       ` : ""}
 
       <hr style="border: none; border-top: 1px solid #f0f0f0; margin: 24px 0;" />
-      <form action="${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/notify-received" method="POST">
+      <form action="${escapeHtml(publicSiteUrl())}/api/notify-received?src=email" method="POST">
         <input type="hidden" name="contact" value="${escapeHtml(contactCompact)}" />
         <input type="hidden" name="customerName" value="${escapeHtml(customerName)}" />
         <input type="hidden" name="customerEmail" value="${escapeHtml((customerEmail || contactCompact).trim())}" />
         <input type="hidden" name="orderId" value="${escapeHtml(orderId || "")}" />
-        <button type="submit" style="background: #222; color: #fff; border: none; padding: 12px 24px; font-size: 14px; border-radius: 4px; cursor: pointer;">Send Order Received Notification</button>
+        <button type="submit" style="background: #222; color: #fff; border: none; padding: 12px 24px; font-size: 14px; border-radius: 4px; cursor: pointer;">Resend &ldquo;order received&rdquo; email to customer</button>
       </form>
+      <p style="font-size: 11px; color: #888; margin: 10px 0 0;">Customers also get this automatically when they place an order (if email delivery succeeds).</p>
       <p style="font-size: 11px; color: #bbb; margin: 0; margin-top: 16px;">STLL HAUS · Order Notification</p>
     </div>
   `;
@@ -357,7 +398,9 @@ export async function sendOrderNotification({
   const { data, error } = await resend.emails.send({
     from: "noreply@stllhaus.co",
     to: toEmail,
-    subject: `New Order from ${customerName} — ${pickupTime || "ASAP"}`,
+    subject: `New Order from ${customerName} — ${pickupTime || "ASAP"}${
+      subjectLocationSuffix?.trim() ? ` · ${subjectLocationSuffix.trim()}` : ""
+    }`,
     html,
     attachments: attachment
       ? [

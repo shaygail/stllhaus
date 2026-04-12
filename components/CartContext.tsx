@@ -1,6 +1,14 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from "react";
 
 export type CartItem = {
   id: string;
@@ -24,30 +32,59 @@ type CartContextValue = {
 const CartContext = createContext<CartContextValue | null>(null);
 const STORAGE_KEY = "stll-cart";
 
-
 function readCartFromStorage(): CartItem[] {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) return parsed;
+      const parsed = JSON.parse(saved) as unknown;
+      if (Array.isArray(parsed)) return parsed as CartItem[];
     }
-  } catch {}
+  } catch {
+    /* ignore */
+  }
   return [];
+}
+
+function persistToStorage(items: CartItem[]) {
+  try {
+    if (items.length === 0) {
+      localStorage.removeItem(STORAGE_KEY);
+    } else {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    }
+  } catch {
+    /* ignore */
+  }
+  try {
+    if (items.length === 0) {
+      document.cookie = "stll-cart=; path=/; max-age=0; samesite=lax";
+    } else {
+      document.cookie = `stll-cart=${encodeURIComponent(JSON.stringify(items))}; path=/; max-age=86400; samesite=lax`;
+    }
+  } catch {
+    /* ignore */
+  }
 }
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
 
-  const loadCart = () => {
-    const fromStorage = readCartFromStorage();
-    setCart(fromStorage);
-    setIsLoaded(true);
-  };
+  const loadCart = useCallback(() => {
+    setCart(readCartFromStorage());
+  }, []);
+
+  useLayoutEffect(() => {
+    loadCart();
+  }, [loadCart]);
 
   useEffect(() => {
-    loadCart();
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY || e.key === null) {
+        setCart(readCartFromStorage());
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   useEffect(() => {
@@ -58,59 +95,59 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, []);
+  }, [loadCart]);
 
   useEffect(() => {
     window.addEventListener("focus", loadCart);
     return () => window.removeEventListener("focus", loadCart);
-  }, []);
+  }, [loadCart]);
 
-  useEffect(() => {
-    if (isLoaded) {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
-      } catch {}
-      try {
-        document.cookie = `stll-cart=${encodeURIComponent(JSON.stringify(cart))}; path=/; max-age=86400; samesite=lax`;
-      } catch {}
-    }
-  }, [cart, isLoaded]);
-
-  const addItem = (item: Omit<CartItem, "quantity">) => {
+  const addItem = useCallback((item: Omit<CartItem, "quantity">) => {
     setCart((prev) => {
       const existing = prev.find((cartItem) => cartItem.id === item.id);
-      if (existing) {
-        return prev.map((cartItem) =>
-          cartItem.id === item.id
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
-            : cartItem
-        );
-      }
-      return [...prev, { ...item, quantity: 1 }];
+      const next = existing
+        ? prev.map((cartItem) =>
+            cartItem.id === item.id
+              ? { ...cartItem, quantity: cartItem.quantity + 1 }
+              : cartItem
+          )
+        : [...prev, { ...item, quantity: 1 }];
+      persistToStorage(next);
+      return next;
     });
-  };
+  }, []);
 
-  const removeItem = (id: string) => {
-    setCart((prev) => prev.filter((item) => item.id !== id));
-  };
+  const removeItem = useCallback((id: string) => {
+    setCart((prev) => {
+      const next = prev.filter((item) => item.id !== id);
+      persistToStorage(next);
+      return next;
+    });
+  }, []);
 
-  const updateQuantity = (id: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeItem(id);
-      return;
-    }
-    setCart((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, quantity } : item))
-    );
-  };
+  const updateQuantity = useCallback(
+    (id: string, quantity: number) => {
+      if (quantity <= 0) {
+        setCart((prev) => {
+          const next = prev.filter((item) => item.id !== id);
+          persistToStorage(next);
+          return next;
+        });
+        return;
+      }
+      setCart((prev) => {
+        const next = prev.map((item) => (item.id === id ? { ...item, quantity } : item));
+        persistToStorage(next);
+        return next;
+      });
+    },
+    []
+  );
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setCart([]);
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-      document.cookie = `stll-cart=; path=/; max-age=0; samesite=lax`;
-    } catch {}
-  };
+    persistToStorage([]);
+  }, []);
 
   const cartCount = useMemo(
     () => cart.reduce((count, item) => count + item.quantity, 0),
@@ -123,9 +160,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value: CartContextValue = useMemo(
-    () => ({ cart, addItem, removeItem, updateQuantity, clearCart, cartCount, total }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [cart, cartCount, total]
+    () => ({
+      cart,
+      addItem,
+      removeItem,
+      updateQuantity,
+      clearCart,
+      cartCount,
+      total,
+    }),
+    [cart, addItem, removeItem, updateQuantity, clearCart, cartCount, total]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

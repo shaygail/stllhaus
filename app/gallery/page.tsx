@@ -1,7 +1,8 @@
 "use client";
 
 import { useCart } from "@/components/CartContext";
-import { useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 
 type Size = { label: string; price: string };
 
@@ -124,17 +125,24 @@ const matchaItems: MenuItemData[] = [
 ];
 
 const coldBrewItems: MenuItemData[] = [
-  { name: "OG Cold Brew",                description: "", image: "", sizes: [{ label: "T", price: "$6" }, { label: "G", price: "$8" }, { label: "V", price: "$10" }] },
+  { name: "OG Cold Brew",                description: "", image: "", sizes: [{ label: "G", price: "$8" }, { label: "V", price: "$10" }] },
   {
     name: "Ube Cream Coldbrew Latte",
     description: "",
     image: "",
-    sizes: [{ label: "T", price: "$7" }, { label: "G", price: "$8" }, { label: "V", price: "$10" }],
+    sizes: [{ label: "G", price: "$8" }, { label: "V", price: "$10" }],
     milkOptionsOverride: [],
   },
-  { name: "Brown Sugar Cold Brew",       description: "", image: "", sizes: [{ label: "T", price: "$7" }, { label: "G", price: "$8" }, { label: "V", price: "$10" }] },
-  { name: "Black Pearl Cold Brew Latte", description: "", image: "", sizes: [{ label: "T", price: "$7" }, { label: "G", price: "$8" }, { label: "V", price: "$10" }] },
-  { name: "Spanish Latte Cold Brew",     description: "", image: "", sizes: [{ label: "T", price: "$7" }, { label: "G", price: "$8" }, { label: "V", price: "$10" }] },
+  { name: "Brown Sugar Cold Brew",       description: "", image: "", sizes: [{ label: "G", price: "$8" }, { label: "V", price: "$10" }] },
+  { name: "Black Pearl Cold Brew Latte", description: "", image: "", sizes: [{ label: "G", price: "$8" }, { label: "V", price: "$10" }] },
+  {
+    name: "Spanish Latte Cold Brew",
+    description: "No extra syrup add-ons — cold foam add-ons still available.",
+    image: "",
+    sizes: [{ label: "G", price: "$8" }, { label: "V", price: "$10" }],
+    hideAddOns: true,
+    coldFoamsAddOnOnly: true,
+  },
 ];
 
 const coffeeItems: MenuItemData[] = [
@@ -203,16 +211,91 @@ const cloudItems: MenuItemData[] = [
   },
 ];
 
+function AddedToCartDialog({
+  open,
+  itemName,
+  onClose,
+}: {
+  open: boolean;
+  itemName: string;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center px-5 py-10 bg-stll-charcoal/45 backdrop-blur-[2px]"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="added-to-cart-title"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-md border border-stll-charcoal/20 bg-[#FAF8F5] px-8 py-10 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-4 right-4 h-9 w-9 flex items-center justify-center text-stll-muted hover:text-stll-charcoal text-xl leading-none border border-transparent hover:border-stll-charcoal/20"
+          aria-label="Close"
+        >
+          ×
+        </button>
+        <p className="text-[10px] tracking-[0.35em] uppercase text-stll-muted mb-3">Stll Haus</p>
+        <h2 id="added-to-cart-title" className="text-xl font-black uppercase tracking-tight text-stll-charcoal leading-snug">
+          Added to your order
+        </h2>
+        <p className="mt-3 text-sm text-stll-charcoal/90 leading-relaxed">{itemName}</p>
+        <p className="mt-4 text-xs text-stll-muted leading-relaxed">
+          Go to your cart to review and pay, or keep browsing the menu.
+        </p>
+        <div className="mt-8 flex flex-col sm:flex-row gap-3 sm:justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full sm:w-auto px-8 py-3.5 text-[11px] tracking-[0.25em] uppercase border border-stll-charcoal/25 text-stll-charcoal hover:bg-stll-charcoal/5 transition-colors"
+          >
+            Keep shopping
+          </button>
+          <Link
+            href="/checkout"
+            onClick={onClose}
+            className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 text-[11px] tracking-[0.25em] uppercase border border-stll-charcoal bg-stll-charcoal text-white text-center hover:bg-stll-charcoal/90 transition-colors"
+          >
+            Continue to cart
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function MenuItemRow({
   item,
   milkOptions,
   showSyrups = true,
   showColdFoams = false,
+  onItemAdded,
 }: {
   item: MenuItemData;
   milkOptions?: string[];
   showSyrups?: boolean;
   showColdFoams?: boolean;
+  onItemAdded?: (itemSummary: string) => void;
 }) {
   const isMatcha = item.name.toLowerCase().includes("matcha");
   const dairyCreamNote = getDairyCreamBaseNote(item.name);
@@ -294,6 +377,7 @@ function MenuItemRow({
     if (sweetness) descArr.push(`Sweetness: ${sweetness}`);
     const description = descArr.join(" | ");
     addItem({ id, name: displayName, description, price });
+    onItemAdded?.(displayName);
   };
 
   return (
@@ -480,6 +564,7 @@ function MenuSection({
   milkNote,
   showSyrups = true,
   showColdFoams = false,
+  onItemAdded,
 }: {
   title: string;
   subtitle: string;
@@ -488,6 +573,7 @@ function MenuSection({
   milkNote?: string;
   showSyrups?: boolean;
   showColdFoams?: boolean;
+  onItemAdded?: (itemSummary: string) => void;
 }) {
   return (
     <section className="mb-20">
@@ -508,6 +594,7 @@ function MenuSection({
             milkOptions={milkOptions}
             showSyrups={showSyrups}
             showColdFoams={showColdFoams}
+            onItemAdded={onItemAdded}
           />
         ))}
       </div>
@@ -516,8 +603,17 @@ function MenuSection({
 }
 
 export default function GalleryPage() {
+  const [cartPrompt, setCartPrompt] = useState<{ open: boolean; name: string }>({ open: false, name: "" });
+  const closeCartPrompt = useCallback(() => setCartPrompt({ open: false, name: "" }), []);
+  const openCartPrompt = useCallback((name: string) => setCartPrompt({ open: true, name }), []);
+
   return (
     <div className="bg-[#FAF8F5] min-h-screen">
+      <AddedToCartDialog
+        open={cartPrompt.open}
+        itemName={cartPrompt.name}
+        onClose={closeCartPrompt}
+      />
       <div className="pt-32 pb-16 px-6 sm:px-12 lg:px-20 border-b border-stll-charcoal/10">
         <p className="text-[10px] tracking-[0.4em] uppercase text-stll-muted mb-4">Stll Haus — Matcha &amp; Coffee</p>
         <h1 className="text-[4rem] sm:text-[6rem] lg:text-[8rem] font-black uppercase tracking-tight text-stll-charcoal leading-none">
@@ -532,6 +628,7 @@ export default function GalleryPage() {
           milkOptions={["Oat", "Whole", "Almond", "Soy"]}
           milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
           showColdFoams
+          onItemAdded={openCartPrompt}
         />
         <MenuSection
           title="Cold Brew Coffees"
@@ -540,6 +637,7 @@ export default function GalleryPage() {
           milkOptions={["Oat", "Whole", "Almond", "Soy"]}
           milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
           showColdFoams
+          onItemAdded={openCartPrompt}
         />
         <MenuSection
           title="Coffee Series"
@@ -548,6 +646,7 @@ export default function GalleryPage() {
           milkOptions={["Oat", "Whole", "Almond", "Soy"]}
           milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
           showColdFoams
+          onItemAdded={openCartPrompt}
         />
         <MenuSection
           title="Non Coffee Series"
@@ -557,6 +656,7 @@ export default function GalleryPage() {
           milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
           showSyrups={false}
           showColdFoams={false}
+          onItemAdded={openCartPrompt}
         />
         <MenuSection
           title="Coconut Cloud Drinks"
@@ -564,6 +664,7 @@ export default function GalleryPage() {
           items={cloudItems}
           showSyrups={false}
           showColdFoams
+          onItemAdded={openCartPrompt}
         />
       </div>
     </div>

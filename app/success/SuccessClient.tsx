@@ -4,10 +4,18 @@ import { createClient } from "@/lib/supabase/client";
 import { mergeOrderHistory, parseOrderHistory, type OrderHistoryEntry } from "@/lib/order-history";
 import { mergeRewardHistory, parseRewardHistory, type RewardHistoryEntry } from "@/lib/reward-history";
 import { POINTS_PER_DOLLAR, getLoyaltyTier } from "@/lib/loyalty";
+import type { DeliveryTier } from "@/lib/delivery";
+import { isPickupLocationId, pickupLocationForEmail } from "@/lib/pickup-locations";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+
+function formatOrderSlot(iso: string): string {
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return iso;
+  return new Date(t).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+}
 
 type LastOrder = {
   customerEmail: string;
@@ -17,6 +25,11 @@ type LastOrder = {
   items: Array<{ name: string; quantity: number; price: number; description?: string }>;
   total: number;
   pickupTime: string;
+  /** Set for orders placed after pickup-location checkout shipped. */
+  pickupLocationId?: string;
+  fulfillment?: "pickup" | "delivery";
+  deliveryAddress?: string;
+  deliveryTier?: DeliveryTier;
   paymentMethod: string;
   orderId?: string;
   notes?: string;
@@ -60,7 +73,7 @@ export default function SuccessClient() {
 
       const orderFingerprint =
         lastOrder.orderId ??
-        `${lastOrder.total}-${lastOrder.pickupTime}-${lastOrder.items
+        `${lastOrder.total}-${lastOrder.pickupTime}-${lastOrder.pickupLocationId ?? ""}-${lastOrder.fulfillment ?? "pickup"}-${lastOrder.deliveryAddress ?? ""}-${lastOrder.items
           .map((item) => `${item.name}:${item.quantity}`)
           .join("|")}`;
       const sessionKey = `stll-loyalty-awarded:${orderFingerprint}`;
@@ -88,12 +101,19 @@ export default function SuccessClient() {
         .slice(0, 5)
         .join(", ");
 
+      const loc =
+        lastOrder.fulfillment === "delivery"
+          ? { title: "Delivery", detail: lastOrder.deliveryAddress }
+          : lastOrder.pickupLocationId && isPickupLocationId(lastOrder.pickupLocationId)
+            ? pickupLocationForEmail(lastOrder.pickupLocationId)
+            : null;
       const entry: OrderHistoryEntry = {
         id: orderFingerprint,
         placedAt: new Date().toISOString(),
         total: lastOrder.total,
         summary,
         pickupTime: lastOrder.pickupTime,
+        pickupLocationLabel: loc?.title,
         paymentMethod: lastOrder.paymentMethod,
       };
 
@@ -177,6 +197,9 @@ export default function SuccessClient() {
           items: lastOrder.items,
           total: lastOrder.total,
           pickupTime: lastOrder.pickupTime,
+          pickupLocationId: lastOrder.pickupLocationId,
+          fulfillment: lastOrder.fulfillment,
+          deliveryAddress: lastOrder.deliveryAddress,
           paymentMethod: lastOrder.paymentMethod,
           orderId: lastOrder.orderId,
           notes: lastOrder.notes,
@@ -193,7 +216,23 @@ export default function SuccessClient() {
     }
   };
 
-  const paymentLabel = method === "cash" ? "Cash at pickup" : method === "bank_transfer" ? "Bank transfer" : null;
+  const paymentLabel =
+    method === "cash"
+      ? lastOrder?.fulfillment === "delivery"
+        ? "CASH / EFTPOS on delivery"
+        : "CASH / EFTPOS at pickup"
+      : method === "bank_transfer"
+        ? "Bank transfer"
+        : null;
+
+  const resolvedPickupLocation =
+    lastOrder?.fulfillment === "delivery"
+      ? lastOrder.deliveryAddress
+        ? { title: "Delivery", detail: `Address:\n${lastOrder.deliveryAddress}` }
+        : { title: "Delivery", detail: undefined }
+      : lastOrder?.pickupLocationId && isPickupLocationId(lastOrder.pickupLocationId)
+        ? pickupLocationForEmail(lastOrder.pickupLocationId)
+        : null;
 
   return (
     <div className="bg-[#FAF8F5] min-h-screen">
@@ -210,6 +249,24 @@ export default function SuccessClient() {
         </h2>
         {paymentLabel && (
           <p className="text-[11px] tracking-[0.2em] uppercase text-stll-muted mb-8">{paymentLabel}</p>
+        )}
+
+        {resolvedPickupLocation && lastOrder && (
+          <div className="mb-10 border border-stll-charcoal/10 p-5 max-w-xl">
+            <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-2">
+              {lastOrder.fulfillment === "delivery" ? "Delivery" : "Pickup"}
+            </p>
+            <p className="text-sm text-stll-charcoal font-medium leading-snug">{resolvedPickupLocation.title}</p>
+            <p className="text-xs text-stll-muted mt-2 leading-relaxed">
+              <span className="text-stll-charcoal/90">When: </span>
+              {formatOrderSlot(lastOrder.pickupTime)}
+            </p>
+            {resolvedPickupLocation.detail && (
+              <p className="text-xs text-stll-muted mt-3 leading-relaxed border-t border-stll-charcoal/10 pt-3 whitespace-pre-line">
+                {resolvedPickupLocation.detail}
+              </p>
+            )}
+          </div>
         )}
 
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-12 lg:gap-10 xl:gap-16">

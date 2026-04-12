@@ -19,6 +19,8 @@ type MenuItemData = {
   hideAddOns?: boolean;
   /** When true with hideAddOns, syrups stay off but cream / cold foam add-ons are still offered. */
   coldFoamsAddOnOnly?: boolean;
+  /** When true, show espresso shot options (1 shot included, double +$0.50, 3 shots +$1). */
+  coffeeShots?: boolean;
 };
 
 const SIZE_LABELS: Record<string, string> = { T: "Small", G: "Regular", V: "Large" };
@@ -146,9 +148,38 @@ const coldBrewItems: MenuItemData[] = [
 ];
 
 const coffeeItems: MenuItemData[] = [
-  { name: "Ube Spanish Latte", description: "", image: "", sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$11.00" }], temperatureOptionsOverride: ["Hot", "Iced"] },
-  { name: "Spanish Latte", description: "", image: "", sizes: [{ label: "G", price: "$8.00" }, { label: "V", price: "$10.00" }], temperatureOptionsOverride: ["Hot", "Iced"] },
-  { name: "Biscoff Latte", description: "", image: "", sizes: [{ label: "G", price: "$9.00" }, { label: "V", price: "$13.00" }], temperatureOptionsOverride: ["Hot", "Iced"] },
+  {
+    name: "Mocha",
+    description: "House chocolate and espresso with your choice of milk.",
+    image: "",
+    sizes: [{ label: "G", price: "$8.00" }, { label: "V", price: "$10.00" }],
+    temperatureOptionsOverride: ["Hot", "Iced"],
+    coffeeShots: true,
+  },
+  {
+    name: "Ube Spanish Latte",
+    description: "",
+    image: "",
+    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$11.00" }],
+    temperatureOptionsOverride: ["Hot", "Iced"],
+    coffeeShots: true,
+  },
+  {
+    name: "Spanish Latte",
+    description: "",
+    image: "",
+    sizes: [{ label: "G", price: "$8.00" }, { label: "V", price: "$10.00" }],
+    temperatureOptionsOverride: ["Hot", "Iced"],
+    coffeeShots: true,
+  },
+  {
+    name: "Biscoff Latte",
+    description: "",
+    image: "",
+    sizes: [{ label: "G", price: "$9.00" }, { label: "V", price: "$13.00" }],
+    temperatureOptionsOverride: ["Hot", "Iced"],
+    coffeeShots: true,
+  },
 ];
 
 const nonCoffeeItems: MenuItemData[] = [
@@ -186,16 +217,6 @@ const nonCoffeeItems: MenuItemData[] = [
     sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.00" }],
     temperatureOptionsOverride: ["Hot", "Iced"],
     hideAddOns: true,
-  },
-  {
-    name: "Midnight Cream",
-    description:
-      "Iced chocolate. Add house cream cold foams (priced per selection). Oat or whole at menu price; almond or soy +$1. Syrups not included.",
-    image: "",
-    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.00" }],
-    temperatureOptionsOverride: ["Iced"],
-    hideAddOns: true,
-    coldFoamsAddOnOnly: true,
   },
 ];
 
@@ -313,6 +334,7 @@ function MenuItemRow({
   );
   const [sweetness, setSweetness] = useState("Sweet");
   const [matchaStrength, setMatchaStrength] = useState("default");
+  const [coffeeShotChoice, setCoffeeShotChoice] = useState<"1" | "2" | "3">("1");
 
   const rowShowSyrups = showSyrups && !item.hideAddOns;
   const rowShowColdFoams =
@@ -337,12 +359,17 @@ function MenuItemRow({
     const sortedSyrups = rowShowSyrups ? [...selectedSyrups].sort() : [];
     const sortedColdFoams = rowShowColdFoams ? [...selectedColdFoams].sort() : [];
     const displayName = `${item.name} (${sizeName}${selectedTemperature ? `, ${selectedTemperature}` : ""})`;
-    const id = `${slug}-${sizeLabel}-${selectedTemperature || "notemp"}-${sortedSyrups.join("-") || "plain"}-${sortedColdFoams.join("-") || "nocfoam"}-${selectedMilk || "nomilk"}-${sweetness}-${matchaStrength}`;
+    const shotId = item.coffeeShots ? coffeeShotChoice : "noshots";
+    const id = `${slug}-${sizeLabel}-${selectedTemperature || "notemp"}-${sortedSyrups.join("-") || "plain"}-${sortedColdFoams.join("-") || "nocfoam"}-${selectedMilk || "nomilk"}-${sweetness}-${matchaStrength}-${shotId}`;
     let price = parseFloat(validSizes.find((s) => s.label === sizeLabel)?.price.replace("$", "") || "0");
     let matchaDesc = "Default (4g)";
     if (isMatcha) {
       if (matchaStrength === "extra") { price += 0.5; matchaDesc = "Extra Strong (6g, +$0.50)"; }
       else if (matchaStrength === "strongest") { price += 1; matchaDesc = "Strongest (8g, +$1.00)"; }
+    }
+    if (item.coffeeShots) {
+      if (coffeeShotChoice === "2") price += 0.5;
+      else if (coffeeShotChoice === "3") price += 1;
     }
     let milkDesc = selectedMilk;
     if (selectedMilk && PREMIUM_MILKS.has(selectedMilk)) {
@@ -369,6 +396,15 @@ function MenuItemRow({
     });
     price += coldFoamExtras;
     const descArr = [];
+    if (item.coffeeShots) {
+      const shotLine =
+        coffeeShotChoice === "1"
+          ? "1 shot (included)"
+          : coffeeShotChoice === "2"
+            ? "Double (2 shots, +$0.50)"
+            : "3 shots (+$1.00)";
+      descArr.push(`Espresso: ${shotLine}`);
+    }
     if (isMatcha) descArr.push(`Matcha: ${matchaDesc}`);
     if (sortedSyrups.length) descArr.push(`Syrups: ${syrupDescParts.join(", ")}`);
     if (sortedColdFoams.length) descArr.push(`Cold foam (add-on): ${coldFoamDescParts.join(", ")}`);
@@ -480,6 +516,33 @@ function MenuItemRow({
               </div>
             </div>
           </div>
+
+          {item.coffeeShots && (
+            <div>
+              <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-2">Espresso shots</p>
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { value: "1" as const, label: "1 shot (included)" },
+                  { value: "2" as const, label: "Double (+$0.50)" },
+                  { value: "3" as const, label: "3 shots (+$1)" },
+                ].map((opt) => (
+                  <label key={opt.value} className="cursor-pointer">
+                    <input
+                      type="radio"
+                      name={`coffee-shots-${slug}`}
+                      value={opt.value}
+                      checked={coffeeShotChoice === opt.value}
+                      onChange={() => setCoffeeShotChoice(opt.value)}
+                      className="sr-only peer"
+                    />
+                    <span className="block px-4 py-2 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal/25 text-stll-charcoal peer-checked:bg-stll-charcoal peer-checked:text-white peer-checked:border-stll-charcoal">
+                      {opt.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Matcha Strength below milk + sweetness */}
           {isMatcha && (

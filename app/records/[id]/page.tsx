@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createBusinessLogsAdminClient } from "@/lib/business-logs";
-import { COMPLIANCE_FORM_LABELS, parseComplianceForm } from "@/lib/compliance-forms";
+import { getComplianceFormLabel, parseComplianceForm } from "@/lib/compliance-forms";
 import { EditLoggedDateForm } from "./EditLoggedDateForm";
 
 function toDisplayValue(value: unknown): string {
@@ -64,7 +64,15 @@ export default async function RecordDetailPage({
   if (!log) notFound();
 
   const parsed = parseComplianceForm(String(log.details ?? ""));
-  const formLabel = parsed ? COMPLIANCE_FORM_LABELS[parsed.formType] : "Compliance Form";
+  const tagList = Array.isArray(log.tags)
+    ? log.tags.filter((t): t is string => typeof t === "string")
+    : [];
+  const typeTagFallback = tagList.find((t) => t !== "compliance_form");
+  const formLabel = parsed
+    ? getComplianceFormLabel(parsed.formType)
+    : typeTagFallback
+      ? getComplianceFormLabel(typeTagFallback)
+      : "Compliance form";
   const detailRows = flattenPayload(parsed?.payload ?? { raw: log.details }).map((row) => ({
     field: formatFieldLabel(row.field),
     value: row.value,

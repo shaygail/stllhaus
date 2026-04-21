@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createBusinessLogsAdminClient, type BusinessLogEntry } from "@/lib/business-logs";
-import { COMPLIANCE_FORM_LABELS, parseComplianceForm } from "@/lib/compliance-forms";
+import { getComplianceFormLabel, parseComplianceForm } from "@/lib/compliance-forms";
 
 async function getRecentLogs(): Promise<{ logs: BusinessLogEntry[]; error: string | null }> {
   const supabase = createBusinessLogsAdminClient();
@@ -20,12 +20,19 @@ async function getRecentLogs(): Promise<{ logs: BusinessLogEntry[]; error: strin
   return { logs: (data ?? []) as BusinessLogEntry[], error: null };
 }
 
+function formLabelForEntry(log: BusinessLogEntry, parsed: ReturnType<typeof parseComplianceForm>): string {
+  if (parsed) return getComplianceFormLabel(parsed.formType);
+  const typeTag = log.tags.find((t) => t !== "compliance_form" && t.trim());
+  if (typeTag) return getComplianceFormLabel(typeTag);
+  return "Compliance entry";
+}
+
 export default async function RecordsPage() {
   const { logs, error } = await getRecentLogs();
-  const complianceLogs = logs.flatMap((log) => {
-    const parsed = parseComplianceForm(log.details);
-    return parsed ? [{ log, parsed }] : [];
-  });
+  const complianceLogs = logs.map((log) => ({
+    log,
+    parsed: parseComplianceForm(log.details),
+  }));
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] pt-28 pb-20 px-8 sm:px-16 lg:px-24">
@@ -80,7 +87,7 @@ export default async function RecordsPage() {
                   <tbody>
                     {complianceLogs.map(({ log, parsed }) => (
                       <tr key={log.id} className="border-b border-stll-charcoal/8 align-top">
-                        <td className="py-3 pr-4 text-sm text-stll-charcoal">{COMPLIANCE_FORM_LABELS[parsed.formType]}</td>
+                        <td className="py-3 pr-4 text-sm text-stll-charcoal">{formLabelForEntry(log, parsed)}</td>
                         <td className="py-3 pr-4 text-sm text-stll-charcoal">{log.title}</td>
                         <td className="py-3 pr-4 text-sm text-stll-charcoal">{log.entered_by}</td>
                         <td className="py-3 pr-4 text-sm text-stll-charcoal">

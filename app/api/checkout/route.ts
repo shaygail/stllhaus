@@ -1,4 +1,4 @@
-import { sendCustomerReceiptEmail, sendOrderNotification, sendOrderReceivedNotification } from "@/lib/email";
+import { sendCustomerReceiptEmail, sendOrderNotification } from "@/lib/email";
 import { cartUnitsEligibleForDelivery, deliveryLineItemName } from "@/lib/delivery";
 import { formatDeliveryEmailDetail, resolveDeliveryPricing } from "@/lib/server-delivery-pricing";
 import {
@@ -8,10 +8,6 @@ import {
 } from "@/lib/pickup-locations";
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-
-function isValidCustomerEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -183,20 +179,6 @@ export async function POST(request: NextRequest) {
           orderId,
           notes: notes || undefined,
         });
-      }
-
-      const emailTrim = contactEmail?.trim() ?? "";
-      if (isValidCustomerEmail(emailTrim)) {
-        try {
-          await sendOrderReceivedNotification({
-            contact: contactDetail || contactCompact,
-            customerName: (customerName || "Unknown").trim() || "Unknown",
-            customerEmail: emailTrim,
-            orderId,
-          });
-        } catch (notifyErr) {
-          console.error("[checkout] Order-received customer email failed (order still placed):", notifyErr);
-        }
       }
 
       return NextResponse.json({ success: true, orderId });

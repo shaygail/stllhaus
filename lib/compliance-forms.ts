@@ -24,9 +24,27 @@ export function serializeComplianceForm(formType: ComplianceFormType, payload: R
   return `${PREFIX}${JSON.stringify({ formType, payload })}`;
 }
 
-export function parseComplianceForm(
-  details: string
-): { formType: ComplianceFormType; payload: Record<string, unknown> } | null {
+/** Parsed from stored `details`; `formType` may be any string so new forms still render after deploy. */
+export type ParsedComplianceForm = {
+  formType: string;
+  payload: Record<string, unknown>;
+};
+
+function humanizeUnknownFormType(id: string): string {
+  return id
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** Label for a form type id — known types use the canonical title; others get a readable fallback. */
+export function getComplianceFormLabel(formType: string): string {
+  if (COMPLIANCE_FORM_TYPES.includes(formType as ComplianceFormType)) {
+    return COMPLIANCE_FORM_LABELS[formType as ComplianceFormType];
+  }
+  return humanizeUnknownFormType(formType);
+}
+
+export function parseComplianceForm(details: string): ParsedComplianceForm | null {
   if (!details.startsWith(PREFIX)) return null;
   try {
     const raw = JSON.parse(details.slice(PREFIX.length)) as {
@@ -34,11 +52,11 @@ export function parseComplianceForm(
       payload?: unknown;
     };
     const formType = raw.formType;
-    if (typeof formType !== "string" || !COMPLIANCE_FORM_TYPES.includes(formType as ComplianceFormType)) {
+    if (typeof formType !== "string" || !formType.trim()) {
       return null;
     }
     if (!raw.payload || typeof raw.payload !== "object") return null;
-    return { formType: formType as ComplianceFormType, payload: raw.payload as Record<string, unknown> };
+    return { formType: formType.trim(), payload: raw.payload as Record<string, unknown> };
   } catch {
     return null;
   }

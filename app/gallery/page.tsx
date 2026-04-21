@@ -11,6 +11,8 @@ type MenuItemData = {
   description: string;
   image: string;
   sizes: Size[];
+  /** Optional per-temperature size/price overrides. */
+  sizesByTemperature?: Record<string, Size[]>;
   /** When set, replaces the section default. Use `[]` to hide milk choice for this drink. */
   milkOptionsOverride?: string[];
   /** When set, shows temperature choices for this drink. */
@@ -148,6 +150,60 @@ const coldBrewItems: MenuItemData[] = [
 ];
 
 const coffeeItems: MenuItemData[] = [
+  {
+    name: "Flat White",
+    description: "",
+    image: "",
+    sizes: [{ label: "G", price: "$7.00" }],
+    temperatureOptionsOverride: ["Hot"],
+    coffeeShots: true,
+  },
+  {
+    name: "Iced Latte",
+    description: "",
+    image: "",
+    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$9.50" }],
+    temperatureOptionsOverride: ["Iced"],
+    coffeeShots: true,
+  },
+  {
+    name: "Americano",
+    description: "",
+    image: "",
+    sizes: [{ label: "G", price: "$6.00" }],
+    sizesByTemperature: {
+      Hot: [{ label: "G", price: "$6.00" }],
+      Iced: [{ label: "G", price: "$6.00" }, { label: "V", price: "$8.00" }],
+    },
+    temperatureOptionsOverride: ["Hot", "Iced"],
+    milkOptionsOverride: [],
+    coffeeShots: true,
+  },
+  {
+    name: "Long Black",
+    description: "",
+    image: "",
+    sizes: [{ label: "G", price: "$6.00" }],
+    sizesByTemperature: {
+      Hot: [{ label: "G", price: "$6.00" }],
+      Iced: [{ label: "G", price: "$6.00" }, { label: "V", price: "$8.00" }],
+    },
+    temperatureOptionsOverride: ["Hot", "Iced"],
+    milkOptionsOverride: [],
+    coffeeShots: true,
+  },
+  {
+    name: "Caramel Latte",
+    description: "",
+    image: "",
+    sizes: [{ label: "G", price: "$8.00" }],
+    sizesByTemperature: {
+      Hot: [{ label: "G", price: "$8.00" }],
+      Iced: [{ label: "G", price: "$8.00" }, { label: "V", price: "$10.00" }],
+    },
+    temperatureOptionsOverride: ["Hot", "Iced"],
+    coffeeShots: true,
+  },
   {
     name: "Mocha",
     description: "House chocolate and espresso with your choice of milk.",
@@ -320,12 +376,12 @@ function MenuItemRow({
 }) {
   const isMatcha = item.name.toLowerCase().includes("matcha");
   const dairyCreamNote = getDairyCreamBaseNote(item.name);
-  const validSizes = item.sizes.filter((s) => s.price !== "N/A");
   const slug = slugify(item.name);
   const rowMilkOptions = item.milkOptionsOverride !== undefined ? item.milkOptionsOverride : milkOptions;
   const rowTemperatureOptions = item.temperatureOptionsOverride ?? [];
+  const initialSizes = item.sizes.filter((s) => s.price !== "N/A");
   const { addItem } = useCart();
-  const [selectedSize, setSelectedSize] = useState(validSizes[0]?.label || "");
+  const [selectedSize, setSelectedSize] = useState(initialSizes[0]?.label || "");
   const [selectedSyrups, setSelectedSyrups] = useState<string[]>([]);
   const [selectedColdFoams, setSelectedColdFoams] = useState<string[]>([]);
   const [selectedMilk, setSelectedMilk] = useState(rowMilkOptions?.length ? rowMilkOptions[0] : "");
@@ -335,6 +391,11 @@ function MenuItemRow({
   const [sweetness, setSweetness] = useState("Sweet");
   const [matchaStrength, setMatchaStrength] = useState("default");
   const [coffeeShotChoice, setCoffeeShotChoice] = useState<"1" | "2" | "3">("1");
+  const activeSizesRaw =
+    (rowTemperatureOptions.length > 0 && selectedTemperature
+      ? item.sizesByTemperature?.[selectedTemperature]
+      : undefined) ?? item.sizes;
+  const validSizes = activeSizesRaw.filter((s) => s.price !== "N/A");
 
   const rowShowSyrups = showSyrups && !item.hideAddOns;
   const rowShowColdFoams =
@@ -473,7 +534,16 @@ function MenuItemRow({
                         name="temperature"
                         value={temperature}
                         checked={selectedTemperature === temperature}
-                        onChange={() => setSelectedTemperature(temperature)}
+                        onChange={() => {
+                          setSelectedTemperature(temperature);
+                          const nextSizes =
+                            (item.sizesByTemperature?.[temperature] ?? item.sizes).filter(
+                              (s) => s.price !== "N/A"
+                            );
+                          if (!nextSizes.some((s) => s.label === selectedSize)) {
+                            setSelectedSize(nextSizes[0]?.label || "");
+                          }
+                        }}
                         className="sr-only peer"
                       />
                       <span className="block px-4 py-2 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal/25 text-stll-charcoal peer-checked:bg-stll-charcoal peer-checked:text-white peer-checked:border-stll-charcoal">

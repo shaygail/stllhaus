@@ -247,6 +247,9 @@ export default function SuccessClient() {
         <h2 className="text-2xl sm:text-3xl font-bold text-stll-charcoal tracking-tight mb-4">
           Your order has been received
         </h2>
+        <p className="text-sm text-stll-charcoal/90 leading-relaxed mb-6 max-w-xl">
+          We will email you when your order is ready for pickup or heading out for delivery.
+        </p>
         {paymentLabel && (
           <p className="text-[11px] tracking-[0.2em] uppercase text-stll-muted mb-8">{paymentLabel}</p>
         )}

@@ -6,6 +6,7 @@ import {
   type ComplianceFormType,
   serializeComplianceForm,
 } from "@/lib/compliance-forms";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 const FOOD_SAFETY_AREAS = [
@@ -17,6 +18,7 @@ const FOOD_SAFETY_AREAS = [
 ] as const;
 
 export function RecordLogForm() {
+  const router = useRouter();
   const [formType, setFormType] = useState<ComplianceFormType>("allergens");
   const [loggedAt, setLoggedAt] = useState(() => new Date().toISOString().slice(0, 10));
   const [enteredBy, setEnteredBy] = useState("");
@@ -66,7 +68,7 @@ export function RecordLogForm() {
   const [correctiveAction, setCorrectiveAction] = useState("");
   const [reviewStatus, setReviewStatus] = useState("Compliant");
 
-  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "saving" | "error">("idle");
   const [error, setError] = useState("");
 
   async function onSubmit(e: React.FormEvent) {
@@ -168,7 +170,7 @@ export function RecordLogForm() {
         throw new Error(data.error || "Unable to save log");
       }
 
-      setStatus("saved");
+      router.push("/records");
     } catch (err) {
       setStatus("error");
       setError(err instanceof Error ? err.message : "Unable to save log");
@@ -345,7 +347,6 @@ export function RecordLogForm() {
         {status === "saving" ? "Saving..." : "Save Form Entry"}
       </button>
 
-      {status === "saved" && <p className="text-sm text-stll-charcoal">Form entry saved successfully.</p>}
       {status === "error" && <p className="text-sm text-red-700">{error}</p>}
     </form>
   );

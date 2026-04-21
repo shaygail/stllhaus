@@ -16,13 +16,12 @@ const paymentLabel: Record<string, string> = {
   cash: "CASH / EFTPOS at pickup",
 };
 
-export async function sendOrderReceivedNotification({
-  contact,
+/** Customer email: shop triggers this when the order is ready for pickup (see new-order email button). */
+export async function sendOrderReadyForPickupEmail({
   customerName,
   customerEmail,
   orderId,
 }: {
-  contact: string;
   customerName: string;
   customerEmail: string;
   orderId?: string;
@@ -31,9 +30,9 @@ export async function sendOrderReceivedNotification({
   const oid = orderId ? escapeHtml(orderId) : "";
   const html = `
     <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto; color: #1a1a1a; padding: 32px 24px;">
-      <h2 style="font-size: 22px; font-weight: bold; margin-bottom: 8px;">We have received your order!</h2>
+      <h2 style="font-size: 22px; font-weight: bold; margin-bottom: 8px;">Your order is ready for pickup</h2>
       <p style="font-size: 15px;">Hi ${name},</p>
-      <p style="font-size: 15px;">Your order has been received and is being prepared. We'll notify you when it's ready for pickup.</p>
+      <p style="font-size: 15px;">Your order is ready. Please come by to pick it up when you can. If you chose delivery, we will bring it out or contact you shortly.</p>
       ${orderId ? `<p style="font-size: 13px; color: #888; margin-top: 16px;"><strong>Order ID:</strong> ${oid}</p>` : ""}
       <p style="font-size: 13px; color: #888; margin-top: 24px;">Thank you for ordering with STLL HAUS.</p>
     </div>
@@ -41,14 +40,14 @@ export async function sendOrderReceivedNotification({
   const { data, error } = await resend.emails.send({
     from: "noreply@stllhaus.co",
     to: customerEmail,
-    subject: "Your order has been received! — STLL HAUS",
+    subject: "Your order is ready for pickup — STLL HAUS",
     html,
   });
   if (error) {
-    console.error("[Resend] Error sending order received notification:", error);
+    console.error("[Resend] Error sending order ready for pickup email:", error);
     throw new Error(error.message);
   }
-  console.log("[Resend] Order received notification sent, id:", data?.id);
+  console.log("[Resend] Order ready for pickup email sent, id:", data?.id);
 }
 
 type OrderLineItem = { name: string; quantity: number; price: number; description?: string };
@@ -388,9 +387,9 @@ export async function sendOrderNotification({
         <input type="hidden" name="customerName" value="${escapeHtml(customerName)}" />
         <input type="hidden" name="customerEmail" value="${escapeHtml((customerEmail || contactCompact).trim())}" />
         <input type="hidden" name="orderId" value="${escapeHtml(orderId || "")}" />
-        <button type="submit" style="background: #222; color: #fff; border: none; padding: 12px 24px; font-size: 14px; border-radius: 4px; cursor: pointer;">Resend &ldquo;order received&rdquo; email to customer</button>
+        <button type="submit" style="background: #222; color: #fff; border: none; padding: 12px 24px; font-size: 14px; border-radius: 4px; cursor: pointer;">Order is ready for pickup — email customer</button>
       </form>
-      <p style="font-size: 11px; color: #888; margin: 10px 0 0;">Customers also get this automatically when they place an order (if email delivery succeeds).</p>
+      <p style="font-size: 11px; color: #888; margin: 10px 0 0;">Tap when the order is ready. We only email the customer after you press this button (not when they first order).</p>
       <p style="font-size: 11px; color: #bbb; margin: 0; margin-top: 16px;">STLL HAUS · Order Notification</p>
     </div>
   `;

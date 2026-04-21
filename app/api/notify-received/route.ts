@@ -1,4 +1,4 @@
-import { sendOrderReceivedNotification } from "@/lib/email";
+import { sendOrderReadyForPickupEmail } from "@/lib/email";
 import { publicSiteUrl } from "@/lib/site-url";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -73,14 +73,13 @@ async function handleNotify(args: {
   }
 
   try {
-    await sendOrderReceivedNotification({
-      contact,
+    await sendOrderReadyForPickupEmail({
       customerName: name,
       customerEmail: recipient,
       orderId: orderId.trim() || undefined,
     });
   } catch (e) {
-    console.error("Order received notify error:", e);
+    console.error("Order ready for pickup notify error:", e);
     const msg = "Failed to send email. Check Resend logs and RESEND_API_KEY.";
     if (wantsJson) {
       return NextResponse.json({ error: msg }, { status: 500 });
@@ -93,7 +92,7 @@ async function handleNotify(args: {
   }
   return htmlResponse(
     "Email sent",
-    `We sent an “order received” confirmation to ${recipient}.`,
+    `We told ${recipient} their order is ready for pickup.`,
     true
   );
 }
@@ -140,13 +139,13 @@ export async function POST(request: NextRequest) {
     const orderId = String(formData.get("orderId") ?? "");
     return handleNotify({ contact, customerName, customerEmail, orderId, wantsJson });
   } catch (error) {
-    console.error("Order received notify error:", error);
+    console.error("Order ready for pickup notify error:", error);
     if (wantsJson) {
       return NextResponse.json({ error: "Failed to send notification" }, { status: 500 });
     }
     return htmlResponse(
       "Something went wrong",
-      "Could not process this request. Try again or send the confirmation from Supabase or your inbox tools.",
+      "Could not process this request. Try again or contact the customer directly.",
       false
     );
   }

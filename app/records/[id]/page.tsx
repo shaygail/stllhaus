@@ -67,7 +67,7 @@ export default async function RecordDetailPage({
   const tagList = Array.isArray(log.tags)
     ? log.tags.filter((t: unknown): t is string => typeof t === "string")
     : [];
-  const typeTagFallback = tagList.find((t) => t !== "compliance_form");
+  const typeTagFallback = tagList.find((t: string) => t !== "compliance_form");
   const formLabel = parsed
     ? getComplianceFormLabel(parsed.formType)
     : typeTagFallback

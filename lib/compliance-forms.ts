@@ -13,6 +13,7 @@ export const COMPLIANCE_FORM_TYPES = [
   "complaint_register",
   "corrective_action_log",
   "supplier_invoices_receipts",
+  "stall_cart_bar_improvements",
 ] as const;
 
 export type ComplianceFormType = (typeof COMPLIANCE_FORM_TYPES)[number];
@@ -32,6 +33,7 @@ export const COMPLIANCE_FORM_LABELS: Record<ComplianceFormType, string> = {
   complaint_register: "Complaint register (none received)",
   corrective_action_log: "Corrective action log",
   supplier_invoices_receipts: "Supplier invoices / receipts",
+  stall_cart_bar_improvements: "Stall/cart/bar improvements",
 };
 
 const PREFIX = "COMPLIANCE_FORM_V1:";

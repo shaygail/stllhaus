@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createBusinessLogsAdminClient } from "@/lib/business-logs";
 import { getComplianceFormLabel, parseComplianceForm } from "@/lib/compliance-forms";
 import { EditLoggedDateForm } from "./EditLoggedDateForm";
+import { RecordDetailActions } from "./RecordDetailActions";
 
 function toDisplayValue(value: unknown): string {
   if (value === null || value === undefined) return "";
@@ -77,6 +78,9 @@ export default async function RecordDetailPage({
     field: formatFieldLabel(row.field),
     value: row.value,
   }));
+  const summary = String(log.title ?? "");
+  const enteredBy = String(log.entered_by ?? "");
+  const date = new Date(String(log.logged_at)).toLocaleDateString();
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] pt-28 pb-20 px-8 sm:px-16 lg:px-24">
@@ -85,11 +89,19 @@ export default async function RecordDetailPage({
         <h1 className="text-4xl sm:text-5xl font-black text-stll-charcoal uppercase leading-[0.95] tracking-tight">
           {formLabel}
         </h1>
-        <p className="mt-4 text-sm text-stll-muted">Summary: {String(log.title ?? "")}</p>
-        <p className="mt-1 text-sm text-stll-muted">Entered by: {String(log.entered_by ?? "")}</p>
+        <p className="mt-4 text-sm text-stll-muted">Summary: {summary}</p>
+        <p className="mt-1 text-sm text-stll-muted">Entered by: {enteredBy}</p>
         <p className="mt-1 text-sm text-stll-muted">
-          Date: {new Date(String(log.logged_at)).toLocaleDateString()}
+          Date: {date}
         </p>
+
+        <RecordDetailActions
+          formLabel={formLabel}
+          summary={summary}
+          enteredBy={enteredBy}
+          date={date}
+          detailRows={detailRows}
+        />
 
         <EditLoggedDateForm
           id={id}

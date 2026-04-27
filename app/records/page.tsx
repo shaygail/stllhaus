@@ -92,61 +92,63 @@ export default async function RecordsPage({
               </p>
             ) : complianceLogs.length === 0 ? (
               <p className="text-sm text-stll-muted leading-relaxed">
-                No form entries yet. Use "Add Form Entry" to start.
+                No form entries yet. Use &quot;Add Form Entry&quot; to start.
               </p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-stll-charcoal/10">
-                      <th className="py-2 pr-4 text-[10px] tracking-[0.2em] uppercase text-stll-muted">Form</th>
-                      <th className="py-2 pr-4 text-[10px] tracking-[0.2em] uppercase text-stll-muted">Summary</th>
-                      <th className="py-2 pr-4 text-[10px] tracking-[0.2em] uppercase text-stll-muted">Entered By</th>
-                      <th className="py-2 pr-4 text-[10px] tracking-[0.2em] uppercase text-stll-muted">Date</th>
-                      <th className="py-2 pr-4 text-[10px] tracking-[0.2em] uppercase text-stll-muted">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {complianceLogs.map(({ log, parsed }) => (
-                      <tr key={log.id} className="border-b border-stll-charcoal/8 align-top">
-                        <td className="py-3 pr-4 text-sm text-stll-charcoal">{formLabelForEntry(log, parsed)}</td>
-                        <td className="py-3 pr-4 text-sm text-stll-charcoal">{log.title}</td>
-                        <td className="py-3 pr-4 text-sm text-stll-charcoal">{log.entered_by}</td>
-                        <td className="py-3 pr-4 text-sm text-stll-charcoal">
-                          {new Date(log.logged_at).toLocaleDateString()}
-                        </td>
-                        <td className="py-3 pr-4 text-sm text-stll-charcoal">
-                          <Link href={`/records/${log.id}`} className="underline underline-offset-2 hover:text-stll-muted">
-                            View details
-                          </Link>
-                        </td>
+              <>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-stll-charcoal/10">
+                        <th className="py-2 pr-4 text-[10px] tracking-[0.2em] uppercase text-stll-muted">Form</th>
+                        <th className="py-2 pr-4 text-[10px] tracking-[0.2em] uppercase text-stll-muted">Summary</th>
+                        <th className="py-2 pr-4 text-[10px] tracking-[0.2em] uppercase text-stll-muted">Entered By</th>
+                        <th className="py-2 pr-4 text-[10px] tracking-[0.2em] uppercase text-stll-muted">Date</th>
+                        <th className="py-2 pr-4 text-[10px] tracking-[0.2em] uppercase text-stll-muted">Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              
-              <div className="mt-5 flex items-center justify-between text-xs text-stll-muted">
-                <span>
-                  Page {currentPage} of {totalPages} ({total} total entries)
-                </span>
-                <div className="flex items-center gap-4">
-                  {hasPrev ? (
-                    <Link href={`/records?page=${prevPage}`} className="underline underline-offset-2 hover:text-stll-charcoal">
-                      Previous
-                    </Link>
-                  ) : (
-                    <span className="opacity-50">Previous</span>
-                  )}
-                  {hasNext ? (
-                    <Link href={`/records?page=${nextPage}`} className="underline underline-offset-2 hover:text-stll-charcoal">
-                      Next
-                    </Link>
-                  ) : (
-                    <span className="opacity-50">Next</span>
-                  )}
+                    </thead>
+                    <tbody>
+                      {complianceLogs.map(({ log, parsed }) => (
+                        <tr key={log.id} className="border-b border-stll-charcoal/8 align-top">
+                          <td className="py-3 pr-4 text-sm text-stll-charcoal">{formLabelForEntry(log, parsed)}</td>
+                          <td className="py-3 pr-4 text-sm text-stll-charcoal">{log.title}</td>
+                          <td className="py-3 pr-4 text-sm text-stll-charcoal">{log.entered_by}</td>
+                          <td className="py-3 pr-4 text-sm text-stll-charcoal">
+                            {new Date(log.logged_at).toLocaleDateString()}
+                          </td>
+                          <td className="py-3 pr-4 text-sm text-stll-charcoal">
+                            <Link href={`/records/${log.id}`} className="underline underline-offset-2 hover:text-stll-muted">
+                              View details
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              </div>
+
+                <div className="mt-5 flex items-center justify-between text-xs text-stll-muted">
+                  <span>
+                    Page {currentPage} of {totalPages} ({total} total entries)
+                  </span>
+                  <div className="flex items-center gap-4">
+                    {hasPrev ? (
+                      <Link href={`/records?page=${prevPage}`} className="underline underline-offset-2 hover:text-stll-charcoal">
+                        Previous
+                      </Link>
+                    ) : (
+                      <span className="opacity-50">Previous</span>
+                    )}
+                    {hasNext ? (
+                      <Link href={`/records?page=${nextPage}`} className="underline underline-offset-2 hover:text-stll-charcoal">
+                        Next
+                      </Link>
+                    ) : (
+                      <span className="opacity-50">Next</span>
+                    )}
+                  </div>
+                </div>
+              </>
             )}
           </div>
         </section>

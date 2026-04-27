@@ -67,9 +67,18 @@ export function RecordLogForm() {
   const [finding, setFinding] = useState("");
   const [correctiveAction, setCorrectiveAction] = useState("");
   const [reviewStatus, setReviewStatus] = useState("Compliant");
+  const [genericSummary, setGenericSummary] = useState("");
+  const [genericDetails, setGenericDetails] = useState("");
 
   const [status, setStatus] = useState<"idle" | "saving" | "error">("idle");
   const [error, setError] = useState("");
+  const isSpecializedType =
+    formType === "allergens" ||
+    formType === "staff_sickness" ||
+    formType === "fridge_temp_check" ||
+    formType === "trusted_supplier_delivery" ||
+    formType === "trusted_suppliers" ||
+    formType === "food_safety_area_review";
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -82,79 +91,93 @@ export function RecordLogForm() {
       return;
     }
 
-    let payload: Record<string, unknown> = {};
-    let title = COMPLIANCE_FORM_LABELS[formType];
+    type BuildResult = { payload: Record<string, unknown>; title: string; validationError?: string };
+    const builders: Partial<Record<ComplianceFormType, () => BuildResult>> = {
+      allergens: () => {
+        if (!dishName.trim()) return { payload: {}, title: "", validationError: "Dish name is required." };
+        return {
+          payload: { dishName, ingredients, allergens },
+          title: `${COMPLIANCE_FORM_LABELS.allergens} - ${dishName.trim()}`,
+        };
+      },
+      staff_sickness: () => {
+        if (!staffName.trim()) return { payload: {}, title: "", validationError: "Staff name is required." };
+        return {
+          payload: { staffName, symptoms, dateBecameSick, dateReturned, actionTaken, checkedBy },
+          title: `${COMPLIANCE_FORM_LABELS.staff_sickness} - ${staffName.trim()}`,
+        };
+      },
+      fridge_temp_check: () => ({
+        payload: {
+          weekStart,
+          fridgeName,
+          temperatures: { mon: tempMon, tue: tempTue, wed: tempWed, thu: tempThu, fri: tempFri, sat: tempSat, sun: tempSun },
+          taskDoneBy: tempTaskDoneBy,
+        },
+        title: `${COMPLIANCE_FORM_LABELS.fridge_temp_check} - ${fridgeName.trim() || "Entry"}`,
+      }),
+      trusted_supplier_delivery: () => ({
+        payload: { deliveryDate, batchLotId, supplierDetails, foodType, quantity, temperature: deliveryTemp, taskDoneBy: deliveryTaskDoneBy },
+        title: `${COMPLIANCE_FORM_LABELS.trusted_supplier_delivery} - ${foodType.trim() || "Entry"}`,
+      }),
+      trusted_suppliers: () => {
+        if (!businessName.trim()) return { payload: {}, title: "", validationError: "Business name is required." };
+        return {
+          payload: {
+            businessName,
+            siteRegistrationNumber,
+            contactPerson,
+            phone: supplierPhone,
+            email: supplierEmail,
+            address: supplierAddress,
+            dayToPlaceOrders,
+            daysToReceiveDelivery,
+            goodsSupplied,
+            comments: supplierComments,
+          },
+          title: `${COMPLIANCE_FORM_LABELS.trusted_suppliers} - ${businessName.trim()}`,
+        };
+      },
+      food_safety_area_review: () => {
+        if (!foodSafetyArea.trim()) return { payload: {}, title: "", validationError: "Food safety area is required." };
+        return {
+          payload: {
+            foodSafetyArea,
+            reviewStatus,
+            finding: finding.trim(),
+            correctiveAction: correctiveAction.trim(),
+          },
+          title: `${COMPLIANCE_FORM_LABELS.food_safety_area_review} - ${foodSafetyArea}`,
+        };
+      },
+    };
 
-    if (formType === "allergens") {
-      if (!dishName.trim()) {
-        setStatus("error");
-        setError("Dish name is required.");
-        return;
+    const fallbackBuilder = (): BuildResult => {
+      if (!genericSummary.trim()) {
+        return { payload: {}, title: "", validationError: "Summary is required." };
       }
-      payload = { dishName, ingredients, allergens };
-      title = `${COMPLIANCE_FORM_LABELS.allergens} - ${dishName.trim()}`;
-    } else if (formType === "staff_sickness") {
-      if (!staffName.trim()) {
-        setStatus("error");
-        setError("Staff name is required.");
-        return;
-      }
-      payload = { staffName, symptoms, dateBecameSick, dateReturned, actionTaken, checkedBy };
-      title = `${COMPLIANCE_FORM_LABELS.staff_sickness} - ${staffName.trim()}`;
-    } else if (formType === "fridge_temp_check") {
-      payload = {
-        weekStart,
-        fridgeName,
-        temperatures: { mon: tempMon, tue: tempTue, wed: tempWed, thu: tempThu, fri: tempFri, sat: tempSat, sun: tempSun },
-        taskDoneBy: tempTaskDoneBy,
+      return {
+        payload: { summary: genericSummary.trim(), details: genericDetails.trim() },
+        title: `${COMPLIANCE_FORM_LABELS[formType]} - ${genericSummary.trim()}`,
       };
-      title = `${COMPLIANCE_FORM_LABELS.fridge_temp_check} - ${fridgeName.trim() || "Entry"}`;
-    } else if (formType === "trusted_supplier_delivery") {
-      payload = { deliveryDate, batchLotId, supplierDetails, foodType, quantity, temperature: deliveryTemp, taskDoneBy: deliveryTaskDoneBy };
-      title = `${COMPLIANCE_FORM_LABELS.trusted_supplier_delivery} - ${foodType.trim() || "Entry"}`;
-    } else if (formType === "trusted_suppliers") {
-      if (!businessName.trim()) {
-        setStatus("error");
-        setError("Business name is required.");
-        return;
-      }
-      payload = {
-        businessName,
-        siteRegistrationNumber,
-        contactPerson,
-        phone: supplierPhone,
-        email: supplierEmail,
-        address: supplierAddress,
-        dayToPlaceOrders,
-        daysToReceiveDelivery,
-        goodsSupplied,
-        comments: supplierComments,
-      };
-      title = `${COMPLIANCE_FORM_LABELS.trusted_suppliers} - ${businessName.trim()}`;
-    } else if (formType === "food_safety_area_review") {
-      if (!foodSafetyArea.trim()) {
-        setStatus("error");
-        setError("Food safety area is required.");
-        return;
-      }
-      payload = {
-        foodSafetyArea,
-        reviewStatus,
-        finding: finding.trim(),
-        correctiveAction: correctiveAction.trim(),
-      };
-      title = `${COMPLIANCE_FORM_LABELS.food_safety_area_review} - ${foodSafetyArea}`;
+    };
+
+    const built = (builders[formType] ?? fallbackBuilder)();
+    if (built.validationError) {
+      setStatus("error");
+      setError(built.validationError);
+      return;
     }
 
     try {
-      const details = serializeComplianceForm(formType, payload);
+      const details = serializeComplianceForm(formType, built.payload);
 
       const res = await fetch("/api/business-logs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           log_type: "compliance",
-          title,
+          title: built.title,
           details,
           entered_by: enteredBy.trim(),
           logged_at: new Date(loggedAt).toISOString(),
@@ -334,6 +357,32 @@ export function RecordLogForm() {
               rows={3}
               className="w-full border border-stll-charcoal/20 bg-white px-3 py-3 text-sm text-stll-charcoal focus:outline-none focus:border-stll-charcoal/40"
               placeholder="Action taken or next steps"
+            />
+          </label>
+        </div>
+      )}
+
+      {!isSpecializedType && (
+        <div className="grid sm:grid-cols-2 gap-4">
+          <label className="block sm:col-span-2">
+            <span className="block text-[10px] tracking-[0.2em] uppercase text-stll-muted mb-2">Summary</span>
+            <input
+              type="text"
+              value={genericSummary}
+              onChange={(e) => setGenericSummary(e.target.value)}
+              className="w-full border border-stll-charcoal/20 bg-white px-3 py-3 text-sm text-stll-charcoal focus:outline-none focus:border-stll-charcoal/40"
+              placeholder="Short summary for this form entry"
+              required={!isSpecializedType}
+            />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="block text-[10px] tracking-[0.2em] uppercase text-stll-muted mb-2">Details</span>
+            <textarea
+              value={genericDetails}
+              onChange={(e) => setGenericDetails(e.target.value)}
+              rows={4}
+              className="w-full border border-stll-charcoal/20 bg-white px-3 py-3 text-sm text-stll-charcoal focus:outline-none focus:border-stll-charcoal/40"
+              placeholder="Any details captured in this form"
             />
           </label>
         </div>

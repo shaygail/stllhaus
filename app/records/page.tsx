@@ -2,22 +2,33 @@ import Link from "next/link";
 import { createBusinessLogsAdminClient, type BusinessLogEntry } from "@/lib/business-logs";
 import { getComplianceFormLabel, parseComplianceForm } from "@/lib/compliance-forms";
 
-async function getRecentLogs(): Promise<{ logs: BusinessLogEntry[]; error: string | null }> {
-  const supabase = createBusinessLogsAdminClient();
-  if (!supabase) return { logs: [], error: "Missing Supabase server configuration." };
+const PAGE_SIZE = 50;
 
-  const { data, error } = await supabase
+function parsePage(raw: string | string[] | undefined): number {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 1) return 1;
+  return Math.floor(parsed);
+}
+
+async function getRecentLogs(page: number): Promise<{ logs: BusinessLogEntry[]; total: number; error: string | null }> {
+  const supabase = createBusinessLogsAdminClient();
+  if (!supabase) return { logs: [], total: 0, error: "Missing Supabase server configuration." };
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  const { data, count, error } = await supabase
     .from("business_logs")
-    .select("*")
+    .select("*", { count: "exact" })
     .eq("log_type", "compliance")
     .order("logged_at", { ascending: false })
-    .limit(100);
+    .range(from, to);
 
   if (error) {
-    return { logs: [], error: error.message };
+    return { logs: [], total: 0, error: error.message };
   }
 
-  return { logs: (data ?? []) as BusinessLogEntry[], error: null };
+  return { logs: (data ?? []) as BusinessLogEntry[], total: count ?? 0, error: null };
 }
 
 function formLabelForEntry(log: BusinessLogEntry, parsed: ReturnType<typeof parseComplianceForm>): string {
@@ -27,8 +38,19 @@ function formLabelForEntry(log: BusinessLogEntry, parsed: ReturnType<typeof pars
   return "Compliance entry";
 }
 
-export default async function RecordsPage() {
-  const { logs, error } = await getRecentLogs();
+export default async function RecordsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string | string[] }>;
+}) {
+  const { page: pageRaw } = await searchParams;
+  const currentPage = parsePage(pageRaw);
+  const { logs, total, error } = await getRecentLogs(currentPage);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const prevPage = Math.max(1, currentPage - 1);
+  const nextPage = Math.min(totalPages, currentPage + 1);
+  const hasPrev = currentPage > 1;
+  const hasNext = currentPage < totalPages;
   const complianceLogs = logs.map((log) => ({
     log,
     parsed: parseComplianceForm(log.details),
@@ -102,6 +124,28 @@ export default async function RecordsPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+              
+              <div className="mt-5 flex items-center justify-between text-xs text-stll-muted">
+                <span>
+                  Page {currentPage} of {totalPages} ({total} total entries)
+                </span>
+                <div className="flex items-center gap-4">
+                  {hasPrev ? (
+                    <Link href={`/records?page=${prevPage}`} className="underline underline-offset-2 hover:text-stll-charcoal">
+                      Previous
+                    </Link>
+                  ) : (
+                    <span className="opacity-50">Previous</span>
+                  )}
+                  {hasNext ? (
+                    <Link href={`/records?page=${nextPage}`} className="underline underline-offset-2 hover:text-stll-charcoal">
+                      Next
+                    </Link>
+                  ) : (
+                    <span className="opacity-50">Next</span>
+                  )}
+                </div>
               </div>
             )}
           </div>

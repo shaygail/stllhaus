@@ -321,12 +321,16 @@ function applyBackendPrices(items: MenuItemData[], prices: Map<string, number>):
   return items.map((item) => {
     const basePrice = resolveBackendPrice(item.name, prices);
     if (basePrice === null) return item;
+    const explicitLargePrice = resolveBackendPrice(`${item.name} (Large)`, prices);
 
     const applySizePrices = (sizes: Size[]): Size[] =>
       sizes.map((size) => {
         if (size.price === "N/A") return size;
         if (size.label === "G") return { ...size, price: formatPrice(basePrice) };
-        if (size.label === "V") return { ...size, price: formatPrice(basePrice + LARGE_SIZE_UPCHARGE) };
+        if (size.label === "V") {
+          const largePrice = explicitLargePrice ?? basePrice + LARGE_SIZE_UPCHARGE;
+          return { ...size, price: formatPrice(largePrice) };
+        }
         return size;
       });
 

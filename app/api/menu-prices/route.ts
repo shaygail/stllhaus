@@ -34,7 +34,7 @@ async function tryRailwayMenuPrices(): Promise<PublicMenuPrice[] | null> {
   const backendBase = process.env.BACKEND_URL?.trim();
   if (!backendBase) return null;
 
-  const paths = ["/menu-items", "/menu_items", "/api/menu-items", "/api/menu_items"];
+  const paths = ["/menu", "/menu-items", "/menu_items", "/api/menu-items", "/api/menu_items", "/api/menu"];
   for (const path of paths) {
     const url = `${backendBase.replace(/\/$/, "")}${path}`;
     try {

@@ -31,7 +31,10 @@ function normalizeRows(raw: unknown): PublicMenuPrice[] {
 }
 
 async function tryRailwayMenuPrices(): Promise<PublicMenuPrice[] | null> {
-  const backendBase = process.env.BACKEND_URL?.trim();
+  const backendEnv = process.env.BACKEND_URL?.trim();
+  const posUrl = process.env.POS_API_URL?.trim();
+  const derivedFromPos = posUrl ? posUrl.replace(/\/orders\/?$/, "") : "";
+  const backendBase = backendEnv || derivedFromPos;
   if (!backendBase) return null;
 
   const paths = ["/menu", "/menu-items", "/menu_items", "/api/menu-items", "/api/menu_items", "/api/menu"];

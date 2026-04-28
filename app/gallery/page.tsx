@@ -34,6 +34,7 @@ const SIZE_LABELS: Record<string, string> = { G: "Regular", V: "Large" };
 const MILK_SURCHARGE = 1;
 const PREMIUM_MILKS = new Set(["Almond", "Soy"]);
 const LARGE_SIZE_UPCHARGE = 2;
+const ENABLE_BACKEND_MENU_SYNC = process.env.NEXT_PUBLIC_ENABLE_MENU_PRICE_SYNC === "true";
 
 const SYRUPS = [
   "Ube",
@@ -114,6 +115,13 @@ function getDairyCreamBaseNote(itemName: string): string | null {
 
 const matchaItems: MenuItemData[] = [
   { name: "Earl Grey Matcha", description: "Premium Kyoto matcha with earl grey notes. Choose your matcha strength below.", image: "", sizes: [{ label: "G", price: "$9.00" }], temperatureOptionsOverride: ["Hot", "Iced"] },
+  {
+    name: "OG Matcha Latte",
+    description: "Fully customisable — syrups, cold foams, milk, temperature, matcha strength, and sweetness.",
+    image: "",
+    sizes: [{ label: "G", price: "$9.00" }],
+    temperatureOptionsOverride: ["Hot", "Iced"],
+  },
   { name: "Strawberry Matcha", description: "Strawberry and matcha fusion. Adjust matcha strength as you like.", image: "", sizes: [{ label: "G", price: "$11.00" }] },
   { name: "Strawberry Cloud Matcha", description: "Strawberry, cloud foam, and matcha. Choose your matcha strength.", image: "", sizes: [{ label: "G", price: "$12.00" }] },
   { name: "Ube Cream Matcha", description: "Ube cream and matcha. Default is 4g matcha, but you can select extra strong options.", image: "", sizes: [{ label: "G", price: "$9.00" }], temperatureOptionsOverride: ["Hot", "Iced"] },
@@ -813,6 +821,7 @@ export default function GalleryPage() {
   }));
 
   useEffect(() => {
+    if (!ENABLE_BACKEND_MENU_SYNC) return;
     let cancelled = false;
 
     async function syncMenuPrices() {

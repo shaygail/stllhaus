@@ -1,0 +1,88 @@
+import { NextResponse } from "next/server";
+import { createBusinessLogsAdminClient } from "@/lib/business-logs";
+
+type MenuPriceRow = {
+  name: string;
+  price: number;
+  is_hidden: boolean;
+  is_sold_out: boolean;
+};
+
+type PublicMenuPrice = {
+  name: string;
+  price: number;
+};
+
+function normalizeRows(raw: unknown): PublicMenuPrice[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((row) => {
+      if (!row || typeof row !== "object") return null;
+      const asRecord = row as Record<string, unknown>;
+      const name = asRecord.name;
+      const price = asRecord.price;
+      const isHidden = asRecord.is_hidden === true || asRecord.isHidden === true;
+      const isSoldOut = asRecord.is_sold_out === true || asRecord.isSoldOut === true;
+      if (typeof name !== "string" || typeof price !== "number") return null;
+      if (isHidden || isSoldOut) return null;
+      return { name, price };
+    })
+    .filter((row): row is PublicMenuPrice => Boolean(row));
+}
+
+async function tryRailwayMenuPrices(): Promise<PublicMenuPrice[] | null> {
+  const backendBase = process.env.BACKEND_URL?.trim();
+  if (!backendBase) return null;
+
+  const paths = ["/menu-items", "/menu_items", "/api/menu-items", "/api/menu_items"];
+  for (const path of paths) {
+    const url = `${backendBase.replace(/\/$/, "")}${path}`;
+    try {
+      const res = await fetch(url, { method: "GET", cache: "no-store" });
+      if (!res.ok) continue;
+      const json = (await res.json()) as unknown;
+
+      // Accept either array payload or wrapped payload.
+      const direct = normalizeRows(json);
+      if (direct.length > 0) return direct;
+
+      if (json && typeof json === "object") {
+        const wrapped = json as Record<string, unknown>;
+        const nested = normalizeRows(wrapped.items ?? wrapped.data ?? wrapped.results);
+        if (nested.length > 0) return nested;
+      }
+    } catch {
+      // try next path
+    }
+  }
+  return null;
+}
+
+export async function GET() {
+  const railwayItems = await tryRailwayMenuPrices();
+  if (railwayItems && railwayItems.length > 0) {
+    return NextResponse.json({ items: railwayItems, source: "railway" });
+  }
+
+  const supabase = createBusinessLogsAdminClient();
+  if (!supabase) {
+    return NextResponse.json({ error: "missing_supabase_config" }, { status: 500 });
+  }
+
+  const { data, error } = await supabase
+    .from("menu_items")
+    .select("name,price,is_hidden,is_sold_out")
+    .eq("is_hidden", false)
+    .eq("is_sold_out", false);
+
+  if (error) {
+    return NextResponse.json({ error: "menu_prices_unavailable" }, { status: 500 });
+  }
+
+  const items = ((data ?? []) as MenuPriceRow[]).map((row) => ({
+    name: row.name,
+    price: row.price,
+  }));
+
+  return NextResponse.json({ items, source: "supabase" });
+}

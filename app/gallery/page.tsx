@@ -25,9 +25,15 @@ type MenuItemData = {
   coffeeShots?: boolean;
 };
 
-const SIZE_LABELS: Record<string, string> = { T: "Small", G: "Regular", V: "Large" };
+type BackendMenuItem = {
+  name: string;
+  price: number;
+};
+
+const SIZE_LABELS: Record<string, string> = { G: "Regular", V: "Large" };
 const MILK_SURCHARGE = 1;
 const PREMIUM_MILKS = new Set(["Almond", "Soy"]);
+const LARGE_SIZE_UPCHARGE = 2;
 
 const SYRUPS = [
   "Ube",
@@ -129,7 +135,7 @@ const matchaItems: MenuItemData[] = [
 ];
 
 const coldBrewItems: MenuItemData[] = [
-  { name: "OG Cold Brew",                description: "", image: "", sizes: [{ label: "G", price: "$8" }, { label: "V", price: "$10" }] },
+  { name: "OG Cold Brew",                description: "", image: "", sizes: [{ label: "G", price: "$6" }, { label: "V", price: "$8" }] },
   {
     name: "Ube Cream Coldbrew Latte",
     description: "",
@@ -216,7 +222,7 @@ const coffeeItems: MenuItemData[] = [
     name: "Ube Spanish Latte",
     description: "",
     image: "",
-    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$11.00" }],
+    sizes: [{ label: "G", price: "$8.00" }, { label: "V", price: "$10.00" }],
     temperatureOptionsOverride: ["Hot", "Iced"],
     coffeeShots: true,
   },
@@ -232,7 +238,7 @@ const coffeeItems: MenuItemData[] = [
     name: "Biscoff Latte",
     description: "",
     image: "",
-    sizes: [{ label: "G", price: "$9.00" }, { label: "V", price: "$13.00" }],
+    sizes: [{ label: "G", price: "$8.00" }, { label: "V", price: "$10.00" }],
     temperatureOptionsOverride: ["Hot", "Iced"],
     coffeeShots: true,
   },
@@ -287,6 +293,59 @@ const cloudItems: MenuItemData[] = [
     sizes: [{ label: "G", price: "$8" }, { label: "V", price: "$10" }],
   },
 ];
+
+const BACKEND_NAME_ALIASES: Record<string, string[]> = {
+  "OG Matcha Latte": ["Matcha Latte"],
+  "Classic Matcha": ["Matcha Latte"],
+  "Ube Cream Coldbrew Latte": ["Ube Cream Cold Brew"],
+  "Black Pearl Cold Brew Latte": ["Black Pearl Cold Brew"],
+  "OG Cold Brew": ["Cold Brew"],
+};
+
+function formatPrice(amount: number): string {
+  return Number.isInteger(amount) ? `$${amount}` : `$${amount.toFixed(2)}`;
+}
+
+function resolveBackendPrice(itemName: string, prices: Map<string, number>): number | null {
+  const direct = prices.get(itemName.toLowerCase());
+  if (typeof direct === "number") return direct;
+  const aliases = BACKEND_NAME_ALIASES[itemName] ?? [];
+  for (const alias of aliases) {
+    const aliasPrice = prices.get(alias.toLowerCase());
+    if (typeof aliasPrice === "number") return aliasPrice;
+  }
+  return null;
+}
+
+function applyBackendPrices(items: MenuItemData[], prices: Map<string, number>): MenuItemData[] {
+  return items.map((item) => {
+    const basePrice = resolveBackendPrice(item.name, prices);
+    if (basePrice === null) return item;
+
+    const applySizePrices = (sizes: Size[]): Size[] =>
+      sizes.map((size) => {
+        if (size.price === "N/A") return size;
+        if (size.label === "G") return { ...size, price: formatPrice(basePrice) };
+        if (size.label === "V") return { ...size, price: formatPrice(basePrice + LARGE_SIZE_UPCHARGE) };
+        return size;
+      });
+
+    const sizesByTemperature = item.sizesByTemperature
+      ? Object.fromEntries(
+          Object.entries(item.sizesByTemperature).map(([temperature, sizes]) => [
+            temperature,
+            applySizePrices(sizes),
+          ])
+        )
+      : undefined;
+
+    return {
+      ...item,
+      sizes: applySizePrices(item.sizes),
+      sizesByTemperature,
+    };
+  });
+}
 
 function AddedToCartDialog({
   open,
@@ -739,6 +798,48 @@ export default function GalleryPage() {
   const [cartPrompt, setCartPrompt] = useState<{ open: boolean; name: string }>({ open: false, name: "" });
   const closeCartPrompt = useCallback(() => setCartPrompt({ open: false, name: "" }), []);
   const openCartPrompt = useCallback((name: string) => setCartPrompt({ open: true, name }), []);
+  const [menuState, setMenuState] = useState(() => ({
+    matchaItems,
+    coldBrewItems,
+    coffeeItems,
+    nonCoffeeItems,
+    cloudItems,
+  }));
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function syncMenuPrices() {
+      try {
+        const res = await fetch("/api/menu-prices", { cache: "no-store" });
+        if (!res.ok) return;
+        const json = (await res.json()) as { items?: BackendMenuItem[] };
+        if (!Array.isArray(json.items)) return;
+
+        const backendPrices = new Map<string, number>();
+        for (const row of json.items) {
+          if (typeof row.name !== "string" || typeof row.price !== "number") continue;
+          backendPrices.set(row.name.toLowerCase(), row.price);
+        }
+
+        if (cancelled) return;
+        setMenuState({
+          matchaItems: applyBackendPrices(matchaItems, backendPrices),
+          coldBrewItems: applyBackendPrices(coldBrewItems, backendPrices),
+          coffeeItems: applyBackendPrices(coffeeItems, backendPrices),
+          nonCoffeeItems: applyBackendPrices(nonCoffeeItems, backendPrices),
+          cloudItems: applyBackendPrices(cloudItems, backendPrices),
+        });
+      } catch {
+        // Keep static menu pricing if backend sync is unavailable.
+      }
+    }
+
+    syncMenuPrices();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="bg-[#FAF8F5] min-h-screen">
@@ -757,7 +858,7 @@ export default function GalleryPage() {
         <MenuSection
           title="Matcha Lattes"
           subtitle="Premium Kyoto Matcha from Thea Matcha, Oat milk base"
-          items={matchaItems}
+          items={menuState.matchaItems}
           milkOptions={["Oat", "Whole", "Almond", "Soy"]}
           milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
           showColdFoams
@@ -766,7 +867,7 @@ export default function GalleryPage() {
         <MenuSection
           title="Cold Brew Coffees"
           subtitle="Slow steeped, oat milk base"
-          items={coldBrewItems}
+          items={menuState.coldBrewItems}
           milkOptions={["Oat", "Whole", "Almond", "Soy"]}
           milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
           showColdFoams
@@ -775,7 +876,7 @@ export default function GalleryPage() {
         <MenuSection
           title="Coffee Series"
           subtitle="House coffee lattes"
-          items={coffeeItems}
+          items={menuState.coffeeItems}
           milkOptions={["Oat", "Whole", "Almond", "Soy"]}
           milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
           showColdFoams
@@ -784,7 +885,7 @@ export default function GalleryPage() {
         <MenuSection
           title="Non Coffee Series"
           subtitle="Cream-topped and classic chocolate — no syrup add-ons"
-          items={nonCoffeeItems}
+          items={menuState.nonCoffeeItems}
           milkOptions={["Oat", "Whole", "Almond", "Soy"]}
           milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
           showSyrups={false}
@@ -794,7 +895,7 @@ export default function GalleryPage() {
         <MenuSection
           title="Coconut Cloud Drinks"
           subtitle="Coconut water, house-made cloud foams"
-          items={cloudItems}
+          items={menuState.cloudItems}
           showSyrups={false}
           showColdFoams
           onItemAdded={openCartPrompt}

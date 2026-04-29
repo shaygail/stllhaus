@@ -1,6 +1,14 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createBusinessLogsAdminClient, type BusinessLogEntry } from "@/lib/business-logs";
 import { getComplianceFormLabel, parseComplianceForm } from "@/lib/compliance-forms";
+import {
+  clearRecordsAccessCookie,
+  hasRecordsAccess,
+  hasRecordsAccessPasswordConfigured,
+  setRecordsAccessCookie,
+  validateRecordsPassword,
+} from "@/lib/records-access";
 
 const PAGE_SIZE = 50;
 
@@ -41,11 +49,16 @@ function formLabelForEntry(log: BusinessLogEntry, parsed: ReturnType<typeof pars
 export default async function RecordsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string | string[] }>;
+  searchParams: Promise<{ page?: string | string[]; error?: string }>;
 }) {
-  const { page: pageRaw } = await searchParams;
-  const currentPage = parsePage(pageRaw);
-  const { logs, total, error } = await getRecentLogs(currentPage);
+  const { page: pageRaw, error: errorParam } = await searchParams;
+  const passwordEnabled = hasRecordsAccessPasswordConfigured();
+  const isUnlocked = await hasRecordsAccess();
+  const showProtectedContent = !passwordEnabled || isUnlocked;
+  const currentPage = showProtectedContent ? parsePage(pageRaw) : 1;
+  const { logs, total, error } = showProtectedContent
+    ? await getRecentLogs(currentPage)
+    : { logs: [], total: 0, error: null };
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const prevPage = Math.max(1, currentPage - 1);
   const nextPage = Math.min(totalPages, currentPage + 1);
@@ -55,6 +68,22 @@ export default async function RecordsPage({
     log,
     parsed: parseComplianceForm(log.details),
   }));
+
+  async function unlockRecords(formData: FormData) {
+    "use server";
+    const password = String(formData.get("password") ?? "");
+    if (!validateRecordsPassword(password)) {
+      redirect("/records?error=invalid_password");
+    }
+    await setRecordsAccessCookie();
+    redirect("/records");
+  }
+
+  async function lockRecords() {
+    "use server";
+    await clearRecordsAccessCookie();
+    redirect("/records");
+  }
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] pt-28 pb-20 px-8 sm:px-16 lg:px-24">
@@ -68,90 +97,138 @@ export default async function RecordsPage({
             COMPLIANCE<br />RECORDS
           </h1>
           <p className="mt-6 text-sm text-stll-muted leading-relaxed max-w-md">
-            Your most important operational forms in one place.
+            {showProtectedContent
+              ? "Your most important operational forms in one place."
+              : "Compliance forms and documentation are password-protected."}
           </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href="/records/new"
-              className="inline-flex px-5 py-2.5 text-[11px] tracking-[0.2em] uppercase border bg-stll-charcoal border-stll-charcoal text-white"
-            >
-              Add Form Entry
-            </Link>
-          </div>
+          {showProtectedContent && (
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href="/records/new"
+                className="inline-flex px-5 py-2.5 text-[11px] tracking-[0.2em] uppercase border bg-stll-charcoal border-stll-charcoal text-white"
+              >
+                Add Form Entry
+              </Link>
+              {passwordEnabled && (
+                <form action={lockRecords}>
+                  <button
+                    type="submit"
+                    className="inline-flex px-5 py-2.5 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal/25 text-stll-charcoal hover:bg-stll-charcoal hover:text-white transition-colors"
+                  >
+                    Lock Records
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Recent Logs */}
-        <section className="mb-12 border-t border-stll-charcoal/10 pt-10">
-          <h2 className="text-xs tracking-[0.3em] uppercase text-stll-charcoal font-semibold mb-6">
-            Form Entries
-          </h2>
-          <div className="bg-white border border-stll-charcoal/8 p-8">
-            {error ? (
-              <p className="text-sm text-red-700 leading-relaxed">
-                Could not load logs yet: {error}
-              </p>
-            ) : complianceLogs.length === 0 ? (
-              <p className="text-sm text-stll-muted leading-relaxed">
-                No form entries yet. Use &quot;Add Form Entry&quot; to start.
-              </p>
-            ) : (
-              <>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-stll-charcoal/10">
-                        <th className="py-2 pr-4 text-[10px] tracking-[0.2em] uppercase text-stll-muted">Form</th>
-                        <th className="py-2 pr-4 text-[10px] tracking-[0.2em] uppercase text-stll-muted">Summary</th>
-                        <th className="py-2 pr-4 text-[10px] tracking-[0.2em] uppercase text-stll-muted">Entered By</th>
-                        <th className="py-2 pr-4 text-[10px] tracking-[0.2em] uppercase text-stll-muted">Date</th>
-                        <th className="py-2 pr-4 text-[10px] tracking-[0.2em] uppercase text-stll-muted">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {complianceLogs.map(({ log, parsed }) => (
-                        <tr key={log.id} className="border-b border-stll-charcoal/8 align-top">
-                          <td className="py-3 pr-4 text-sm text-stll-charcoal">{formLabelForEntry(log, parsed)}</td>
-                          <td className="py-3 pr-4 text-sm text-stll-charcoal">{log.title}</td>
-                          <td className="py-3 pr-4 text-sm text-stll-charcoal">{log.entered_by}</td>
-                          <td className="py-3 pr-4 text-sm text-stll-charcoal">
-                            {new Date(log.logged_at).toLocaleDateString()}
-                          </td>
-                          <td className="py-3 pr-4 text-sm text-stll-charcoal">
-                            <Link href={`/records/${log.id}`} className="underline underline-offset-2 hover:text-stll-muted">
-                              View details
-                            </Link>
-                          </td>
+        {showProtectedContent ? (
+          <section className="mb-12 border-t border-stll-charcoal/10 pt-10">
+            <h2 className="text-xs tracking-[0.3em] uppercase text-stll-charcoal font-semibold mb-6">
+              Form Entries
+            </h2>
+            <div className="bg-white border border-stll-charcoal/8 p-8">
+              {error ? (
+                <p className="text-sm text-red-700 leading-relaxed">
+                  Could not load logs yet: {error}
+                </p>
+              ) : complianceLogs.length === 0 ? (
+                <p className="text-sm text-stll-muted leading-relaxed">
+                  No form entries yet. Use &quot;Add Form Entry&quot; to start.
+                </p>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-stll-charcoal/10">
+                          <th className="py-2 pr-4 text-[10px] tracking-[0.2em] uppercase text-stll-muted">Form</th>
+                          <th className="py-2 pr-4 text-[10px] tracking-[0.2em] uppercase text-stll-muted">Summary</th>
+                          <th className="py-2 pr-4 text-[10px] tracking-[0.2em] uppercase text-stll-muted">Entered By</th>
+                          <th className="py-2 pr-4 text-[10px] tracking-[0.2em] uppercase text-stll-muted">Date</th>
+                          <th className="py-2 pr-4 text-[10px] tracking-[0.2em] uppercase text-stll-muted">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="mt-5 flex items-center justify-between text-xs text-stll-muted">
-                  <span>
-                    Page {currentPage} of {totalPages} ({total} total entries)
-                  </span>
-                  <div className="flex items-center gap-4">
-                    {hasPrev ? (
-                      <Link href={`/records?page=${prevPage}`} className="underline underline-offset-2 hover:text-stll-charcoal">
-                        Previous
-                      </Link>
-                    ) : (
-                      <span className="opacity-50">Previous</span>
-                    )}
-                    {hasNext ? (
-                      <Link href={`/records?page=${nextPage}`} className="underline underline-offset-2 hover:text-stll-charcoal">
-                        Next
-                      </Link>
-                    ) : (
-                      <span className="opacity-50">Next</span>
-                    )}
+                      </thead>
+                      <tbody>
+                        {complianceLogs.map(({ log, parsed }) => (
+                          <tr key={log.id} className="border-b border-stll-charcoal/8 align-top">
+                            <td className="py-3 pr-4 text-sm text-stll-charcoal">{formLabelForEntry(log, parsed)}</td>
+                            <td className="py-3 pr-4 text-sm text-stll-charcoal">{log.title}</td>
+                            <td className="py-3 pr-4 text-sm text-stll-charcoal">{log.entered_by}</td>
+                            <td className="py-3 pr-4 text-sm text-stll-charcoal">
+                              {new Date(log.logged_at).toLocaleDateString()}
+                            </td>
+                            <td className="py-3 pr-4 text-sm text-stll-charcoal">
+                              <Link href={`/records/${log.id}`} className="underline underline-offset-2 hover:text-stll-muted">
+                                View details
+                              </Link>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                </div>
-              </>
-            )}
-          </div>
-        </section>
+
+                  <div className="mt-5 flex items-center justify-between text-xs text-stll-muted">
+                    <span>
+                      Page {currentPage} of {totalPages} ({total} total entries)
+                    </span>
+                    <div className="flex items-center gap-4">
+                      {hasPrev ? (
+                        <Link href={`/records?page=${prevPage}`} className="underline underline-offset-2 hover:text-stll-charcoal">
+                          Previous
+                        </Link>
+                      ) : (
+                        <span className="opacity-50">Previous</span>
+                      )}
+                      {hasNext ? (
+                        <Link href={`/records?page=${nextPage}`} className="underline underline-offset-2 hover:text-stll-charcoal">
+                          Next
+                        </Link>
+                      ) : (
+                        <span className="opacity-50">Next</span>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </section>
+        ) : (
+          passwordEnabled && (
+            <section className="mb-12 border-t border-stll-charcoal/10 pt-10">
+              <h2 className="text-xs tracking-[0.3em] uppercase text-stll-charcoal font-semibold mb-3">
+                Protected Records Access
+              </h2>
+              <p className="text-sm text-stll-muted leading-relaxed mb-5">
+                Enter the records password to view compliance forms and documentation.
+              </p>
+              <div className="bg-white border border-stll-charcoal/8 p-6 sm:p-8">
+                <form action={unlockRecords} className="flex flex-col sm:flex-row gap-3 sm:items-end">
+                  <label className="block flex-1">
+                    <span className="block text-[10px] tracking-[0.2em] uppercase text-stll-muted mb-2">Password</span>
+                    <input
+                      type="password"
+                      name="password"
+                      required
+                      className="w-full border border-stll-charcoal/20 bg-white px-3 py-3 text-sm text-stll-charcoal focus:outline-none focus:border-stll-charcoal/40"
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    className="px-6 py-3 text-[11px] tracking-[0.2em] uppercase border bg-stll-charcoal border-stll-charcoal text-white"
+                  >
+                    Unlock
+                  </button>
+                </form>
+                {errorParam === "invalid_password" && (
+                  <p className="mt-3 text-sm text-red-700">Incorrect password. Please try again.</p>
+                )}
+              </div>
+            </section>
+          )
+        )}
 
         <section className="mb-12 border-t border-stll-charcoal/10 pt-10">
           <h2 className="text-xs tracking-[0.3em] uppercase text-stll-charcoal font-semibold mb-3">

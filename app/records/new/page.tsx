@@ -1,7 +1,13 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { hasRecordsAccess } from "@/lib/records-access";
 import { RecordLogForm } from "../RecordLogForm";
 
-export default function NewRecordLogPage() {
+export default async function NewRecordLogPage() {
+  if (!(await hasRecordsAccess())) {
+    redirect("/records");
+  }
+
   return (
     <div className="min-h-screen bg-[#FAF8F5] pt-28 pb-20 px-8 sm:px-16 lg:px-24">
       <div className="max-w-3xl mx-auto">

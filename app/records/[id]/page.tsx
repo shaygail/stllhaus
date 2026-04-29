@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createBusinessLogsAdminClient } from "@/lib/business-logs";
 import { getComplianceFormLabel, parseComplianceForm } from "@/lib/compliance-forms";
+import { hasRecordsAccess } from "@/lib/records-access";
 import { EditLoggedDateForm } from "./EditLoggedDateForm";
 import { RecordDetailActions } from "./RecordDetailActions";
 
@@ -60,6 +61,10 @@ export default async function RecordDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  if (!(await hasRecordsAccess())) {
+    redirect("/records");
+  }
+
   const { id } = await params;
   const log = await getLog(id);
   if (!log) notFound();

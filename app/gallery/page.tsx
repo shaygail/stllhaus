@@ -34,6 +34,8 @@ const SIZE_LABELS: Record<string, string> = { G: "Regular", V: "Large" };
 const MILK_SURCHARGE = 1;
 const PREMIUM_MILKS = new Set(["Almond", "Soy"]);
 const LARGE_SIZE_UPCHARGE = 2;
+/** Espresso coffee series: regular/large gap is $1 (matcha, cold brew, etc. use {@link LARGE_SIZE_UPCHARGE}). */
+const COFFEE_LARGE_UPCHARGE = 1;
 const ENABLE_BACKEND_MENU_SYNC = process.env.NEXT_PUBLIC_ENABLE_MENU_PRICE_SYNC === "true";
 
 const SYRUPS = [
@@ -122,11 +124,11 @@ const matchaItems: MenuItemData[] = [
     sizes: [{ label: "G", price: "$7.50" }, { label: "V", price: "$11.00" }],
     temperatureOptionsOverride: ["Hot", "Iced"],
   },
-  { name: "Strawberry Matcha", description: "Strawberry and matcha fusion. Adjust matcha strength as you like.", image: "", sizes: [{ label: "G", price: "$11.00" }, { label: "V", price: "$13.00" }] },
+  { name: "Strawberry Matcha", description: "Strawberry and matcha fusion. Adjust matcha strength as you like.", image: "", sizes: [{ label: "G", price: "$10.50" }, { label: "V", price: "$12.50" }] },
   { name: "Strawberry Cloud Matcha", description: "Strawberry, cloud foam, and matcha. Choose your matcha strength.", image: "", sizes: [{ label: "G", price: "$12.00" }, { label: "V", price: "$14.00" }] },
   { name: "Ube Cream Matcha", description: "Ube cream and matcha. Default is 4g matcha, but you can select extra strong options.", image: "", sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }], temperatureOptionsOverride: ["Hot", "Iced"] },
   { name: "Mango Matcha", description: "Mango and matcha fusion with a bright, smooth finish.", image: "", sizes: [{ label: "G", price: "$10.00" }, { label: "V", price: "$12.00" }] },
-  { name: "Mango Sea Salt Matcha", description: "Mango matcha topped with sea salt foam.", image: "", sizes: [{ label: "G", price: "$11.00" }, { label: "V", price: "$13.00" }] },
+  { name: "Mango Sea Salt Matcha", description: "Mango matcha topped with sea salt foam.", image: "", sizes: [{ label: "G", price: "$10.50" }, { label: "V", price: "$12.50" }] },
 ];
 
 const coldBrewItems: MenuItemData[] = [
@@ -155,7 +157,7 @@ const coffeeItems: MenuItemData[] = [
     name: "Flat White",
     description: "",
     image: "",
-    sizes: [{ label: "G", price: "$5.50" }, { label: "V", price: "$6.50" }],
+    sizes: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
     temperatureOptionsOverride: ["Hot"],
     coffeeShots: true,
   },
@@ -163,7 +165,7 @@ const coffeeItems: MenuItemData[] = [
     name: "Iced Latte",
     description: "",
     image: "",
-    sizes: [{ label: "G", price: "$7.50" }, { label: "V", price: "$8.50" }],
+    sizes: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
     temperatureOptionsOverride: ["Iced"],
     coffeeShots: true,
   },
@@ -171,10 +173,10 @@ const coffeeItems: MenuItemData[] = [
     name: "Americano",
     description: "",
     image: "",
-    sizes: [{ label: "G", price: "$5.50" }, { label: "V", price: "$6.50" }],
+    sizes: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
     sizesByTemperature: {
-      Hot: [{ label: "G", price: "$5.50" }, { label: "V", price: "$6.50" }],
-      Iced: [{ label: "G", price: "$5.50" }, { label: "V", price: "$6.50" }],
+      Hot: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
+      Iced: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
     },
     temperatureOptionsOverride: ["Hot", "Iced"],
     milkOptionsOverride: [],
@@ -184,10 +186,10 @@ const coffeeItems: MenuItemData[] = [
     name: "Long Black",
     description: "",
     image: "",
-    sizes: [{ label: "G", price: "$6.50" }, { label: "V", price: "$7.50" }],
+    sizes: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
     sizesByTemperature: {
-      Hot: [{ label: "G", price: "$6.50" }, { label: "V", price: "$7.50" }],
-      Iced: [{ label: "G", price: "$6.50" }, { label: "V", price: "$7.50" }],
+      Hot: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
+      Iced: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
     },
     temperatureOptionsOverride: ["Hot", "Iced"],
     milkOptionsOverride: [],
@@ -197,10 +199,10 @@ const coffeeItems: MenuItemData[] = [
     name: "Caramel Latte",
     description: "",
     image: "",
-    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }],
+    sizes: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
     sizesByTemperature: {
-      Hot: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }],
-      Iced: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }],
+      Hot: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
+      Iced: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
     },
     temperatureOptionsOverride: ["Hot", "Iced"],
     coffeeShots: true,
@@ -209,7 +211,7 @@ const coffeeItems: MenuItemData[] = [
     name: "Mocha",
     description: "House chocolate and espresso with your choice of milk.",
     image: "",
-    sizes: [{ label: "G", price: "$6.50" }, { label: "V", price: "$7.50" }],
+    sizes: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
     temperatureOptionsOverride: ["Hot", "Iced"],
     coffeeShots: true,
   },
@@ -217,7 +219,7 @@ const coffeeItems: MenuItemData[] = [
     name: "Ube Spanish Latte",
     description: "",
     image: "",
-    sizes: [{ label: "G", price: "$9.50" }, { label: "V", price: "$11.50" }],
+    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }],
     temperatureOptionsOverride: ["Hot", "Iced"],
     coffeeShots: true,
   },
@@ -233,7 +235,7 @@ const coffeeItems: MenuItemData[] = [
     name: "Biscoff Latte",
     description: "",
     image: "",
-    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }],
+    sizes: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
     temperatureOptionsOverride: ["Hot", "Iced"],
     coffeeShots: true,
   },
@@ -241,7 +243,7 @@ const coffeeItems: MenuItemData[] = [
     name: "White Mocha",
     description: "",
     image: "",
-    sizes: [{ label: "G", price: "$6.50" }, { label: "V", price: "$7.50" }],
+    sizes: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
     temperatureOptionsOverride: ["Hot", "Iced"],
     coffeeShots: true,
   },
@@ -257,11 +259,25 @@ const coffeeItems: MenuItemData[] = [
     name: "Black Pearl Latte",
     description: "",
     image: "",
-    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }],
+    sizes: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
     temperatureOptionsOverride: ["Hot", "Iced"],
     coffeeShots: true,
   },
 ];
+
+const COFFEE_MENU_ITEM_NAMES = new Set(coffeeItems.map((item) => item.name));
+
+/** Coffee drinks outside the $6 / $7 tier — large uses +$2 when syncing base price from backend. */
+const COFFEE_TWO_DOLLAR_LARGE_UPCHARGE_NAMES = new Set([
+  "Spanish Latte",
+  "Ube Spanish Latte",
+  "Batirol Latte",
+]);
+
+function largeSizeUpchargeForMenuItem(itemName: string): number {
+  if (COFFEE_TWO_DOLLAR_LARGE_UPCHARGE_NAMES.has(itemName)) return LARGE_SIZE_UPCHARGE;
+  return COFFEE_MENU_ITEM_NAMES.has(itemName) ? COFFEE_LARGE_UPCHARGE : LARGE_SIZE_UPCHARGE;
+}
 
 const nonCoffeeItems: MenuItemData[] = [
   {
@@ -269,7 +285,7 @@ const nonCoffeeItems: MenuItemData[] = [
     description:
       "Ube cream top with your choice of milk. Oat or whole at menu price; almond or soy +$1. Syrups not included.",
     image: "",
-    sizes: [{ label: "G", price: "$9.50" }, { label: "V", price: "$11.50" }],
+    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }],
     temperatureOptionsOverride: ["Hot", "Iced"],
     hideAddOns: true,
   },
@@ -278,7 +294,7 @@ const nonCoffeeItems: MenuItemData[] = [
     description:
       "Strawberry cream top with your choice of milk. Oat or whole at menu price; almond or soy +$1. Syrups not included.",
     image: "",
-    sizes: [{ label: "G", price: "$9.50" }, { label: "V", price: "$11.50" }],
+    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }],
     temperatureOptionsOverride: ["Hot", "Iced"],
     hideAddOns: true,
   },
@@ -338,7 +354,7 @@ function applyBackendPrices(items: MenuItemData[], prices: Map<string, number>):
         if (size.price === "N/A") return size;
         if (size.label === "G") return { ...size, price: formatPrice(basePrice) };
         if (size.label === "V") {
-          const largePrice = explicitLargePrice ?? basePrice + LARGE_SIZE_UPCHARGE;
+          const largePrice = explicitLargePrice ?? basePrice + largeSizeUpchargeForMenuItem(item.name);
           return { ...size, price: formatPrice(largePrice) };
         }
         return size;

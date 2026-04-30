@@ -25,47 +25,54 @@ export const BACKEND_NAME_ALIASES: Record<string, string[]> = {
   "OG Cold Brew": ["Cold Brew"],
 };
 
+/**
+ * Regular/Large pairs aligned with POS `menu-sync.json` and gallery rules:
+ * - Matcha, cold brew, cream, cloud: large = regular + $2
+ * - Most coffee: large = regular + $1
+ * - Spanish Latte, Ube Spanish Latte, Batirol Latte: large = regular + $2 (see `app/gallery/page.tsx`)
+ */
 export const MENU_DRINKS = {
   matcha: {
-    earlGrey: { regular: 8.5, large: 10.5 },
-    ogMatcha: { regular: 7.5, large: 11 },
-    strawberryMatcha: { regular: 10.5, large: 12.5 },
+    earlGrey: { regular: 9, large: 11 },
+    /** Same +$2 large rule as POS drink customizer. */
+    ogMatcha: { regular: 7.5, large: 9.5 },
+    strawberryMatcha: { regular: 11, large: 13 },
     strawberryCloudMatcha: { regular: 12, large: 14 },
-    ubeCreamMatcha: { regular: 8.5, large: 10.5 },
+    ubeCreamMatcha: { regular: 9, large: 11 },
     mangoMatcha: { regular: 10, large: 12 },
-    mangoSeaSaltMatcha: { regular: 10.5, large: 12.5 },
+    mangoSeaSaltMatcha: { regular: 11, large: 13 },
   },
   coldBrew: {
-    og: { regular: 8.5, large: 10.5 },
-    ubeCream: { regular: 8.5, large: 10.5 },
-    brownSugar: { regular: 8.5, large: 10.5 },
-    blackPearl: { regular: 8.5, large: 10.5 },
-    spanishLatteColdBrew: { regular: 8.5, large: 10.5 },
+    og: { regular: 9, large: 11 },
+    ubeCream: { regular: 9, large: 11 },
+    brownSugar: { regular: 9, large: 11 },
+    blackPearl: { regular: 9, large: 11 },
+    spanishLatteColdBrew: { regular: 9, large: 11 },
   },
   coffee: {
-    flatWhite: { regular: 6, large: 7 },
-    icedLatte: { regular: 6, large: 7 },
-    americano: { regular: 6, large: 7 },
-    longBlack: { regular: 6, large: 7 },
-    caramelLatte: { regular: 6, large: 7 },
-    mocha: { regular: 6, large: 7 },
-    ubeSpanishLatte: { regular: 8.5, large: 10.5 },
+    flatWhite: { regular: 6.5, large: 7.5 },
+    icedLatte: { regular: 7.5, large: 8.5 },
+    americano: { regular: 6.5, large: 7.5 },
+    longBlack: { regular: 6.5, large: 7.5 },
+    caramelLatte: { regular: 8.5, large: 9.5 },
+    mocha: { regular: 6.5, large: 7.5 },
+    ubeSpanishLatte: { regular: 9.5, large: 11.5 },
     spanishLatte: { regular: 8.5, large: 10.5 },
-    biscoffLatte: { regular: 6, large: 7 },
-    whiteMocha: { regular: 6, large: 7 },
+    biscoffLatte: { regular: 9, large: 10 },
+    whiteMocha: { regular: 6.5, large: 7.5 },
     batirolLatte: { regular: 8.5, large: 10.5 },
-    blackPearlLatte: { regular: 6, large: 7 },
+    blackPearlLatte: { regular: 8.5, large: 9.5 },
   },
   cream: {
     twilight: { regular: 8.5, large: 10.5 },
     strawberry: { regular: 8.5, large: 10.5 },
-    batirol: { regular: 8.5, large: 10.5 },
+    batirol: { regular: 9, large: 11 },
   },
   cloud: {
-    blackPearlCoconut: { regular: 8.5, large: 10.5 },
-    cloverCoconut: { regular: 8.5, large: 10.5 },
-    twilightCoconut: { regular: 8.5, large: 10.5 },
-    batirolCloud: { regular: 8.5, large: 10.5 },
+    blackPearlCoconut: { regular: 9, large: 11 },
+    cloverCoconut: { regular: 9, large: 11 },
+    twilightCoconut: { regular: 9, large: 11 },
+    batirolCloud: { regular: 9, large: 11 },
   },
 } as const;
 

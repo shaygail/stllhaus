@@ -30,6 +30,23 @@ function normalizeRows(raw: unknown): PublicMenuPrice[] {
     .filter((row): row is PublicMenuPrice => Boolean(row));
 }
 
+/** Same JSON the iOS POS loads (`STLLHausPOS` website mirror). Keeps web + app base prices aligned. */
+const DEFAULT_MENU_SYNC_JSON_URL =
+  "https://raw.githubusercontent.com/shaygail/stllhaus-pos/master/menu-sync.json";
+
+async function tryGithubMenuSyncJson(): Promise<PublicMenuPrice[] | null> {
+  const url = process.env.MENU_SYNC_JSON_URL?.trim() || DEFAULT_MENU_SYNC_JSON_URL;
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return null;
+    const json = (await res.json()) as unknown;
+    const rows = normalizeRows(json);
+    return rows.length > 0 ? rows : null;
+  } catch {
+    return null;
+  }
+}
+
 async function tryRailwayMenuPrices(): Promise<PublicMenuPrice[] | null> {
   const backendEnv = process.env.BACKEND_URL?.trim();
   const posUrl = process.env.POS_API_URL?.trim();
@@ -62,6 +79,12 @@ async function tryRailwayMenuPrices(): Promise<PublicMenuPrice[] | null> {
 }
 
 export async function GET() {
+  // 1) GitHub `menu-sync.json` — same file as the POS app (single source of truth for base $).
+  const githubItems = await tryGithubMenuSyncJson();
+  if (githubItems && githubItems.length > 0) {
+    return NextResponse.json({ items: githubItems, source: "github-menu-sync" });
+  }
+
   const railwayItems = await tryRailwayMenuPrices();
   if (railwayItems && railwayItems.length > 0) {
     return NextResponse.json({ items: railwayItems, source: "railway" });

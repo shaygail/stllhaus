@@ -1,0 +1,143 @@
+/**
+ * Canonical Regular/Large drink prices — keep in sync with POS / Supabase `menu_items`
+ * and Railway menu API. Used by `app/gallery/page.tsx` for display.
+ */
+
+export type DrinkPrices = { regular: number; large: number };
+
+export function formatDrinkPriceUsd(n: number): string {
+  return `$${n.toFixed(2)}`;
+}
+
+export function drinkSizes(p: DrinkPrices): { label: string; price: string }[] {
+  return [
+    { label: "G", price: formatDrinkPriceUsd(p.regular) },
+    { label: "V", price: formatDrinkPriceUsd(p.large) },
+  ];
+}
+
+/** Gallery item name → backend/POS base-price lookup names (regular only). */
+export const BACKEND_NAME_ALIASES: Record<string, string[]> = {
+  "OG Matcha Latte": ["Matcha Latte"],
+  "Classic Matcha": ["Matcha Latte"],
+  "Ube Cream Coldbrew Latte": ["Ube Cream Cold Brew"],
+  "Black Pearl Cold Brew Latte": ["Black Pearl Cold Brew"],
+  "OG Cold Brew": ["Cold Brew"],
+};
+
+export const MENU_DRINKS = {
+  matcha: {
+    earlGrey: { regular: 8.5, large: 10.5 },
+    ogMatcha: { regular: 7.5, large: 11 },
+    strawberryMatcha: { regular: 10.5, large: 12.5 },
+    strawberryCloudMatcha: { regular: 12, large: 14 },
+    ubeCreamMatcha: { regular: 8.5, large: 10.5 },
+    mangoMatcha: { regular: 10, large: 12 },
+    mangoSeaSaltMatcha: { regular: 10.5, large: 12.5 },
+  },
+  coldBrew: {
+    og: { regular: 8.5, large: 10.5 },
+    ubeCream: { regular: 8.5, large: 10.5 },
+    brownSugar: { regular: 8.5, large: 10.5 },
+    blackPearl: { regular: 8.5, large: 10.5 },
+    spanishLatteColdBrew: { regular: 8.5, large: 10.5 },
+  },
+  coffee: {
+    flatWhite: { regular: 6, large: 7 },
+    icedLatte: { regular: 6, large: 7 },
+    americano: { regular: 6, large: 7 },
+    longBlack: { regular: 6, large: 7 },
+    caramelLatte: { regular: 6, large: 7 },
+    mocha: { regular: 6, large: 7 },
+    ubeSpanishLatte: { regular: 8.5, large: 10.5 },
+    spanishLatte: { regular: 8.5, large: 10.5 },
+    biscoffLatte: { regular: 6, large: 7 },
+    whiteMocha: { regular: 6, large: 7 },
+    batirolLatte: { regular: 8.5, large: 10.5 },
+    blackPearlLatte: { regular: 6, large: 7 },
+  },
+  cream: {
+    twilight: { regular: 8.5, large: 10.5 },
+    strawberry: { regular: 8.5, large: 10.5 },
+    batirol: { regular: 8.5, large: 10.5 },
+  },
+  cloud: {
+    blackPearlCoconut: { regular: 8.5, large: 10.5 },
+    cloverCoconut: { regular: 8.5, large: 10.5 },
+    twilightCoconut: { regular: 8.5, large: 10.5 },
+    batirolCloud: { regular: 8.5, large: 10.5 },
+  },
+} as const;
+
+/** `{ displayName, prices }[]` for SQL generation and tooling. */
+export const MENU_DRINK_ROWS: { name: string; prices: DrinkPrices }[] = [
+  { name: "Earl Grey Matcha", prices: MENU_DRINKS.matcha.earlGrey },
+  { name: "OG Matcha Latte", prices: MENU_DRINKS.matcha.ogMatcha },
+  { name: "Strawberry Matcha", prices: MENU_DRINKS.matcha.strawberryMatcha },
+  { name: "Strawberry Cloud Matcha", prices: MENU_DRINKS.matcha.strawberryCloudMatcha },
+  { name: "Ube Cream Matcha", prices: MENU_DRINKS.matcha.ubeCreamMatcha },
+  { name: "Mango Matcha", prices: MENU_DRINKS.matcha.mangoMatcha },
+  { name: "Mango Sea Salt Matcha", prices: MENU_DRINKS.matcha.mangoSeaSaltMatcha },
+  { name: "OG Cold Brew", prices: MENU_DRINKS.coldBrew.og },
+  { name: "Ube Cream Coldbrew Latte", prices: MENU_DRINKS.coldBrew.ubeCream },
+  { name: "Brown Sugar Cold Brew", prices: MENU_DRINKS.coldBrew.brownSugar },
+  { name: "Black Pearl Cold Brew Latte", prices: MENU_DRINKS.coldBrew.blackPearl },
+  { name: "Spanish Latte Cold Brew", prices: MENU_DRINKS.coldBrew.spanishLatteColdBrew },
+  { name: "Flat White", prices: MENU_DRINKS.coffee.flatWhite },
+  { name: "Iced Latte", prices: MENU_DRINKS.coffee.icedLatte },
+  { name: "Americano", prices: MENU_DRINKS.coffee.americano },
+  { name: "Long Black", prices: MENU_DRINKS.coffee.longBlack },
+  { name: "Caramel Latte", prices: MENU_DRINKS.coffee.caramelLatte },
+  { name: "Mocha", prices: MENU_DRINKS.coffee.mocha },
+  { name: "Ube Spanish Latte", prices: MENU_DRINKS.coffee.ubeSpanishLatte },
+  { name: "Spanish Latte", prices: MENU_DRINKS.coffee.spanishLatte },
+  { name: "Biscoff Latte", prices: MENU_DRINKS.coffee.biscoffLatte },
+  { name: "White Mocha", prices: MENU_DRINKS.coffee.whiteMocha },
+  { name: "Batirol Latte", prices: MENU_DRINKS.coffee.batirolLatte },
+  { name: "Black Pearl Latte", prices: MENU_DRINKS.coffee.blackPearlLatte },
+  { name: "Twilight Cream", prices: MENU_DRINKS.cream.twilight },
+  { name: "Strawberry Cream", prices: MENU_DRINKS.cream.strawberry },
+  { name: "Batirol Cream", prices: MENU_DRINKS.cream.batirol },
+  { name: "Black Pearl Coconut Cloud", prices: MENU_DRINKS.cloud.blackPearlCoconut },
+  { name: "Clover Coconut Cloud", prices: MENU_DRINKS.cloud.cloverCoconut },
+  { name: "Twilight Coconut Cloud", prices: MENU_DRINKS.cloud.twilightCoconut },
+  { name: "Batirol Cloud", prices: MENU_DRINKS.cloud.batirolCloud },
+];
+
+/** POS-only base names that share gallery pricing (no menu card). */
+export const MENU_BACKEND_EXTRA_BASE: { name: string; prices: DrinkPrices }[] = [
+  { name: "Classic Matcha", prices: MENU_DRINKS.matcha.ogMatcha },
+];
+
+const MENU_ROWS_FOR_BACKEND_SYNC = [...MENU_DRINK_ROWS, ...MENU_BACKEND_EXTRA_BASE];
+
+/**
+ * Flat rows for POS/DB: each drink regular + `Name (Large)` large price,
+ * plus alias rows so `resolveBackendPrice` in the gallery finds Matcha Latte / Cold Brew.
+ */
+export function collectFlatBackendPriceRows(): { name: string; price: number }[] {
+  const rows: { name: string; price: number }[] = [];
+  const seen = new Set<string>();
+
+  const add = (name: string, price: number) => {
+    const key = `${name.toLowerCase()}\0${price}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    rows.push({ name, price });
+  };
+
+  for (const { name, prices } of MENU_ROWS_FOR_BACKEND_SYNC) {
+    add(name, prices.regular);
+    add(`${name} (Large)`, prices.large);
+  }
+
+  for (const [displayName, aliases] of Object.entries(BACKEND_NAME_ALIASES)) {
+    const entry = MENU_ROWS_FOR_BACKEND_SYNC.find((r) => r.name === displayName);
+    if (!entry) continue;
+    for (const alias of aliases) {
+      add(alias, entry.prices.regular);
+    }
+  }
+
+  return rows;
+}

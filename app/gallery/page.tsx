@@ -1,6 +1,11 @@
 "use client";
 
 import { useCart } from "@/components/CartContext";
+import {
+  BACKEND_NAME_ALIASES,
+  drinkSizes,
+  MENU_DRINKS,
+} from "@/lib/menu-catalog";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
@@ -116,37 +121,81 @@ function getDairyCreamBaseNote(itemName: string): string | null {
 }
 
 const matchaItems: MenuItemData[] = [
-  { name: "Earl Grey Matcha", description: "Premium Kyoto matcha with earl grey notes. Choose your matcha strength below.", image: "", sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }], temperatureOptionsOverride: ["Hot", "Iced"] },
   {
-    name: "OG Matcha Latte",
-    description: "Fully customisable — syrups, cold foams, milk, temperature, matcha strength, and sweetness.",
+    name: "Earl Grey Matcha",
+    description: "Premium Kyoto matcha with earl grey notes. Choose your matcha strength below.",
     image: "",
-    sizes: [{ label: "G", price: "$7.50" }, { label: "V", price: "$11.00" }],
+    sizes: drinkSizes(MENU_DRINKS.matcha.earlGrey),
     temperatureOptionsOverride: ["Hot", "Iced"],
   },
-  { name: "Strawberry Matcha", description: "Strawberry and matcha fusion. Adjust matcha strength as you like.", image: "", sizes: [{ label: "G", price: "$10.50" }, { label: "V", price: "$12.50" }] },
-  { name: "Strawberry Cloud Matcha", description: "Strawberry, cloud foam, and matcha. Choose your matcha strength.", image: "", sizes: [{ label: "G", price: "$12.00" }, { label: "V", price: "$14.00" }] },
-  { name: "Ube Cream Matcha", description: "Ube cream and matcha. Default is 4g matcha, but you can select extra strong options.", image: "", sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }], temperatureOptionsOverride: ["Hot", "Iced"] },
-  { name: "Mango Matcha", description: "Mango and matcha fusion with a bright, smooth finish.", image: "", sizes: [{ label: "G", price: "$10.00" }, { label: "V", price: "$12.00" }] },
-  { name: "Mango Sea Salt Matcha", description: "Mango matcha topped with sea salt foam.", image: "", sizes: [{ label: "G", price: "$10.50" }, { label: "V", price: "$12.50" }] },
+  {
+    name: "OG Matcha Latte",
+    description:
+      "Fully customisable — syrups, cold foams, milk, temperature, matcha strength, and sweetness.",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.matcha.ogMatcha),
+    temperatureOptionsOverride: ["Hot", "Iced"],
+  },
+  {
+    name: "Strawberry Matcha",
+    description: "Strawberry and matcha fusion. Adjust matcha strength as you like.",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.matcha.strawberryMatcha),
+  },
+  {
+    name: "Strawberry Cloud Matcha",
+    description: "Strawberry, cloud foam, and matcha. Choose your matcha strength.",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.matcha.strawberryCloudMatcha),
+  },
+  {
+    name: "Ube Cream Matcha",
+    description:
+      "Ube cream and matcha. Default is 4g matcha, but you can select extra strong options.",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.matcha.ubeCreamMatcha),
+    temperatureOptionsOverride: ["Hot", "Iced"],
+  },
+  {
+    name: "Mango Matcha",
+    description: "Mango and matcha fusion with a bright, smooth finish.",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.matcha.mangoMatcha),
+  },
+  {
+    name: "Mango Sea Salt Matcha",
+    description: "Mango matcha topped with sea salt foam.",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.matcha.mangoSeaSaltMatcha),
+  },
 ];
 
 const coldBrewItems: MenuItemData[] = [
-  { name: "OG Cold Brew", description: "", image: "", sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }] },
+  { name: "OG Cold Brew", description: "", image: "", sizes: drinkSizes(MENU_DRINKS.coldBrew.og) },
   {
     name: "Ube Cream Coldbrew Latte",
     description: "",
     image: "",
-    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }],
+    sizes: drinkSizes(MENU_DRINKS.coldBrew.ubeCream),
     milkOptionsOverride: [],
   },
-  { name: "Brown Sugar Cold Brew", description: "", image: "", sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }] },
-  { name: "Black Pearl Cold Brew Latte", description: "", image: "", sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }] },
+  {
+    name: "Brown Sugar Cold Brew",
+    description: "",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.coldBrew.brownSugar),
+  },
+  {
+    name: "Black Pearl Cold Brew Latte",
+    description: "",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.coldBrew.blackPearl),
+  },
   {
     name: "Spanish Latte Cold Brew",
     description: "No extra syrup add-ons — cold foam add-ons still available.",
     image: "",
-    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }],
+    sizes: drinkSizes(MENU_DRINKS.coldBrew.spanishLatteColdBrew),
     hideAddOns: true,
     coldFoamsAddOnOnly: true,
   },
@@ -157,7 +206,7 @@ const coffeeItems: MenuItemData[] = [
     name: "Flat White",
     description: "",
     image: "",
-    sizes: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
+    sizes: drinkSizes(MENU_DRINKS.coffee.flatWhite),
     temperatureOptionsOverride: ["Hot"],
     coffeeShots: true,
   },
@@ -165,7 +214,7 @@ const coffeeItems: MenuItemData[] = [
     name: "Iced Latte",
     description: "",
     image: "",
-    sizes: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
+    sizes: drinkSizes(MENU_DRINKS.coffee.icedLatte),
     temperatureOptionsOverride: ["Iced"],
     coffeeShots: true,
   },
@@ -173,10 +222,10 @@ const coffeeItems: MenuItemData[] = [
     name: "Americano",
     description: "",
     image: "",
-    sizes: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
+    sizes: drinkSizes(MENU_DRINKS.coffee.americano),
     sizesByTemperature: {
-      Hot: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
-      Iced: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
+      Hot: drinkSizes(MENU_DRINKS.coffee.americano),
+      Iced: drinkSizes(MENU_DRINKS.coffee.americano),
     },
     temperatureOptionsOverride: ["Hot", "Iced"],
     milkOptionsOverride: [],
@@ -186,10 +235,10 @@ const coffeeItems: MenuItemData[] = [
     name: "Long Black",
     description: "",
     image: "",
-    sizes: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
+    sizes: drinkSizes(MENU_DRINKS.coffee.longBlack),
     sizesByTemperature: {
-      Hot: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
-      Iced: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
+      Hot: drinkSizes(MENU_DRINKS.coffee.longBlack),
+      Iced: drinkSizes(MENU_DRINKS.coffee.longBlack),
     },
     temperatureOptionsOverride: ["Hot", "Iced"],
     milkOptionsOverride: [],
@@ -199,10 +248,10 @@ const coffeeItems: MenuItemData[] = [
     name: "Caramel Latte",
     description: "",
     image: "",
-    sizes: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
+    sizes: drinkSizes(MENU_DRINKS.coffee.caramelLatte),
     sizesByTemperature: {
-      Hot: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
-      Iced: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
+      Hot: drinkSizes(MENU_DRINKS.coffee.caramelLatte),
+      Iced: drinkSizes(MENU_DRINKS.coffee.caramelLatte),
     },
     temperatureOptionsOverride: ["Hot", "Iced"],
     coffeeShots: true,
@@ -211,7 +260,7 @@ const coffeeItems: MenuItemData[] = [
     name: "Mocha",
     description: "House chocolate and espresso with your choice of milk.",
     image: "",
-    sizes: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
+    sizes: drinkSizes(MENU_DRINKS.coffee.mocha),
     temperatureOptionsOverride: ["Hot", "Iced"],
     coffeeShots: true,
   },
@@ -219,7 +268,7 @@ const coffeeItems: MenuItemData[] = [
     name: "Ube Spanish Latte",
     description: "",
     image: "",
-    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }],
+    sizes: drinkSizes(MENU_DRINKS.coffee.ubeSpanishLatte),
     temperatureOptionsOverride: ["Hot", "Iced"],
     coffeeShots: true,
   },
@@ -227,7 +276,7 @@ const coffeeItems: MenuItemData[] = [
     name: "Spanish Latte",
     description: "",
     image: "",
-    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }],
+    sizes: drinkSizes(MENU_DRINKS.coffee.spanishLatte),
     temperatureOptionsOverride: ["Hot", "Iced"],
     coffeeShots: true,
   },
@@ -235,7 +284,7 @@ const coffeeItems: MenuItemData[] = [
     name: "Biscoff Latte",
     description: "",
     image: "",
-    sizes: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
+    sizes: drinkSizes(MENU_DRINKS.coffee.biscoffLatte),
     temperatureOptionsOverride: ["Hot", "Iced"],
     coffeeShots: true,
   },
@@ -243,7 +292,7 @@ const coffeeItems: MenuItemData[] = [
     name: "White Mocha",
     description: "",
     image: "",
-    sizes: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
+    sizes: drinkSizes(MENU_DRINKS.coffee.whiteMocha),
     temperatureOptionsOverride: ["Hot", "Iced"],
     coffeeShots: true,
   },
@@ -251,7 +300,7 @@ const coffeeItems: MenuItemData[] = [
     name: "Batirol Latte",
     description: "",
     image: "",
-    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }],
+    sizes: drinkSizes(MENU_DRINKS.coffee.batirolLatte),
     temperatureOptionsOverride: ["Hot", "Iced"],
     coffeeShots: true,
   },
@@ -259,7 +308,7 @@ const coffeeItems: MenuItemData[] = [
     name: "Black Pearl Latte",
     description: "",
     image: "",
-    sizes: [{ label: "G", price: "$6.00" }, { label: "V", price: "$7.00" }],
+    sizes: drinkSizes(MENU_DRINKS.coffee.blackPearlLatte),
     temperatureOptionsOverride: ["Hot", "Iced"],
     coffeeShots: true,
   },
@@ -285,7 +334,7 @@ const nonCoffeeItems: MenuItemData[] = [
     description:
       "Ube cream top with your choice of milk. Oat or whole at menu price; almond or soy +$1. Syrups not included.",
     image: "",
-    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }],
+    sizes: drinkSizes(MENU_DRINKS.cream.twilight),
     temperatureOptionsOverride: ["Hot", "Iced"],
     hideAddOns: true,
   },
@@ -294,7 +343,7 @@ const nonCoffeeItems: MenuItemData[] = [
     description:
       "Strawberry cream top with your choice of milk. Oat or whole at menu price; almond or soy +$1. Syrups not included.",
     image: "",
-    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }],
+    sizes: drinkSizes(MENU_DRINKS.cream.strawberry),
     temperatureOptionsOverride: ["Hot", "Iced"],
     hideAddOns: true,
   },
@@ -302,31 +351,38 @@ const nonCoffeeItems: MenuItemData[] = [
     name: "Batirol Cream",
     description: "Chocolate batirol cream top with your choice of milk.",
     image: "",
-    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }],
+    sizes: drinkSizes(MENU_DRINKS.cream.batirol),
     temperatureOptionsOverride: ["Hot", "Iced"],
     hideAddOns: true,
   },
 ];
 
 const cloudItems: MenuItemData[] = [
-  { name: "Black Pearl Coconut Cloud", description: "Refreshing coconut water and homemade black gulaman cloud foam.", image: "", sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }] },
-  { name: "Clover Coconut Cloud", description: "Refreshing coconut water and premium Kyoto Thea matcha powder cloud foam.", image: "", sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }] },
-  { name: "Twilight Coconut Cloud", description: "Refreshing coconut water and homemade ube cloud foam.", image: "", sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }] },
+  {
+    name: "Black Pearl Coconut Cloud",
+    description: "Refreshing coconut water and homemade black gulaman cloud foam.",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.cloud.blackPearlCoconut),
+  },
+  {
+    name: "Clover Coconut Cloud",
+    description: "Refreshing coconut water and premium Kyoto Thea matcha powder cloud foam.",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.cloud.cloverCoconut),
+  },
+  {
+    name: "Twilight Coconut Cloud",
+    description: "Refreshing coconut water and homemade ube cloud foam.",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.cloud.twilightCoconut),
+  },
   {
     name: "Batirol Cloud",
     description: "Refreshing coconut water with batirol chocolate cream cloud foam.",
     image: "",
-    sizes: [{ label: "G", price: "$8.50" }, { label: "V", price: "$10.50" }],
+    sizes: drinkSizes(MENU_DRINKS.cloud.batirolCloud),
   },
 ];
-
-const BACKEND_NAME_ALIASES: Record<string, string[]> = {
-  "OG Matcha Latte": ["Matcha Latte"],
-  "Classic Matcha": ["Matcha Latte"],
-  "Ube Cream Coldbrew Latte": ["Ube Cream Cold Brew"],
-  "Black Pearl Cold Brew Latte": ["Black Pearl Cold Brew"],
-  "OG Cold Brew": ["Cold Brew"],
-};
 
 function formatPrice(amount: number): string {
   return Number.isInteger(amount) ? `$${amount}` : `$${amount.toFixed(2)}`;

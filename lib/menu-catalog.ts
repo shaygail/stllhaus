@@ -109,6 +109,7 @@ export const MENU_DRINK_ROWS: { name: string; prices: DrinkPrices }[] = [
   { name: "Clover Coconut Cloud", prices: MENU_DRINKS.cloud.cloverCoconut },
   { name: "Twilight Coconut Cloud", prices: MENU_DRINKS.cloud.twilightCoconut },
   { name: "Batirol Cloud", prices: MENU_DRINKS.cloud.batirolCloud },
+  { name: "SIP & BITE", prices: { regular: 16.5, large: 16.5 } },
 ];
 
 /** POS-only base names that share gallery pricing (no menu card). */

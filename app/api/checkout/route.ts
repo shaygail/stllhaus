@@ -1,4 +1,6 @@
 import { sendCustomerReceiptEmail, sendOrderNotification } from "@/lib/email";
+import { isPickupSlotAllowed } from "@/lib/ordering-settings";
+import { loadOrderingSettings } from "@/lib/ordering-settings-store";
 import { cartUnitsEligibleForDelivery, deliveryLineItemName } from "@/lib/delivery";
 import { formatDeliveryEmailDetail, resolveDeliveryPricing } from "@/lib/server-delivery-pricing";
 import {
@@ -43,6 +45,16 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+
+      const orderingSettings = await loadOrderingSettings();
+      const orderingCheck = isPickupSlotAllowed(pickupTime, orderingSettings);
+      if (!orderingCheck.ok) {
+        return NextResponse.json(
+          { error: "ordering_closed", detail: orderingCheck.detail },
+          { status: 403 }
+        );
+      }
+
       const fulfillmentRaw = String(formData.get("fulfillment") ?? "pickup").trim().toLowerCase();
       const isDelivery = fulfillmentRaw === "delivery";
       const pickupLocationRaw = String(formData.get("pickupLocation") ?? "").trim();

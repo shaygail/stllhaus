@@ -6,8 +6,10 @@ import {
   drinkSizes,
   MENU_DRINKS,
 } from "@/lib/menu-catalog";
+import { OrderingStatusBanner } from "@/components/OrderingStatusBanner";
+import { useOrderingStatus } from "@/hooks/useOrderingStatus";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type Size = { label: string; price: string };
 
@@ -512,12 +514,18 @@ function MenuItemRow({
   showSyrups = true,
   showColdFoams = false,
   onItemAdded,
+  canAddToCart = true,
+  addBlockedMessage,
+  isPreOrderOnly = false,
 }: {
   item: MenuItemData;
   milkOptions?: string[];
   showSyrups?: boolean;
   showColdFoams?: boolean;
   onItemAdded?: (itemSummary: string) => void;
+  canAddToCart?: boolean;
+  addBlockedMessage?: string;
+  isPreOrderOnly?: boolean;
 }) {
   const isMatcha = item.name.toLowerCase().includes("matcha");
   const dairyCreamNote = getDairyCreamBaseNote(item.name);
@@ -560,6 +568,7 @@ function MenuItemRow({
 
   const handleAddToCart = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canAddToCart) return;
     const sizeLabel = selectedSize;
     const sizeName = SIZE_LABELS[sizeLabel] ?? sizeLabel;
     const sortedSyrups = rowShowSyrups ? [...selectedSyrups].sort() : [];
@@ -825,12 +834,344 @@ function MenuItemRow({
             </div>
           )}
 
-          <button type="submit" className="w-full sm:w-auto px-8 py-3 text-[11px] tracking-[0.3em] uppercase border bg-stll-charcoal border-stll-charcoal text-white text-center cursor-pointer">
-            Add to Order
+          {!canAddToCart && addBlockedMessage && (
+            <p className="text-xs text-stll-muted leading-relaxed">{addBlockedMessage}</p>
+          )}
+          <button
+            type="submit"
+            disabled={!canAddToCart}
+            className="w-full sm:w-auto px-8 py-3 text-[11px] tracking-[0.3em] uppercase border bg-stll-charcoal border-stll-charcoal text-white text-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {canAddToCart ? (isPreOrderOnly ? "Pre-order" : "Add to Order") : "Ordering closed"}
           </button>
         </div>
       </form>
     </details>
+  );
+}
+
+const SIP_AND_BITE_PRICE = 16.5;
+
+type SipBiteSeriesId = "coldbrew" | "coffee" | "cloud";
+
+const SIP_BITE_SERIES: { id: SipBiteSeriesId; label: string }[] = [
+  { id: "coldbrew", label: "Cold Brew" },
+  { id: "coffee", label: "Coffee Series" },
+  { id: "cloud", label: "Coconut Cloud" },
+];
+
+type SipBiteDippingId = "mixed" | "soy" | "chilli";
+
+const SIP_BITE_DIPPING: { id: SipBiteDippingId; label: string }[] = [
+  { id: "mixed", label: "Soy & chilli oil (mixed)" },
+  { id: "soy", label: "Soy only" },
+  { id: "chilli", label: "Chilli oil only" },
+];
+
+function SipAndBiteSection({
+  coldBrewItems,
+  coffeeItems,
+  cloudItems,
+  milkOptions = ["Oat", "Whole", "Almond", "Soy"],
+  onItemAdded,
+  canAddToCart = true,
+  addBlockedMessage,
+  isPreOrderOnly = false,
+}: {
+  coldBrewItems: MenuItemData[];
+  coffeeItems: MenuItemData[];
+  cloudItems: MenuItemData[];
+  milkOptions?: string[];
+  onItemAdded?: (itemSummary: string) => void;
+  canAddToCart?: boolean;
+  addBlockedMessage?: string;
+  isPreOrderOnly?: boolean;
+}) {
+  const { addItem } = useCart();
+  const [series, setSeries] = useState<SipBiteSeriesId>("coldbrew");
+  const drinksForSeries = useMemo(
+    () =>
+      series === "coldbrew" ? coldBrewItems : series === "coffee" ? coffeeItems : cloudItems,
+    [series, coldBrewItems, coffeeItems, cloudItems]
+  );
+
+  const [selectedDrinkName, setSelectedDrinkName] = useState("");
+  const item =
+    drinksForSeries.find((d) => d.name === selectedDrinkName) ?? drinksForSeries[0] ?? null;
+
+  useEffect(() => {
+    const first = drinksForSeries[0]?.name ?? "";
+    setSelectedDrinkName(first);
+  }, [series, drinksForSeries]);
+
+  const rowMilkOptions =
+    item?.milkOptionsOverride !== undefined ? item.milkOptionsOverride : milkOptions;
+  const rowTemperatureOptions = item?.temperatureOptionsOverride ?? [];
+  const [selectedMilk, setSelectedMilk] = useState("");
+  const [selectedTemperature, setSelectedTemperature] = useState("");
+  const [sweetness, setSweetness] = useState("Sweet");
+  const [coffeeShotChoice, setCoffeeShotChoice] = useState<"1" | "2" | "3">("1");
+  const [siomaiDipping, setSiomaiDipping] = useState<SipBiteDippingId>("mixed");
+
+  useEffect(() => {
+    if (!item) return;
+    setSelectedMilk(rowMilkOptions?.length ? rowMilkOptions[0] : "");
+    setSelectedTemperature(rowTemperatureOptions.length ? rowTemperatureOptions[0] : "");
+    setSweetness("Sweet");
+    setCoffeeShotChoice("1");
+  }, [item?.name]);
+
+  const handleAddToCart = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canAddToCart || !item) return;
+
+    const tempSuffix = selectedTemperature ? `, ${selectedTemperature}` : "";
+    const displayName = `SIP & BITE — ${item.name} (Regular${tempSuffix})`;
+    const slug = slugify(item.name);
+    const dippingLabel = SIP_BITE_DIPPING.find((d) => d.id === siomaiDipping)?.label ?? siomaiDipping;
+    const id = `sip-bite-${series}-${slug}-${selectedTemperature || "notemp"}-${selectedMilk || "nomilk"}-${sweetness}-${siomaiDipping}-${item.coffeeShots ? coffeeShotChoice : "noshots"}`;
+
+    const descArr = ["6pc siomai included", `Dipping: ${dippingLabel}`];
+    if (item.coffeeShots) {
+      const shotLine =
+        coffeeShotChoice === "1"
+          ? "1 shot"
+          : coffeeShotChoice === "2"
+            ? "Double (2 shots)"
+            : "3 shots";
+      descArr.push(`Espresso: ${shotLine}`);
+    }
+    if (selectedMilk) descArr.push(`Milk: ${selectedMilk}`);
+    if (selectedTemperature) descArr.push(`Temp: ${selectedTemperature}`);
+    if (sweetness && (rowMilkOptions?.length || rowTemperatureOptions.length)) {
+      descArr.push(`Sweetness: ${sweetness}`);
+    }
+    descArr.push(`Series: ${SIP_BITE_SERIES.find((s) => s.id === series)?.label ?? series}`);
+
+    addItem({
+      id,
+      name: displayName,
+      description: descArr.join(" | "),
+      price: SIP_AND_BITE_PRICE,
+    });
+    onItemAdded?.(displayName);
+  };
+
+  if (!drinksForSeries.length) return null;
+
+  return (
+    <section className="mb-20">
+      <div className="flex items-baseline gap-4 mb-1">
+        <h2 className="text-[2.5rem] sm:text-[3.5rem] font-black uppercase tracking-tight text-stll-charcoal leading-none">
+          Sip &amp; Bite
+        </h2>
+      </div>
+      <p className="text-[10px] tracking-[0.3em] uppercase text-stll-muted mb-2">
+        Combo — your drink + 6pc siomai
+      </p>
+      <p className="text-xs text-stll-muted mb-6 uppercase tracking-[0.15em]">
+        $16.50 · Regular drink from Cold Brew, Coffee, or Coconut Cloud series
+      </p>
+
+      <details className="group border-b border-stll-charcoal/10" open>
+        <summary className="flex items-start justify-between py-5 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+          <div className="flex-1 min-w-0">
+            <span className="block text-sm sm:text-base font-semibold text-stll-charcoal tracking-wide uppercase leading-snug">
+              Sip &amp; Bite Combo
+            </span>
+            <span className="block mt-1 text-[11px] text-stll-muted/80 tracking-widest">
+              $16.50 · Includes 6pc siomai
+            </span>
+          </div>
+          <span className="text-xs text-stll-muted/60 tracking-widest shrink-0 mt-1 group-open:hidden">+</span>
+          <span className="text-xs text-stll-muted/60 tracking-widest shrink-0 mt-1 hidden group-open:inline">−</span>
+        </summary>
+
+        <form onSubmit={handleAddToCart}>
+          <div className="pb-6 flex flex-col gap-5">
+            <p className="text-xs text-stll-muted leading-relaxed">
+              Pick one drink from the series below. Combo is served regular size with 6pc siomai on the side.
+            </p>
+
+            <div>
+              <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-2">Drink series</p>
+              <div className="flex gap-2 flex-wrap">
+                {SIP_BITE_SERIES.map((s) => (
+                  <label key={s.id} className="cursor-pointer">
+                    <input
+                      type="radio"
+                      name="sip-bite-series"
+                      checked={series === s.id}
+                      onChange={() => setSeries(s.id)}
+                      className="sr-only peer"
+                    />
+                    <span className="block px-4 py-2 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal/25 text-stll-charcoal peer-checked:bg-stll-charcoal peer-checked:text-white peer-checked:border-stll-charcoal">
+                      {s.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-2">Choose your drink</p>
+              <div className="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">
+                {drinksForSeries.map((drink) => (
+                  <label key={drink.name} className="cursor-pointer">
+                    <input
+                      type="radio"
+                      name="sip-bite-drink"
+                      checked={selectedDrinkName === drink.name}
+                      onChange={() => setSelectedDrinkName(drink.name)}
+                      className="sr-only peer"
+                    />
+                    <span className="block px-4 py-2.5 text-[11px] tracking-[0.12em] uppercase border border-stll-charcoal/25 text-stll-charcoal peer-checked:bg-stll-charcoal peer-checked:text-white peer-checked:border-stll-charcoal leading-snug">
+                      {drink.name}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {item?.description && (
+              <p className="text-xs text-stll-muted leading-relaxed">{item.description}</p>
+            )}
+
+            <div className="flex gap-6 flex-wrap items-start">
+              {rowTemperatureOptions.length > 0 && (
+                <div>
+                  <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-2">Temperature</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {rowTemperatureOptions.map((temperature) => (
+                      <label key={temperature} className="cursor-pointer">
+                        <input
+                          type="radio"
+                          name="sip-bite-temperature"
+                          checked={selectedTemperature === temperature}
+                          onChange={() => setSelectedTemperature(temperature)}
+                          className="sr-only peer"
+                        />
+                        <span className="block px-4 py-2 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal/25 text-stll-charcoal peer-checked:bg-stll-charcoal peer-checked:text-white peer-checked:border-stll-charcoal">
+                          {temperature}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {rowMilkOptions && rowMilkOptions.length > 0 && (
+                <div>
+                  <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-2">Milk choice</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {rowMilkOptions.map((milk) => (
+                      <label key={milk} className="cursor-pointer">
+                        <input
+                          type="radio"
+                          name="sip-bite-milk"
+                          checked={selectedMilk === milk}
+                          onChange={() => setSelectedMilk(milk)}
+                          className="sr-only peer"
+                        />
+                        <span className="block px-4 py-2 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal/25 text-stll-charcoal peer-checked:bg-stll-charcoal peer-checked:text-white peer-checked:border-stll-charcoal">
+                          {milk}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(rowMilkOptions?.length || rowTemperatureOptions.length) > 0 && (
+                <div>
+                  <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-2">Sweetness</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {["Sweet", "Less Sweet"].map((level) => (
+                      <label key={level} className="cursor-pointer">
+                        <input
+                          type="radio"
+                          name="sip-bite-sweetness"
+                          checked={sweetness === level}
+                          onChange={() => setSweetness(level)}
+                          className="sr-only peer"
+                        />
+                        <span className="block px-4 py-2 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal/25 text-stll-charcoal peer-checked:bg-stll-charcoal peer-checked:text-white peer-checked:border-stll-charcoal">
+                          {level}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-2">
+                Siomai dipping <span className="text-red-400">*</span>
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                {SIP_BITE_DIPPING.map((opt) => (
+                  <label key={opt.id} className="cursor-pointer">
+                    <input
+                      type="radio"
+                      name="sip-bite-dipping"
+                      required
+                      checked={siomaiDipping === opt.id}
+                      onChange={() => setSiomaiDipping(opt.id)}
+                      className="sr-only peer"
+                    />
+                    <span className="block px-4 py-2 text-[11px] tracking-[0.12em] uppercase border border-stll-charcoal/25 text-stll-charcoal peer-checked:bg-stll-charcoal peer-checked:text-white peer-checked:border-stll-charcoal leading-snug">
+                      {opt.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {item?.coffeeShots && (
+              <div>
+                <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-2">Espresso shots</p>
+                <div className="flex gap-2 flex-wrap">
+                  {[
+                    { value: "1" as const, label: "1 shot (included)" },
+                    { value: "2" as const, label: "Double (2 shots)" },
+                    { value: "3" as const, label: "3 shots" },
+                  ].map((opt) => (
+                    <label key={opt.value} className="cursor-pointer">
+                      <input
+                        type="radio"
+                        name="sip-bite-shots"
+                        checked={coffeeShotChoice === opt.value}
+                        onChange={() => setCoffeeShotChoice(opt.value)}
+                        className="sr-only peer"
+                      />
+                      <span className="block px-4 py-2 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal/25 text-stll-charcoal peer-checked:bg-stll-charcoal peer-checked:text-white peer-checked:border-stll-charcoal">
+                        {opt.label}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!canAddToCart && addBlockedMessage && (
+              <p className="text-xs text-stll-muted leading-relaxed">{addBlockedMessage}</p>
+            )}
+            <button
+              type="submit"
+              disabled={!canAddToCart || !item}
+              className="w-full sm:w-auto px-8 py-3 text-[11px] tracking-[0.3em] uppercase border bg-stll-charcoal border-stll-charcoal text-white text-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {canAddToCart
+                ? isPreOrderOnly
+                  ? "Pre-order Sip & Bite"
+                  : "Add Sip & Bite — $16.50"
+                : "Ordering closed"}
+            </button>
+          </div>
+        </form>
+      </details>
+    </section>
   );
 }
 
@@ -843,6 +1184,9 @@ function MenuSection({
   showSyrups = true,
   showColdFoams = false,
   onItemAdded,
+  canAddToCart = true,
+  addBlockedMessage,
+  isPreOrderOnly = false,
 }: {
   title: string;
   subtitle: string;
@@ -852,6 +1196,9 @@ function MenuSection({
   showSyrups?: boolean;
   showColdFoams?: boolean;
   onItemAdded?: (itemSummary: string) => void;
+  canAddToCart?: boolean;
+  addBlockedMessage?: string;
+  isPreOrderOnly?: boolean;
 }) {
   return (
     <section className="mb-20">
@@ -873,6 +1220,9 @@ function MenuSection({
             showSyrups={showSyrups}
             showColdFoams={showColdFoams}
             onItemAdded={onItemAdded}
+            canAddToCart={canAddToCart}
+            addBlockedMessage={addBlockedMessage}
+            isPreOrderOnly={isPreOrderOnly}
           />
         ))}
       </div>
@@ -881,6 +1231,10 @@ function MenuSection({
 }
 
 export default function GalleryPage() {
+  const { data: orderingStatus } = useOrderingStatus();
+  const canAddToCart = orderingStatus?.canAddToCart ?? true;
+  const isPreOrderOnly = orderingStatus?.isPreOrderOnly ?? false;
+  const addBlockedMessage = orderingStatus?.canAddToCart === false ? orderingStatus.message : undefined;
   const [cartPrompt, setCartPrompt] = useState<{ open: boolean; name: string }>({ open: false, name: "" });
   const closeCartPrompt = useCallback(() => setCartPrompt({ open: false, name: "" }), []);
   const openCartPrompt = useCallback((name: string) => setCartPrompt({ open: true, name }), []);
@@ -942,6 +1296,7 @@ export default function GalleryPage() {
         </h1>
       </div>
       <div className="px-6 sm:px-12 lg:px-20 pt-16 pb-24">
+        <OrderingStatusBanner status={orderingStatus} className="mb-10" />
         <MenuSection
           title="Matcha Lattes"
           subtitle="Premium Kyoto Matcha from Thea Matcha, Oat milk base"
@@ -950,6 +1305,9 @@ export default function GalleryPage() {
           milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
           showColdFoams
           onItemAdded={openCartPrompt}
+          canAddToCart={canAddToCart}
+          addBlockedMessage={addBlockedMessage}
+          isPreOrderOnly={isPreOrderOnly}
         />
         <MenuSection
           title="Cold Brew Coffees"
@@ -959,6 +1317,9 @@ export default function GalleryPage() {
           milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
           showColdFoams
           onItemAdded={openCartPrompt}
+          canAddToCart={canAddToCart}
+          addBlockedMessage={addBlockedMessage}
+          isPreOrderOnly={isPreOrderOnly}
         />
         <MenuSection
           title="Coffee Series"
@@ -968,6 +1329,18 @@ export default function GalleryPage() {
           milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
           showColdFoams
           onItemAdded={openCartPrompt}
+          canAddToCart={canAddToCart}
+          addBlockedMessage={addBlockedMessage}
+          isPreOrderOnly={isPreOrderOnly}
+        />
+        <SipAndBiteSection
+          coldBrewItems={menuState.coldBrewItems}
+          coffeeItems={menuState.coffeeItems}
+          cloudItems={menuState.cloudItems}
+          onItemAdded={openCartPrompt}
+          canAddToCart={canAddToCart}
+          addBlockedMessage={addBlockedMessage}
+          isPreOrderOnly={isPreOrderOnly}
         />
         <MenuSection
           title="Non Coffee Series"
@@ -978,6 +1351,9 @@ export default function GalleryPage() {
           showSyrups={false}
           showColdFoams={false}
           onItemAdded={openCartPrompt}
+          canAddToCart={canAddToCart}
+          addBlockedMessage={addBlockedMessage}
+          isPreOrderOnly={isPreOrderOnly}
         />
         <MenuSection
           title="Coconut Cloud Drinks"
@@ -986,6 +1362,9 @@ export default function GalleryPage() {
           showSyrups={false}
           showColdFoams
           onItemAdded={openCartPrompt}
+          canAddToCart={canAddToCart}
+          addBlockedMessage={addBlockedMessage}
+          isPreOrderOnly={isPreOrderOnly}
         />
       </div>
     </div>

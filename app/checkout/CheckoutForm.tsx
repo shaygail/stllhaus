@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/components/CartContext";
+import { OrderingStatusBanner } from "@/components/OrderingStatusBanner";
+import { useOrderingStatus } from "@/hooks/useOrderingStatus";
 import {
   cartUnitsEligibleForDelivery,
   DELIVERY_SERVICE_AREA_NOTE,
@@ -71,6 +73,11 @@ function deliveryDisplayAddress(a: DeliveryAddrFields): string {
 export default function CheckoutForm() {
   const router = useRouter();
   const { cart, updateQuantity, removeItem, clearCart, total, cartCount } = useCart();
+  const { data: orderingStatus } = useOrderingStatus();
+  const canPlaceOrder =
+    !orderingStatus ||
+    orderingStatus.status === "open" ||
+    orderingStatus.isPreOrderOnly;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [fulfillment, setFulfillment] = useState<"pickup" | "delivery">("pickup");
@@ -118,6 +125,19 @@ export default function CheckoutForm() {
       clearDeliveryAddressFields();
     }
   }, [fulfillment, clearDeliveryAddressFields]);
+
+  const preOrderMinDate = useMemo(() => {
+    if (!orderingStatus?.isPreOrderOnly || !orderingStatus.nextOpenAt) return toDateOnly(new Date());
+    const [datePart] = orderingStatus.nextOpenAt.split("T");
+    return datePart && /^\d{4}-\d{2}-\d{2}$/.test(datePart) ? datePart : toDateOnly(new Date());
+  }, [orderingStatus?.isPreOrderOnly, orderingStatus?.nextOpenAt]);
+
+  useEffect(() => {
+    if (!orderingStatus?.isPreOrderOnly || !orderingStatus.nextOpenAt) return;
+    const [datePart, timePart] = orderingStatus.nextOpenAt.split("T");
+    if (datePart) setPickupDate(datePart);
+    if (timePart) setPickupClock(timePart.slice(0, 5));
+  }, [orderingStatus?.isPreOrderOnly, orderingStatus?.nextOpenAt]);
 
   const deliveryEligible = cartUnitsEligibleForDelivery(cartCount);
   const appliedDeliveryFee =
@@ -191,6 +211,21 @@ export default function CheckoutForm() {
       setError("Choose a time at least a few minutes from now.");
       setIsLoading(false);
       return;
+    }
+    if (orderingStatus && !canPlaceOrder) {
+      setError(orderingStatus.message);
+      setIsLoading(false);
+      return;
+    }
+    if (orderingStatus?.isPreOrderOnly && orderingStatus.nextOpenAt) {
+      const minMs = Date.parse(orderingStatus.nextOpenAt);
+      if (!Number.isNaN(minMs) && slotMs < minMs - 60_000) {
+        setError(
+          `Pre-orders must be for ${orderingStatus.opensAtLabel ?? "when we open"} or later.`
+        );
+        setIsLoading(false);
+        return;
+      }
     }
     if (slotMs > nowMs + PICKUP_MAX_DAYS_AHEAD * 86400000) {
       setError(`Please choose a time within the next ${PICKUP_MAX_DAYS_AHEAD} days.`);
@@ -286,6 +321,15 @@ export default function CheckoutForm() {
             typeof errBody.detail === "string" && errBody.detail.trim()
               ? errBody.detail.trim()
               : "Please choose a valid pickup or delivery date and time."
+          );
+          setIsLoading(false);
+          return;
+        }
+        if (res.status === 403 && errBody.error === "ordering_closed") {
+          setError(
+            typeof errBody.detail === "string" && errBody.detail.trim()
+              ? errBody.detail.trim()
+              : "We are not accepting orders right now."
           );
           setIsLoading(false);
           return;
@@ -411,6 +455,7 @@ export default function CheckoutForm() {
       </div>
 
       <div className="px-6 sm:px-12 lg:px-20 pt-16 pb-24 max-w-3xl">
+        <OrderingStatusBanner status={orderingStatus} className="mb-8" />
 
         {error && (
           <p className="text-xs text-red-500 tracking-[0.2em] uppercase mb-8">{error}</p>
@@ -553,7 +598,9 @@ export default function CheckoutForm() {
               {fulfillment === "delivery" ? "Delivery time" : "Pickup time"}
             </p>
             <p className="text-[10px] text-stll-muted/80 mb-3 leading-relaxed">
-              Choose a date and a time separately (your device&apos;s local timezone).
+              {orderingStatus?.isPreOrderOnly
+                ? `Pre-order: choose pickup or delivery at or after we open (${orderingStatus.opensAtLabel ?? "see hours above"}).`
+                : "Choose a date and a time separately (your device's local timezone)."}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl">
               <div>
@@ -569,7 +616,7 @@ export default function CheckoutForm() {
                   required
                   value={pickupDate}
                   onChange={(e) => setPickupDate(e.target.value)}
-                  min={toDateOnly(new Date())}
+                  min={orderingStatus?.isPreOrderOnly ? preOrderMinDate : toDateOnly(new Date())}
                   max={toDateOnly(new Date(Date.now() + PICKUP_MAX_DAYS_AHEAD * 86400000))}
                   className="w-full border border-stll-charcoal/25 bg-transparent px-4 py-3 text-[11px] tracking-[0.08em] text-stll-charcoal focus:outline-none focus:border-stll-charcoal"
                 />
@@ -907,10 +954,14 @@ export default function CheckoutForm() {
               </button>
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || !canPlaceOrder}
                 className="px-8 py-3 text-[11px] tracking-[0.3em] uppercase border bg-stll-charcoal border-stll-charcoal text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
-                {isLoading ? "Placing..." : "Place Order"}
+                {isLoading
+                  ? "Placing..."
+                  : orderingStatus?.isPreOrderOnly
+                    ? "Place pre-order"
+                    : "Place Order"}
               </button>
             </div>
           </div>

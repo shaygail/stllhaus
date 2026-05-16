@@ -3,12 +3,19 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/components/CartContext";
+import { useOrderingStatus } from "@/hooks/useOrderingStatus";
 
 export function Cart() {
   const router = useRouter();
   const { cart, removeItem, updateQuantity, total, clearCart } = useCart();
+  const { data: orderingStatus } = useOrderingStatus();
+  const canCheckout =
+    !orderingStatus ||
+    orderingStatus.status === "open" ||
+    orderingStatus.isPreOrderOnly;
 
   const goToCheckout = () => {
+    if (!canCheckout) return;
     router.push("/checkout");
   };
 
@@ -105,9 +112,10 @@ export function Cart() {
           <button
             type="button"
             onClick={goToCheckout}
-            className="px-8 py-3 text-[11px] tracking-[0.3em] uppercase border bg-stll-charcoal border-stll-charcoal text-white cursor-pointer"
+            disabled={!canCheckout}
+            className="px-8 py-3 text-[11px] tracking-[0.3em] uppercase border bg-stll-charcoal border-stll-charcoal text-white cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Checkout
+            {orderingStatus?.isPreOrderOnly ? "Pre-order checkout" : "Checkout"}
           </button>
         </div>
       </div>

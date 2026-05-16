@@ -23,6 +23,7 @@ export const BACKEND_NAME_ALIASES: Record<string, string[]> = {
   "Ube Cream Coldbrew Latte": ["Ube Cream Cold Brew"],
   "Black Pearl Cold Brew Latte": ["Black Pearl Cold Brew"],
   "OG Cold Brew": ["Cold Brew"],
+  "Clover Coconut Cloud": ["Clover Cloud"],
 };
 
 /**

@@ -365,24 +365,28 @@ const cloudItems: MenuItemData[] = [
     description: "Refreshing coconut water and homemade black gulaman cloud foam.",
     image: "",
     sizes: drinkSizes(MENU_DRINKS.cloud.blackPearlCoconut),
+    milkOptionsOverride: [],
   },
   {
     name: "Clover Coconut Cloud",
     description: "Refreshing coconut water and premium Kyoto Thea matcha powder cloud foam.",
     image: "",
     sizes: drinkSizes(MENU_DRINKS.cloud.cloverCoconut),
+    milkOptionsOverride: [],
   },
   {
     name: "Twilight Coconut Cloud",
     description: "Refreshing coconut water and homemade ube cloud foam.",
     image: "",
     sizes: drinkSizes(MENU_DRINKS.cloud.twilightCoconut),
+    milkOptionsOverride: [],
   },
   {
     name: "Batirol Cloud",
     description: "Refreshing coconut water with batirol chocolate cream cloud foam.",
     image: "",
     sizes: drinkSizes(MENU_DRINKS.cloud.batirolCloud),
+    milkOptionsOverride: [],
   },
 ];
 
@@ -851,6 +855,8 @@ function MenuItemRow({
 }
 
 const SIP_AND_BITE_PRICE = 16.5;
+const SIP_BITE_CLOVER_CLOUD_DRINK = "Clover Coconut Cloud";
+const SIP_BITE_CLOVER_CLOUD_ADD = 2;
 
 type SipBiteSeriesId = "coldbrew" | "coffee" | "cloud";
 
@@ -931,7 +937,12 @@ function SipAndBiteSection({
     const dippingLabel = SIP_BITE_DIPPING.find((d) => d.id === siomaiDipping)?.label ?? siomaiDipping;
     const id = `sip-bite-${series}-${slug}-${selectedTemperature || "notemp"}-${selectedMilk || "nomilk"}-${sweetness}-${siomaiDipping}-${item.coffeeShots ? coffeeShotChoice : "noshots"}`;
 
+    const cloverCloudAdd =
+      item.name === SIP_BITE_CLOVER_CLOUD_DRINK ? SIP_BITE_CLOVER_CLOUD_ADD : 0;
+    const comboPrice = SIP_AND_BITE_PRICE + cloverCloudAdd;
+
     const descArr = ["6pc siomai included", `Dipping: ${dippingLabel}`];
+    if (cloverCloudAdd > 0) descArr.push(`Clover Cloud add-on: +$${cloverCloudAdd.toFixed(2)}`);
     if (item.coffeeShots) {
       const shotLine =
         coffeeShotChoice === "1"
@@ -952,7 +963,7 @@ function SipAndBiteSection({
       id,
       name: displayName,
       description: descArr.join(" | "),
-      price: SIP_AND_BITE_PRICE,
+      price: comboPrice,
     });
     onItemAdded?.(displayName);
   };
@@ -969,8 +980,11 @@ function SipAndBiteSection({
       <p className="text-[10px] tracking-[0.3em] uppercase text-stll-muted mb-2">
         Combo — your drink + 6pc siomai
       </p>
-      <p className="text-xs text-stll-muted mb-6 uppercase tracking-[0.15em]">
+      <p className="text-xs text-stll-muted mb-2 uppercase tracking-[0.15em]">
         $16.50 · Regular drink from Cold Brew, Coffee, or Coconut Cloud series
+      </p>
+      <p className="text-xs text-stll-muted/90 mb-6 leading-relaxed">
+        Clover Cloud is a <span className="font-medium text-stll-charcoal">+$2 add</span> on the combo ($18.50).
       </p>
 
       <details className="group border-b border-stll-charcoal/10" open>
@@ -980,7 +994,7 @@ function SipAndBiteSection({
               Sip &amp; Bite Combo
             </span>
             <span className="block mt-1 text-[11px] text-stll-muted/80 tracking-widest">
-              $16.50 · Includes 6pc siomai
+              From $16.50 · Includes 6pc siomai · Clover Cloud +$2
             </span>
           </div>
           <span className="text-xs text-stll-muted/60 tracking-widest shrink-0 mt-1 group-open:hidden">+</span>
@@ -1027,6 +1041,7 @@ function SipAndBiteSection({
                     />
                     <span className="block px-4 py-2.5 text-[11px] tracking-[0.12em] uppercase border border-stll-charcoal/25 text-stll-charcoal peer-checked:bg-stll-charcoal peer-checked:text-white peer-checked:border-stll-charcoal leading-snug">
                       {drink.name}
+                      {drink.name === SIP_BITE_CLOVER_CLOUD_DRINK ? " (+$2)" : ""}
                     </span>
                   </label>
                 ))}
@@ -1035,6 +1050,11 @@ function SipAndBiteSection({
 
             {item?.description && (
               <p className="text-xs text-stll-muted leading-relaxed">{item.description}</p>
+            )}
+            {item?.name === SIP_BITE_CLOVER_CLOUD_DRINK && (
+              <p className="text-xs text-stll-charcoal/85 leading-relaxed border border-stll-charcoal/15 bg-stll-charcoal/3 px-3 py-2">
+                Clover Cloud adds $2 to this combo (total $18.50).
+              </p>
             )}
 
             <div className="flex gap-6 flex-wrap items-start">
@@ -1165,7 +1185,9 @@ function SipAndBiteSection({
               {canAddToCart
                 ? isPreOrderOnly
                   ? "Pre-order Sip & Bite"
-                  : "Add Sip & Bite — $16.50"
+                  : item?.name === SIP_BITE_CLOVER_CLOUD_DRINK
+                    ? "Add Sip & Bite — $18.50"
+                    : "Add Sip & Bite — $16.50"
                 : "Ordering closed"}
             </button>
           </div>
@@ -1337,6 +1359,7 @@ export default function GalleryPage() {
           coldBrewItems={menuState.coldBrewItems}
           coffeeItems={menuState.coffeeItems}
           cloudItems={menuState.cloudItems}
+          milkOptions={["Oat", "Whole", "Almond", "Soy"]}
           onItemAdded={openCartPrompt}
           canAddToCart={canAddToCart}
           addBlockedMessage={addBlockedMessage}
@@ -1357,8 +1380,9 @@ export default function GalleryPage() {
         />
         <MenuSection
           title="Coconut Cloud Drinks"
-          subtitle="Coconut water, house-made cloud foams"
+          subtitle="Coconut water, house-made cloud foams — no milk (coconut water base)"
           items={menuState.cloudItems}
+          milkOptions={[]}
           showSyrups={false}
           showColdFoams
           onItemAdded={openCartPrompt}

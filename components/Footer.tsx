@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export function Footer() {
@@ -101,7 +102,7 @@ export function Footer() {
 
         <div className="mt-16 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <img src="/logo-matcha.png" alt="STLL Haus Logo" className="w-7 h-7 object-contain" />
+            <Image src="/logo-matcha.png" alt="STLL Haus Logo" width={28} height={28} className="object-contain" />
             <p className="text-[10px] tracking-[0.25em] uppercase text-white/25">
               © {new Date().getFullYear()} STLL HAUS · All rights reserved
             </p>

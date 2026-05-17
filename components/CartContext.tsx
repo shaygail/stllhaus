@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 export type CartItem = {
   id: string;
@@ -67,15 +59,14 @@ function persistToStorage(items: CartItem[]) {
 }
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    if (typeof window === "undefined") return [];
+    return readCartFromStorage();
+  });
 
   const loadCart = useCallback(() => {
     setCart(readCartFromStorage());
   }, []);
-
-  useLayoutEffect(() => {
-    loadCart();
-  }, [loadCart]);
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {

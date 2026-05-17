@@ -86,7 +86,7 @@ function deliveryDisplayAddress(a: DeliveryAddrFields): string {
 
 export default function CheckoutForm() {
   const router = useRouter();
-  const { cart, updateQuantity, removeItem, clearCart, total, cartCount } = useCart();
+  const { cart, updateQuantity, removeItem, clearCart, cartCount } = useCart();
   const { data: orderingStatus } = useOrderingStatus();
   const canPlaceOrder =
     !orderingStatus ||

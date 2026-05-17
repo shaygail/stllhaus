@@ -199,13 +199,6 @@ export async function sendOrderConfirmationEmail({
   console.log("[Resend] Order confirmation sent, id:", data?.id);
 }
 
-/** @deprecated Use sendOrderConfirmationEmail */
-export async function sendCustomerReceiptEmail(
-  params: Parameters<typeof sendOrderConfirmationEmail>[0]
-) {
-  return sendOrderConfirmationEmail(params);
-}
-
 export async function sendSignupConfirmationEmail({
   email,
   confirmUrl,

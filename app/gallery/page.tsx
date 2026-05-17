@@ -1013,13 +1013,11 @@ function SnacksSection({
   );
 
   const [selectedDrinkName, setSelectedDrinkName] = useState("");
-  const item =
-    drinksForSeries.find((d) => d.name === selectedDrinkName) ?? drinksForSeries[0] ?? null;
-
-  useEffect(() => {
-    const first = drinksForSeries[0]?.name ?? "";
-    setSelectedDrinkName(first);
-  }, [series, drinksForSeries]);
+  const resolvedDrinkName =
+    drinksForSeries.find((d) => d.name === selectedDrinkName)?.name ??
+    drinksForSeries[0]?.name ??
+    "";
+  const item = drinksForSeries.find((d) => d.name === resolvedDrinkName) ?? null;
 
   const rowMilkOptions =
     item?.milkOptionsOverride !== undefined ? item.milkOptionsOverride : milkOptions;
@@ -1030,23 +1028,24 @@ function SnacksSection({
   const [coffeeShotChoice, setCoffeeShotChoice] = useState<"1" | "2" | "3">("1");
   const [siomaiDipping, setSiomaiDipping] = useState<SipBiteDippingId>("mixed");
 
-  useEffect(() => {
-    if (!item) return;
-    setSelectedMilk(rowMilkOptions?.length ? rowMilkOptions[0] : "");
-    setSelectedTemperature(rowTemperatureOptions.length ? rowTemperatureOptions[0] : "");
-    setSweetness("Sweet");
-    setCoffeeShotChoice("1");
-  }, [item?.name]);
+  const effectiveMilk =
+    selectedMilk && rowMilkOptions?.includes(selectedMilk)
+      ? selectedMilk
+      : (rowMilkOptions?.[0] ?? "");
+  const effectiveTemperature =
+    selectedTemperature && rowTemperatureOptions.includes(selectedTemperature)
+      ? selectedTemperature
+      : (rowTemperatureOptions[0] ?? "");
 
   const handleAddToCart = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canAddToCart || !item) return;
 
-    const tempSuffix = selectedTemperature ? `, ${selectedTemperature}` : "";
+    const tempSuffix = effectiveTemperature ? `, ${effectiveTemperature}` : "";
     const displayName = `SIP & BITE — ${item.name} (Regular${tempSuffix})`;
     const slug = slugify(item.name);
     const dippingLabel = SIOMAI_DIPPING.find((d) => d.id === siomaiDipping)?.label ?? siomaiDipping;
-    const id = `sip-bite-${series}-${slug}-${selectedTemperature || "notemp"}-${selectedMilk || "nomilk"}-${sweetness}-${siomaiDipping}-${item.coffeeShots ? coffeeShotChoice : "noshots"}`;
+    const id = `sip-bite-${series}-${slug}-${effectiveTemperature || "notemp"}-${effectiveMilk || "nomilk"}-${sweetness}-${siomaiDipping}-${item.coffeeShots ? coffeeShotChoice : "noshots"}`;
 
     const cloverCloudAdd =
       item.name === SIP_BITE_CLOVER_CLOUD_DRINK ? SIP_BITE_CLOVER_CLOUD_ADD : 0;
@@ -1063,8 +1062,8 @@ function SnacksSection({
             : "3 shots";
       descArr.push(`Espresso: ${shotLine}`);
     }
-    if (selectedMilk) descArr.push(`Milk: ${selectedMilk}`);
-    if (selectedTemperature) descArr.push(`Temp: ${selectedTemperature}`);
+    if (effectiveMilk) descArr.push(`Milk: ${effectiveMilk}`);
+    if (effectiveTemperature) descArr.push(`Temp: ${effectiveTemperature}`);
     if (sweetness && (rowMilkOptions?.length || rowTemperatureOptions.length)) {
       descArr.push(`Sweetness: ${sweetness}`);
     }
@@ -1142,7 +1141,7 @@ function SnacksSection({
                     <input
                       type="radio"
                       name="sip-bite-drink"
-                      checked={selectedDrinkName === drink.name}
+                      checked={resolvedDrinkName === drink.name}
                       onChange={() => setSelectedDrinkName(drink.name)}
                       className="sr-only peer"
                     />
@@ -1174,7 +1173,7 @@ function SnacksSection({
                         <input
                           type="radio"
                           name="sip-bite-temperature"
-                          checked={selectedTemperature === temperature}
+                          checked={effectiveTemperature === temperature}
                           onChange={() => setSelectedTemperature(temperature)}
                           className="sr-only peer"
                         />
@@ -1196,7 +1195,7 @@ function SnacksSection({
                         <input
                           type="radio"
                           name="sip-bite-milk"
-                          checked={selectedMilk === milk}
+                          checked={effectiveMilk === milk}
                           onChange={() => setSelectedMilk(milk)}
                           className="sr-only peer"
                         />

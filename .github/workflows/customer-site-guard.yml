@@ -17,4 +17,6 @@ jobs:
           cache: npm
       - run: node scripts/assert-customer-site.mjs
       - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
       - run: npm run build

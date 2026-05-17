@@ -92,7 +92,11 @@ function orderItemsTableHtml(items: OrderLineItem[]) {
     </table>`;
 }
 
-export async function sendCustomerReceiptEmail({
+export function isValidCustomerEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+export async function sendOrderConfirmationEmail({
   customerName,
   customerEmail,
   contactPhone,
@@ -127,8 +131,9 @@ export async function sendCustomerReceiptEmail({
 
   const html = `
     <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto; color: #1a1a1a; padding: 32px 24px;">
-      <h2 style="font-size: 22px; font-weight: bold; margin-bottom: 4px;">Your receipt — STLL HAUS</h2>
-      <p style="color: #888; margin-top: 0; font-size: 14px;">Thank you, ${escapeHtml(customerName)}</p>
+      <h2 style="font-size: 22px; font-weight: bold; margin-bottom: 4px;">Order confirmation — STLL HAUS</h2>
+      <p style="color: #888; margin-top: 0; font-size: 14px;">Hi ${escapeHtml(customerName)},</p>
+      <p style="color: #555; margin: 12px 0 0; font-size: 14px; line-height: 1.5;">We've received your order. Here are the details. We'll email you again when it's ready for pickup or delivery.</p>
 
       <hr style="border: none; border-top: 1px solid #f0f0f0; margin: 24px 0;" />
 
@@ -183,15 +188,22 @@ export async function sendCustomerReceiptEmail({
   const { data, error } = await resend.emails.send({
     from: "noreply@stllhaus.co",
     to: customerEmail,
-    subject: `Your receipt — STLL HAUS${orderId ? ` · ${orderId.slice(0, 8)}` : ""}`,
+    subject: `Order confirmation — STLL HAUS${orderId ? ` · ${orderId.slice(0, 8)}` : ""}`,
     html,
   });
 
   if (error) {
-    console.error("[Resend] Error sending customer receipt:", error);
+    console.error("[Resend] Error sending order confirmation:", error);
     throw new Error(error.message);
   }
-  console.log("[Resend] Customer receipt sent, id:", data?.id);
+  console.log("[Resend] Order confirmation sent, id:", data?.id);
+}
+
+/** @deprecated Use sendOrderConfirmationEmail */
+export async function sendCustomerReceiptEmail(
+  params: Parameters<typeof sendOrderConfirmationEmail>[0]
+) {
+  return sendOrderConfirmationEmail(params);
 }
 
 export async function sendSignupConfirmationEmail({

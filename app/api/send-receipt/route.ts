@@ -1,4 +1,4 @@
-import { sendCustomerReceiptEmail } from "@/lib/email";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 import { isPickupLocationId, pickupLocationForEmail } from "@/lib/pickup-locations";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       description: typeof row.description === "string" ? row.description : "",
     }));
 
-    await sendCustomerReceiptEmail({
+    await sendOrderConfirmationEmail({
       customerName: customerName.trim(),
       customerEmail: customerEmail.trim(),
       contactPhone: typeof contactPhone === "string" ? contactPhone.trim() || undefined : undefined,
@@ -119,6 +119,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Send receipt error:", error);
-    return NextResponse.json({ error: "Failed to send receipt" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to send confirmation" }, { status: 500 });
   }
 }

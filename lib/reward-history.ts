@@ -59,3 +59,38 @@ export function mergeRewardHistory(
     .sort((a, b) => +new Date(b.awardedAt) - +new Date(a.awardedAt))
     .slice(0, MAX_REWARD_ENTRIES);
 }
+
+/** Unredeemed rewards the member can apply at checkout. */
+export function getEarnedRewards(history: RewardHistoryEntry[]): RewardHistoryEntry[] {
+  return history
+    .filter((r) => r.status === "earned")
+    .sort((a, b) => +new Date(a.awardedAt) - +new Date(b.awardedAt));
+}
+
+/** Oldest earned reward of a type (FIFO). */
+export function getEarnedRewardByType(
+  history: RewardHistoryEntry[],
+  rewardType: RewardType
+): RewardHistoryEntry | undefined {
+  return getEarnedRewards(history).find((r) => r.rewardType === rewardType);
+}
+
+export function markRewardsRedeemed(
+  history: RewardHistoryEntry[],
+  rewardIds: string[],
+  redeemedAt: string,
+  redeemOrderId?: string
+): RewardHistoryEntry[] {
+  if (rewardIds.length === 0) return history;
+  const idSet = new Set(rewardIds);
+  return history.map((entry) =>
+    idSet.has(entry.id) && entry.status === "earned"
+      ? {
+          ...entry,
+          status: "redeemed" as const,
+          redeemedAt,
+          orderId: redeemOrderId ?? entry.orderId,
+        }
+      : entry
+  );
+}

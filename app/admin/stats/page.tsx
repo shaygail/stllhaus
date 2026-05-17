@@ -57,10 +57,19 @@ export default function AdminStatsPage() {
     <div className="min-h-[70vh] px-6 py-24 max-w-md mx-auto">
       <p className="text-[10px] tracking-[0.35em] uppercase text-stll-muted mb-4">Admin</p>
       <h1 className="text-2xl font-black uppercase tracking-tight text-stll-charcoal mb-2">Registration stats</h1>
-      <p className="text-sm text-stll-muted leading-relaxed mb-8">
+      <p className="text-sm text-stll-muted leading-relaxed mb-4">
         Total users in Supabase Auth (anyone who completed email signup). Enter the{" "}
         <span className="font-semibold text-stll-charcoal">ADMIN_STATS_SECRET</span> from your host env — this page is
         not linked from the public site.
+      </p>
+      <p className="text-sm text-stll-muted leading-relaxed mb-8">
+        <Link href="/admin/loyalty" className="underline underline-offset-2 hover:text-stll-charcoal">
+          Loyalty members
+        </Link>
+        {" · "}
+        <Link href="/admin/ordering" className="underline underline-offset-2 hover:text-stll-charcoal">
+          Menu ordering
+        </Link>
       </p>
 
       <form onSubmit={(e) => void fetchStats(e)} className="flex flex-col gap-4">

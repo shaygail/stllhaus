@@ -23,6 +23,7 @@ UPDATE menu_items SET price = 6.0 WHERE name IN ('Flat White', 'Iced Latte', 'Am
 UPDATE menu_items SET price = 8.5 WHERE name IN ('Ube Spanish Latte', 'Spanish Latte', 'Batirol Latte');
 
 UPDATE menu_items SET price = 8.5 WHERE name IN ('Twilight Cream', 'Strawberry Cream', 'Batirol Cream');
+UPDATE menu_items SET price = 9.5 WHERE name = 'Ube Cream Batirol';
 
 UPDATE menu_items SET price = 8.5 WHERE name IN (
   'Black Pearl Coconut Cloud',
@@ -70,6 +71,7 @@ FROM (VALUES
   ('Twilight Cream (Large)', 10.5, 'Non-Coffee Series'),
   ('Strawberry Cream (Large)', 10.5, 'Non-Coffee Series'),
   ('Batirol Cream (Large)', 10.5, 'Non-Coffee Series'),
+  ('Ube Cream Batirol (Large)', 11.5, 'Non-Coffee Series'),
   ('Black Pearl Coconut Cloud (Large)', 10.5, 'Cloud Series'),
   ('Clover Coconut Cloud (Large)', 10.5, 'Cloud Series'),
   ('Twilight Coconut Cloud (Large)', 10.5, 'Cloud Series'),
@@ -96,6 +98,7 @@ FROM (VALUES
   ('Twilight Cream', 8.5, 'Non-Coffee Series'),
   ('Strawberry Cream', 8.5, 'Non-Coffee Series'),
   ('Batirol Cream', 8.5, 'Non-Coffee Series'),
+  ('Ube Cream Batirol', 9.5, 'Non-Coffee Series'),
   ('Black Pearl Coconut Cloud', 8.5, 'Cloud Series'),
   ('Clover Coconut Cloud', 8.5, 'Cloud Series'),
   ('Twilight Coconut Cloud', 8.5, 'Cloud Series'),

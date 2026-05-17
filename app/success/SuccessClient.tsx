@@ -2,7 +2,12 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { mergeOrderHistory, parseOrderHistory, type OrderHistoryEntry } from "@/lib/order-history";
-import { mergeRewardHistory, parseRewardHistory, type RewardHistoryEntry } from "@/lib/reward-history";
+import {
+  markRewardsRedeemed,
+  mergeRewardHistory,
+  parseRewardHistory,
+  type RewardHistoryEntry,
+} from "@/lib/reward-history";
 import { POINTS_PER_DOLLAR, getLoyaltyTier } from "@/lib/loyalty";
 import type { DeliveryTier } from "@/lib/delivery";
 import { isPickupLocationId, pickupLocationForEmail } from "@/lib/pickup-locations";
@@ -33,6 +38,10 @@ type LastOrder = {
   paymentMethod: string;
   orderId?: string;
   notes?: string;
+  loyaltyRedemptions?: {
+    tenPercentRewardId?: string;
+    freeDrinkRewardId?: string;
+  };
 };
 
 export default function SuccessClient() {
@@ -118,9 +127,22 @@ export default function SuccessClient() {
       };
 
       const nextHistory = mergeOrderHistory(parseOrderHistory(metadata.order_history), entry);
-      const existingRewardHistory = parseRewardHistory(metadata.reward_history);
+      let existingRewardHistory = parseRewardHistory(metadata.reward_history);
       const rewardsAwardedNow: RewardHistoryEntry[] = [];
       const nowIso = new Date().toISOString();
+
+      const redeemIds = [
+        lastOrder.loyaltyRedemptions?.tenPercentRewardId,
+        lastOrder.loyaltyRedemptions?.freeDrinkRewardId,
+      ].filter((id): id is string => typeof id === "string" && id.length > 0);
+      if (redeemIds.length > 0) {
+        existingRewardHistory = markRewardsRedeemed(
+          existingRewardHistory,
+          redeemIds,
+          nowIso,
+          orderFingerprint
+        );
+      }
 
       if (nextPurchases % 5 === 0) {
         rewardsAwardedNow.push({
@@ -207,7 +229,7 @@ export default function SuccessClient() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error((data as { error?: string }).error || "Could not send receipt");
+        throw new Error((data as { error?: string }).error || "Could not send confirmation");
       }
       setReceiptStatus("sent");
     } catch (err) {
@@ -248,7 +270,8 @@ export default function SuccessClient() {
           Your order has been received
         </h2>
         <p className="text-sm text-stll-charcoal/90 leading-relaxed mb-6 max-w-xl">
-          We will email you when your order is ready for pickup or heading out for delivery.
+          A confirmation email with your order details was sent to your inbox. We&apos;ll email you again when your
+          order is ready for pickup or heading out for delivery.
         </p>
         {paymentLabel && (
           <p className="text-[11px] tracking-[0.2em] uppercase text-stll-muted mb-8">{paymentLabel}</p>
@@ -278,7 +301,7 @@ export default function SuccessClient() {
               We&apos;ll have it ready soon.
             </p>
             <p className="text-sm text-stll-muted mb-12 leading-relaxed">
-              We will send you an email or text message when your order is being made.
+              Check your email for the order confirmation. We&apos;ll notify you when it&apos;s ready.
             </p>
             {awardedPoints !== null && (
               <p className="text-sm text-stll-charcoal mb-8 leading-relaxed">
@@ -301,13 +324,12 @@ export default function SuccessClient() {
 
             {lastOrder && (
               <section className="mb-12 border border-stll-charcoal/10 p-6 sm:p-8">
-                <p className="text-[10px] tracking-[0.3em] uppercase text-stll-muted mb-3">Receipt</p>
+                <p className="text-[10px] tracking-[0.3em] uppercase text-stll-muted mb-3">Confirmation email</p>
                 <p className="text-[11px] tracking-widest text-stll-charcoal mb-6 leading-relaxed">
-                  If you opted in at checkout, a receipt was sent to your email. You can also resend it to any address
-                  below.
+                  Didn&apos;t get it? Resend your order confirmation to any address below.
                 </p>
                 {receiptStatus === "sent" ? (
-                  <p className="text-sm text-stll-charcoal">Receipt sent. Check your inbox.</p>
+                  <p className="text-sm text-stll-charcoal">Confirmation sent. Check your inbox.</p>
                 ) : (
                   <form onSubmit={handleResendReceipt} className="flex flex-col gap-4 sm:flex-row sm:items-end">
                     <div className="flex-1 min-w-0">
@@ -329,7 +351,7 @@ export default function SuccessClient() {
                       disabled={receiptStatus === "loading"}
                       className="shrink-0 px-8 py-3 text-[11px] tracking-[0.3em] uppercase border bg-stll-charcoal border-stll-charcoal text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
-                      {receiptStatus === "loading" ? "Sending…" : "Send receipt"}
+                      {receiptStatus === "loading" ? "Sending…" : "Resend confirmation"}
                     </button>
                   </form>
                 )}

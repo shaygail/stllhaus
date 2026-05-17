@@ -66,6 +66,7 @@ export const MENU_DRINKS = {
     twilight: { regular: 8.5, large: 10.5 },
     strawberry: { regular: 8.5, large: 10.5 },
     batirol: { regular: 9, large: 11 },
+    ubeCreamBatirol: { regular: 9.5, large: 11.5 },
   },
   cloud: {
     blackPearlCoconut: { regular: 9, large: 11 },
@@ -102,6 +103,7 @@ export const MENU_DRINK_ROWS: { name: string; prices: DrinkPrices }[] = [
   { name: "Twilight Cream", prices: MENU_DRINKS.cream.twilight },
   { name: "Strawberry Cream", prices: MENU_DRINKS.cream.strawberry },
   { name: "Batirol Cream", prices: MENU_DRINKS.cream.batirol },
+  { name: "Ube Cream Batirol", prices: MENU_DRINKS.cream.ubeCreamBatirol },
   { name: "Black Pearl Coconut Cloud", prices: MENU_DRINKS.cloud.blackPearlCoconut },
   { name: "Clover Coconut Cloud", prices: MENU_DRINKS.cloud.cloverCoconut },
   { name: "Twilight Coconut Cloud", prices: MENU_DRINKS.cloud.twilightCoconut },

@@ -112,6 +112,9 @@ function getDairyCreamBaseNote(itemName: string): string | null {
   if (name.includes("strawberry cream") && !name.includes("coconut")) {
     return "Strawberry cream top. Contains dairy.";
   }
+  if (name.includes("ube cream batirol")) {
+    return "Ube and batirol cream top. Contains dairy.";
+  }
   if (name.includes("strawberry cloud") && !name.includes("coconut") && !name.includes("matcha")) {
     return "Strawberry cloud foam top. Contains dairy.";
   }
@@ -337,6 +340,16 @@ const nonCoffeeItems: MenuItemData[] = [
     sizes: drinkSizes(MENU_DRINKS.cream.batirol),
     temperatureOptionsOverride: ["Hot", "Iced"],
     hideAddOns: true,
+  },
+  {
+    name: "Ube Cream Batirol",
+    description:
+      "Ube and batirol cream top with your choice of milk. Oat or whole at menu price; almond or soy +$1. Optional cold foam add-ons below.",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.cream.ubeCreamBatirol),
+    temperatureOptionsOverride: ["Hot", "Iced"],
+    hideAddOns: true,
+    coldFoamsAddOnOnly: true,
   },
 ];
 
@@ -1454,7 +1467,7 @@ export default function GalleryPage() {
         />
         <MenuSection
           title="Non Coffee Series"
-          subtitle="Cream-topped and classic chocolate — no syrup add-ons"
+          subtitle="Cream-topped drinks — syrup add-ons not included; Ube Cream Batirol has optional cold foam add-ons"
           items={menuState.nonCoffeeItems}
           milkOptions={["Oat", "Whole", "Almond", "Soy"]}
           milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."

@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { parseOrderHistory } from "@/lib/order-history";
-import { parseRewardHistory } from "@/lib/reward-history";
+import { getEarnedRewardByType, parseRewardHistory } from "@/lib/reward-history";
 import {
   getLoyaltyTier,
   getNextTierTarget,
@@ -43,6 +43,8 @@ export default async function AccountPage() {
   const pointsToNext = nextTarget ? Math.max(0, nextTarget - totalPoints) : 0;
   const benefits = getTierBenefits(tier);
   const rewardStatus = getPurchaseRewardsStatus(totalPurchases);
+  const earnedTenPercent = getEarnedRewardByType(rewards, "ten_percent_off");
+  const earnedFreeDrink = getEarnedRewardByType(rewards, "free_drink");
 
   return (
     <div className="min-h-[70vh] px-6 sm:px-12 lg:px-20 py-24 max-w-2xl mx-auto">
@@ -102,13 +104,17 @@ export default async function AccountPage() {
               5th order: <span className="font-semibold">10% off</span> · 10th order:{" "}
               <span className="font-semibold">Free drink</span>
             </p>
-            {rewardStatus.tenPercentAvailable && (
-              <p className="text-sm text-stll-charcoal">You can claim your <span className="font-semibold">10% off</span> now.</p>
+            {earnedTenPercent && (
+              <p className="text-sm text-stll-charcoal">
+                <span className="font-semibold">10% off</span> ready — use or save at checkout.
+              </p>
             )}
-            {rewardStatus.freeDrinkAvailable && (
-              <p className="text-sm text-stll-charcoal">You can claim your <span className="font-semibold">free drink</span> now.</p>
+            {earnedFreeDrink && (
+              <p className="text-sm text-stll-charcoal">
+                <span className="font-semibold">Free drink</span> ready — use or save at checkout.
+              </p>
             )}
-            {!rewardStatus.tenPercentAvailable && !rewardStatus.freeDrinkAvailable && (
+            {!earnedTenPercent && !earnedFreeDrink && (
               <p className="text-sm text-stll-charcoal">
                 Next: {rewardStatus.ordersUntilTenPercent} order
                 {rewardStatus.ordersUntilTenPercent === 1 ? "" : "s"} until 10% off, then{" "}

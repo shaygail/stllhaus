@@ -15,6 +15,20 @@ import {
   type DeliveryTier,
 } from "@/lib/delivery";
 import { isPickupLocationId, pickupLocationOptionsForForm } from "@/lib/pickup-locations";
+import { createClient } from "@/lib/supabase/client";
+import {
+  LoyaltyRewardsCheckout,
+  LoyaltyRewardsSignInPrompt,
+} from "@/components/LoyaltyRewardsCheckout";
+import {
+  computeLoyaltyCheckoutPricing,
+  type LoyaltyRewardChoice,
+} from "@/lib/loyalty-checkout";
+import {
+  getEarnedRewardByType,
+  parseRewardHistory,
+  type RewardHistoryEntry,
+} from "@/lib/reward-history";
 
 const PICKUP_MAX_DAYS_AHEAD = 14;
 
@@ -95,6 +109,12 @@ export default function CheckoutForm() {
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofError, setProofError] = useState("");
   const proofInputRef = useRef<HTMLInputElement>(null);
+  const [loyaltyAuthChecked, setLoyaltyAuthChecked] = useState(false);
+  const [isSignedIn, setIsSignedIn] = useState(false);
+  const [tenPercentReward, setTenPercentReward] = useState<RewardHistoryEntry | null>(null);
+  const [freeDrinkReward, setFreeDrinkReward] = useState<RewardHistoryEntry | null>(null);
+  const [tenPercentChoice, setTenPercentChoice] = useState<LoyaltyRewardChoice>("keep");
+  const [freeDrinkChoice, setFreeDrinkChoice] = useState<LoyaltyRewardChoice>("keep");
 
   const deliveryAddrFields = (): DeliveryAddrFields => ({
     unit: deliveryUnit,
@@ -126,6 +146,19 @@ export default function CheckoutForm() {
     }
   }, [fulfillment, clearDeliveryAddressFields]);
 
+  useEffect(() => {
+    const supabase = createClient();
+    void supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsSignedIn(!!user);
+      if (user) {
+        const history = parseRewardHistory(user.user_metadata?.reward_history);
+        setTenPercentReward(getEarnedRewardByType(history, "ten_percent_off") ?? null);
+        setFreeDrinkReward(getEarnedRewardByType(history, "free_drink") ?? null);
+      }
+      setLoyaltyAuthChecked(true);
+    });
+  }, []);
+
   const preOrderMinDate = useMemo(() => {
     if (!orderingStatus?.isPreOrderOnly || !orderingStatus.nextOpenAt) return toDateOnly(new Date());
     const [datePart] = orderingStatus.nextOpenAt.split("T");
@@ -142,7 +175,28 @@ export default function CheckoutForm() {
   const deliveryEligible = cartUnitsEligibleForDelivery(cartCount);
   const appliedDeliveryFee =
     fulfillment === "delivery" && deliveryEligible ? deliveryFeeForTier(deliveryTier) : 0;
-  const orderTotal = total + appliedDeliveryFee;
+
+  const useTenPercentReward = tenPercentChoice === "use" && !!tenPercentReward;
+  const useFreeDrinkReward =
+    freeDrinkChoice === "use" && !!freeDrinkReward && cart.length > 0;
+
+  const loyaltyPricing = useMemo(
+    () =>
+      computeLoyaltyCheckoutPricing({
+        cart: cart.map(({ name, price, quantity, description }) => ({
+          name,
+          price,
+          quantity,
+          description,
+        })),
+        deliveryFee: appliedDeliveryFee,
+        useTenPercent: useTenPercentReward,
+        useFreeDrink: useFreeDrinkReward,
+      }),
+    [cart, appliedDeliveryFee, useTenPercentReward, useFreeDrinkReward]
+  );
+
+  const orderTotal = loyaltyPricing.orderTotal;
 
   const BANK_DETAILS = {
     bankName: process.env.NEXT_PUBLIC_BANK_NAME ?? "ANZ",
@@ -170,7 +224,7 @@ export default function CheckoutForm() {
       return;
     }
     if (!contactEmail || contactEmail.trim() === "") {
-      setError("Email is required for receipts and updates.");
+      setError("Email is required for order confirmation and updates.");
       setIsLoading(false);
       return;
     }
@@ -271,6 +325,24 @@ export default function CheckoutForm() {
       notesForOrder = notesForOrder ? `${notesForOrder}\n\n${dLine}` : dLine;
     }
 
+    const cartLines = cart.map(({ name, quantity, price, description }) => ({
+      name,
+      quantity,
+      price,
+      description: description?.trim() || "",
+    }));
+    const checkoutItems = [...cartLines, ...loyaltyPricing.discountLines];
+
+    if (loyaltyPricing.loyaltyDiscount > 0) {
+      const loyaltyNote = [
+        useTenPercentReward && "10% off milestone reward applied",
+        useFreeDrinkReward && "Free drink milestone reward applied",
+      ]
+        .filter(Boolean)
+        .join("; ");
+      notesForOrder = notesForOrder ? `${notesForOrder}\n\n${loyaltyNote}` : loyaltyNote;
+    }
+
     try {
       const form = new FormData();
       form.append("customerName", customerName);
@@ -288,10 +360,7 @@ export default function CheckoutForm() {
       form.append("contactInstagram", contactInstagram);
       form.append("contactEmail", contactEmail);
       form.append("paymentMethod", paymentMethod);
-      form.append("items", JSON.stringify(cart));
-      if (formData.get("sendReceipt") === "on") {
-        form.append("sendReceipt", "on");
-      }
+      form.append("items", JSON.stringify(checkoutItems));
       if (paymentMethod === "bank_transfer" && proofFile) {
         form.append("proof", proofFile);
       }
@@ -371,12 +440,7 @@ export default function CheckoutForm() {
       }
       const data = (await res.json()) as { orderId?: string };
       try {
-        const snapshotItems = cart.map(({ name, quantity, price, description }) => ({
-          name,
-          quantity,
-          price,
-          description: description?.trim() || "",
-        }));
+        const snapshotItems = [...checkoutItems];
         if (fulfillment === "delivery" && deliveryEligible) {
           snapshotItems.push({
             name: deliveryLineItemName(deliveryTier),
@@ -408,6 +472,17 @@ export default function CheckoutForm() {
           paymentMethod,
           orderId: data.orderId,
           notes: notesForOrder,
+          loyaltyRedemptions:
+            useTenPercentReward || useFreeDrinkReward
+              ? {
+                  ...(useTenPercentReward && tenPercentReward
+                    ? { tenPercentRewardId: tenPercentReward.id }
+                    : {}),
+                  ...(useFreeDrinkReward && freeDrinkReward
+                    ? { freeDrinkRewardId: freeDrinkReward.id }
+                    : {}),
+                }
+              : undefined,
         };
         sessionStorage.setItem("stll-last-order", JSON.stringify(snapshot));
       } catch {
@@ -554,12 +629,14 @@ export default function CheckoutForm() {
               <input
                 name="contactEmail"
                 type="email"
-                placeholder="Email (for receipts and updates)"
+                placeholder="Email (for order confirmation and updates)"
                 required
                 className="w-full border border-stll-charcoal/25 bg-transparent px-4 py-3 text-[11px] tracking-[0.1em] text-stll-charcoal placeholder:text-stll-muted/50 focus:outline-none focus:border-stll-charcoal"
               />
             </div>
-            <p className="text-[10px] text-stll-muted/70 mt-1">Phone number and email are required for order updates and receipts.</p>
+            <p className="text-[10px] text-stll-muted/70 mt-1">
+              Phone number and email are required. We&apos;ll email your order confirmation right away.
+            </p>
           </div>
 
           {/* Pickup vs delivery */}
@@ -827,6 +904,22 @@ export default function CheckoutForm() {
             </div>
           )}
 
+          {loyaltyAuthChecked &&
+            (tenPercentReward || freeDrinkReward ? (
+              <LoyaltyRewardsCheckout
+                tenPercentReward={tenPercentReward}
+                freeDrinkReward={freeDrinkReward}
+                tenPercentChoice={tenPercentChoice}
+                freeDrinkChoice={freeDrinkChoice}
+                onTenPercentChoiceChange={setTenPercentChoice}
+                onFreeDrinkChoiceChange={setFreeDrinkChoice}
+                freeDrinkBlocked={cart.length === 0}
+                loyaltyDiscountPreview={loyaltyPricing.loyaltyDiscount}
+              />
+            ) : !isSignedIn ? (
+              <LoyaltyRewardsSignInPrompt />
+            ) : null)}
+
           {/* Notes */}
           <div>
             <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-2">Order Notes (optional)</p>
@@ -912,35 +1005,21 @@ export default function CheckoutForm() {
             </div>
           )}
 
-          {/* Email receipt */}
-          <div className="border border-stll-charcoal/10 p-5 flex items-start gap-3">
-            <input
-              type="checkbox"
-              name="sendReceipt"
-              id="sendReceipt"
-              defaultChecked
-              className="mt-0.5 h-4 w-4 shrink-0 border-stll-charcoal/40 accent-stll-charcoal"
-            />
-            <label htmlFor="sendReceipt" className="cursor-pointer">
-              <span className="block text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-1">Email receipt</span>
-              <span className="text-[11px] tracking-[0.1em] text-stll-charcoal leading-relaxed">
-                Send me an email receipt with this order&apos;s details.
-              </span>
-            </label>
-          </div>
-
           {/* Total + actions */}
           <div className="border-t border-stll-charcoal/10 pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="text-lg font-black uppercase tracking-tight text-stll-charcoal space-y-1">
+              <p className="text-[11px] font-normal tracking-[0.15em] text-stll-muted">
+                Subtotal: ${loyaltyPricing.cartSubtotal.toFixed(2)}
+              </p>
+              {loyaltyPricing.loyaltyDiscount > 0 && (
+                <p className="text-[11px] font-normal tracking-[0.15em] text-stll-muted">
+                  Loyalty rewards: −${loyaltyPricing.loyaltyDiscount.toFixed(2)}
+                </p>
+              )}
               {fulfillment === "delivery" && deliveryEligible && appliedDeliveryFee > 0 && (
-                <>
-                  <p className="text-[11px] font-normal tracking-[0.15em] text-stll-muted">
-                    Subtotal: ${total.toFixed(2)}
-                  </p>
-                  <p className="text-[11px] font-normal tracking-[0.15em] text-stll-muted">
-                    Delivery: ${appliedDeliveryFee.toFixed(2)}
-                  </p>
-                </>
+                <p className="text-[11px] font-normal tracking-[0.15em] text-stll-muted">
+                  Delivery: ${appliedDeliveryFee.toFixed(2)}
+                </p>
               )}
               <p>Total: ${orderTotal.toFixed(2)}</p>
             </div>

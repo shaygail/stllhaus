@@ -1,4 +1,4 @@
-import { sendCustomerReceiptEmail, sendOrderNotification } from "@/lib/email";
+import { isValidCustomerEmail, sendOrderConfirmationEmail, sendOrderNotification } from "@/lib/email";
 import { isPickupSlotAllowed } from "@/lib/ordering-settings";
 import { loadOrderingSettings } from "@/lib/ordering-settings-store";
 import { cartUnitsEligibleForDelivery, deliveryLineItemName } from "@/lib/delivery";
@@ -141,8 +141,6 @@ export async function POST(request: NextRequest) {
       const contactPhone = formData.get("contactPhone") as string;
       const contactInstagram = formData.get("contactInstagram") as string;
       const contactEmail = formData.get("contactEmail") as string;
-      const sendReceipt = formData.get("sendReceipt") === "on";
-
       const contactDetail = [
         contactEmail?.trim() && `Email: ${contactEmail.trim()}`,
         contactPhone?.trim() && `Phone: ${contactPhone.trim()}`,
@@ -176,10 +174,11 @@ export async function POST(request: NextRequest) {
         subjectLocationSuffix,
       });
 
-      if (sendReceipt && contactEmail?.trim()) {
-        await sendCustomerReceiptEmail({
+      const trimmedEmail = contactEmail?.trim() ?? "";
+      if (trimmedEmail && isValidCustomerEmail(trimmedEmail)) {
+        await sendOrderConfirmationEmail({
           customerName: customerName || "Unknown",
-          customerEmail: contactEmail.trim(),
+          customerEmail: trimmedEmail,
           contactPhone: contactPhone?.trim() || undefined,
           contactInstagram: contactInstagram?.trim() || undefined,
           items,

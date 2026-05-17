@@ -112,6 +112,15 @@ export default function AdminOrderingPage() {
         <span className="font-semibold text-stll-charcoal">ADMIN_STATS_SECRET</span>). Run{" "}
         <code className="text-xs">supabase/ordering_settings.sql</code> once so settings persist in Supabase.
       </p>
+      <p className="text-sm text-stll-muted leading-relaxed mb-8 -mt-4">
+        <Link href="/admin/stats" className="underline underline-offset-2 hover:text-stll-charcoal">
+          Registration stats
+        </Link>
+        {" · "}
+        <Link href="/admin/loyalty" className="underline underline-offset-2 hover:text-stll-charcoal">
+          Loyalty members
+        </Link>
+      </p>
 
       <form onSubmit={(e) => void loadSettings(e)} className="flex flex-col gap-4 mb-10">
         <label htmlFor="admin-secret" className="sr-only">

@@ -868,13 +868,130 @@ const SIP_BITE_SERIES: { id: SipBiteSeriesId; label: string }[] = [
 
 type SipBiteDippingId = "mixed" | "soy" | "chilli";
 
-const SIP_BITE_DIPPING: { id: SipBiteDippingId; label: string }[] = [
+const SIOMAI_DIPPING: { id: SipBiteDippingId; label: string }[] = [
   { id: "mixed", label: "Soy & chilli oil (mixed)" },
   { id: "soy", label: "Soy only" },
   { id: "chilli", label: "Chilli oil only" },
 ];
 
-function SipAndBiteSection({
+const SIOMAI_SNACK_6_NAME = "Pork and Shrimp Siomai (6 pcs)";
+const SIOMAI_SNACK_6_PRICE = 9.5;
+const SIOMAI_SNACK_12_NAME = "Pork and Shrimp Siomai (12 pcs)";
+const SIOMAI_SNACK_12_PRICE = 17.5;
+
+function SiomaiDippingFields({
+  groupName,
+  value,
+  onChange,
+}: {
+  groupName: string;
+  value: SipBiteDippingId;
+  onChange: (id: SipBiteDippingId) => void;
+}) {
+  return (
+    <div>
+      <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-2">
+        Dipping <span className="text-red-400">*</span>
+      </p>
+      <div className="flex gap-2 flex-wrap">
+        {SIOMAI_DIPPING.map((opt) => (
+          <label key={opt.id} className="cursor-pointer">
+            <input
+              type="radio"
+              name={groupName}
+              required
+              checked={value === opt.id}
+              onChange={() => onChange(opt.id)}
+              className="sr-only peer"
+            />
+            <span className="block px-4 py-2 text-[11px] tracking-[0.12em] uppercase border border-stll-charcoal/25 text-stll-charcoal peer-checked:bg-stll-charcoal peer-checked:text-white peer-checked:border-stll-charcoal leading-snug">
+              {opt.label}
+            </span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AccordionChevron() {
+  return (
+    <>
+      <span className="text-xs text-stll-muted/60 tracking-widest shrink-0 mt-1 group-open:hidden">+</span>
+      <span className="text-xs text-stll-muted/60 tracking-widest shrink-0 mt-1 hidden group-open:inline">−</span>
+    </>
+  );
+}
+
+function SiomaiSnackRow({
+  name,
+  price,
+  cartId,
+  onItemAdded,
+  canAddToCart = true,
+  addBlockedMessage,
+  isPreOrderOnly = false,
+}: {
+  name: string;
+  price: number;
+  cartId: string;
+  onItemAdded?: (itemSummary: string) => void;
+  canAddToCart?: boolean;
+  addBlockedMessage?: string;
+  isPreOrderOnly?: boolean;
+}) {
+  const { addItem } = useCart();
+  const [dipping, setDipping] = useState<SipBiteDippingId>("mixed");
+  const priceLabel = `$${price.toFixed(2)}`;
+
+  const handleAddToCart = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canAddToCart) return;
+    const dippingLabel = SIOMAI_DIPPING.find((d) => d.id === dipping)?.label ?? dipping;
+    addItem({
+      id: `${cartId}-${dipping}`,
+      name,
+      description: `Dipping: ${dippingLabel}`,
+      price,
+    });
+    onItemAdded?.(name);
+  };
+
+  return (
+    <details className="group border-b border-stll-charcoal/10">
+      <summary className="flex items-start justify-between py-5 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+        <div className="flex-1 min-w-0">
+          <span className="block text-sm sm:text-base font-semibold text-stll-charcoal tracking-wide uppercase leading-snug">
+            {name}
+          </span>
+          <span className="block mt-1 text-[11px] text-stll-muted/80 tracking-widest">{priceLabel}</span>
+        </div>
+        <AccordionChevron />
+      </summary>
+      <form onSubmit={handleAddToCart}>
+        <div className="pb-6 flex flex-col gap-5">
+          <SiomaiDippingFields groupName={`${cartId}-dipping`} value={dipping} onChange={setDipping} />
+          {!canAddToCart && addBlockedMessage && (
+            <p className="text-xs text-stll-muted leading-relaxed">{addBlockedMessage}</p>
+          )}
+          <button
+            type="submit"
+            disabled={!canAddToCart}
+            className="w-full sm:w-auto px-8 py-3 text-[11px] tracking-[0.3em] uppercase border bg-stll-charcoal border-stll-charcoal text-white text-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {canAddToCart
+              ? isPreOrderOnly
+                ? "Pre-order"
+                : `Add to Order — ${priceLabel}`
+              : "Ordering closed"}
+          </button>
+        </div>
+      </form>
+    </details>
+  );
+}
+
+function SnacksSection({
   coldBrewItems,
   coffeeItems,
   cloudItems,
@@ -934,7 +1051,7 @@ function SipAndBiteSection({
     const tempSuffix = selectedTemperature ? `, ${selectedTemperature}` : "";
     const displayName = `SIP & BITE — ${item.name} (Regular${tempSuffix})`;
     const slug = slugify(item.name);
-    const dippingLabel = SIP_BITE_DIPPING.find((d) => d.id === siomaiDipping)?.label ?? siomaiDipping;
+    const dippingLabel = SIOMAI_DIPPING.find((d) => d.id === siomaiDipping)?.label ?? siomaiDipping;
     const id = `sip-bite-${series}-${slug}-${selectedTemperature || "notemp"}-${selectedMilk || "nomilk"}-${sweetness}-${siomaiDipping}-${item.coffeeShots ? coffeeShotChoice : "noshots"}`;
 
     const cloverCloudAdd =
@@ -968,26 +1085,23 @@ function SipAndBiteSection({
     onItemAdded?.(displayName);
   };
 
-  if (!drinksForSeries.length) return null;
-
   return (
     <section className="mb-20">
       <div className="flex items-baseline gap-4 mb-1">
         <h2 className="text-[2.5rem] sm:text-[3.5rem] font-black uppercase tracking-tight text-stll-charcoal leading-none">
-          Sip &amp; Bite
+          Snacks
         </h2>
       </div>
       <p className="text-[10px] tracking-[0.3em] uppercase text-stll-muted mb-2">
-        Combo — your drink + 6pc siomai
+        Siomai and drink combos
       </p>
-      <p className="text-xs text-stll-muted mb-2 uppercase tracking-[0.15em]">
-        $16.50 · Regular drink from Cold Brew, Coffee, or Coconut Cloud series
-      </p>
-      <p className="text-xs text-stll-muted/90 mb-6 leading-relaxed">
-        Clover Cloud is a <span className="font-medium text-stll-charcoal">+$2 add</span> on the combo ($18.50).
+      <p className="text-xs text-stll-muted mb-6 uppercase tracking-[0.15em]">
+        Sip &amp; Bite from $16.50 · Siomai from $9.50 · Clover Cloud +$2 in combo
       </p>
 
-      <details className="group border-b border-stll-charcoal/10" open>
+      <div className="flex flex-col divide-y divide-stll-charcoal/10">
+      {drinksForSeries.length > 0 && (
+      <details className="group border-b border-stll-charcoal/10">
         <summary className="flex items-start justify-between py-5 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
           <div className="flex-1 min-w-0">
             <span className="block text-sm sm:text-base font-semibold text-stll-charcoal tracking-wide uppercase leading-snug">
@@ -997,8 +1111,7 @@ function SipAndBiteSection({
               From $16.50 · Includes 6pc siomai · Clover Cloud +$2
             </span>
           </div>
-          <span className="text-xs text-stll-muted/60 tracking-widest shrink-0 mt-1 group-open:hidden">+</span>
-          <span className="text-xs text-stll-muted/60 tracking-widest shrink-0 mt-1 hidden group-open:inline">−</span>
+          <AccordionChevron />
         </summary>
 
         <form onSubmit={handleAddToCart}>
@@ -1125,28 +1238,11 @@ function SipAndBiteSection({
               )}
             </div>
 
-            <div>
-              <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-2">
-                Siomai dipping <span className="text-red-400">*</span>
-              </p>
-              <div className="flex gap-2 flex-wrap">
-                {SIP_BITE_DIPPING.map((opt) => (
-                  <label key={opt.id} className="cursor-pointer">
-                    <input
-                      type="radio"
-                      name="sip-bite-dipping"
-                      required
-                      checked={siomaiDipping === opt.id}
-                      onChange={() => setSiomaiDipping(opt.id)}
-                      className="sr-only peer"
-                    />
-                    <span className="block px-4 py-2 text-[11px] tracking-[0.12em] uppercase border border-stll-charcoal/25 text-stll-charcoal peer-checked:bg-stll-charcoal peer-checked:text-white peer-checked:border-stll-charcoal leading-snug">
-                      {opt.label}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
+            <SiomaiDippingFields
+              groupName="sip-bite-dipping"
+              value={siomaiDipping}
+              onChange={setSiomaiDipping}
+            />
 
             {item?.coffeeShots && (
               <div>
@@ -1191,8 +1287,28 @@ function SipAndBiteSection({
                 : "Ordering closed"}
             </button>
           </div>
-        </form>
-      </details>
+          </form>
+        </details>
+      )}
+        <SiomaiSnackRow
+          name={SIOMAI_SNACK_6_NAME}
+          price={SIOMAI_SNACK_6_PRICE}
+          cartId="siomai-6pc"
+          onItemAdded={onItemAdded}
+          canAddToCart={canAddToCart}
+          addBlockedMessage={addBlockedMessage}
+          isPreOrderOnly={isPreOrderOnly}
+        />
+        <SiomaiSnackRow
+          name={SIOMAI_SNACK_12_NAME}
+          price={SIOMAI_SNACK_12_PRICE}
+          cartId="siomai-12pc"
+          onItemAdded={onItemAdded}
+          canAddToCart={canAddToCart}
+          addBlockedMessage={addBlockedMessage}
+          isPreOrderOnly={isPreOrderOnly}
+        />
+      </div>
     </section>
   );
 }
@@ -1355,16 +1471,6 @@ export default function GalleryPage() {
           addBlockedMessage={addBlockedMessage}
           isPreOrderOnly={isPreOrderOnly}
         />
-        <SipAndBiteSection
-          coldBrewItems={menuState.coldBrewItems}
-          coffeeItems={menuState.coffeeItems}
-          cloudItems={menuState.cloudItems}
-          milkOptions={["Oat", "Whole", "Almond", "Soy"]}
-          onItemAdded={openCartPrompt}
-          canAddToCart={canAddToCart}
-          addBlockedMessage={addBlockedMessage}
-          isPreOrderOnly={isPreOrderOnly}
-        />
         <MenuSection
           title="Non Coffee Series"
           subtitle="Cream-topped and classic chocolate — no syrup add-ons"
@@ -1385,6 +1491,16 @@ export default function GalleryPage() {
           milkOptions={[]}
           showSyrups={false}
           showColdFoams
+          onItemAdded={openCartPrompt}
+          canAddToCart={canAddToCart}
+          addBlockedMessage={addBlockedMessage}
+          isPreOrderOnly={isPreOrderOnly}
+        />
+        <SnacksSection
+          coldBrewItems={menuState.coldBrewItems}
+          coffeeItems={menuState.coffeeItems}
+          cloudItems={menuState.cloudItems}
+          milkOptions={["Oat", "Whole", "Almond", "Soy"]}
           onItemAdded={openCartPrompt}
           canAddToCart={canAddToCart}
           addBlockedMessage={addBlockedMessage}

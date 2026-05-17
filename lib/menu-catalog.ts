@@ -111,6 +111,8 @@ export const MENU_DRINK_ROWS: { name: string; prices: DrinkPrices }[] = [
   { name: "Twilight Coconut Cloud", prices: MENU_DRINKS.cloud.twilightCoconut },
   { name: "Batirol Cloud", prices: MENU_DRINKS.cloud.batirolCloud },
   { name: "SIP & BITE", prices: { regular: 16.5, large: 16.5 } },
+  { name: "Pork and Shrimp Siomai (6 pcs)", prices: { regular: 9.5, large: 9.5 } },
+  { name: "Pork and Shrimp Siomai (12 pcs)", prices: { regular: 17.5, large: 17.5 } },
 ];
 
 /** POS-only base names that share gallery pricing (no menu card). */

@@ -1,0 +1,20 @@
+name: Customer site guard
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  assert-customer-site:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: node scripts/assert-customer-site.mjs
+      - run: npm ci
+      - run: npm run build

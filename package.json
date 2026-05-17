@@ -1,10 +1,13 @@
 {
   "name": "stllhaus",
+  "description": "STLL HAUS customer ordering website (menu, checkout). Not the POS app — see DEPLOYMENT.md.",
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "assert-customer-site": "node scripts/assert-customer-site.mjs",
     "dev": "next dev --webpack",
     "dev:prod": "next build --webpack && next start",
+    "prebuild": "npm run assert-customer-site",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"

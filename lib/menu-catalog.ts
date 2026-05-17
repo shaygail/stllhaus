@@ -30,7 +30,7 @@ export const BACKEND_NAME_ALIASES: Record<string, string[]> = {
  * Regular/Large pairs aligned with POS `menu-sync.json` and gallery rules:
  * - Matcha, cold brew, cream, cloud: large = regular + $2
  * - Most coffee: large = regular + $1
- * - Spanish Latte, Ube Spanish Latte, Batirol Latte: large = regular + $2 (see `app/gallery/page.tsx`)
+ * - Ube Latte, Spanish Latte, Ube Spanish Latte, Batirol Latte: large = regular + $2 (see `app/gallery/page.tsx`)
  */
 export const MENU_DRINKS = {
   matcha: {
@@ -55,12 +55,10 @@ export const MENU_DRINKS = {
     icedLatte: { regular: 7.5, large: 8.5 },
     americano: { regular: 6.5, large: 7.5 },
     longBlack: { regular: 6.5, large: 7.5 },
-    caramelLatte: { regular: 8.5, large: 9.5 },
-    mocha: { regular: 6.5, large: 7.5 },
+    ubeLatte: { regular: 8.5, large: 10.5 },
     ubeSpanishLatte: { regular: 9.5, large: 11.5 },
     spanishLatte: { regular: 8.5, large: 10.5 },
     biscoffLatte: { regular: 9, large: 10 },
-    whiteMocha: { regular: 6.5, large: 7.5 },
     batirolLatte: { regular: 8.5, large: 10.5 },
     blackPearlLatte: { regular: 8.5, large: 9.5 },
   },
@@ -95,12 +93,10 @@ export const MENU_DRINK_ROWS: { name: string; prices: DrinkPrices }[] = [
   { name: "Iced Latte", prices: MENU_DRINKS.coffee.icedLatte },
   { name: "Americano", prices: MENU_DRINKS.coffee.americano },
   { name: "Long Black", prices: MENU_DRINKS.coffee.longBlack },
-  { name: "Caramel Latte", prices: MENU_DRINKS.coffee.caramelLatte },
-  { name: "Mocha", prices: MENU_DRINKS.coffee.mocha },
+  { name: "Ube Latte", prices: MENU_DRINKS.coffee.ubeLatte },
   { name: "Ube Spanish Latte", prices: MENU_DRINKS.coffee.ubeSpanishLatte },
   { name: "Spanish Latte", prices: MENU_DRINKS.coffee.spanishLatte },
   { name: "Biscoff Latte", prices: MENU_DRINKS.coffee.biscoffLatte },
-  { name: "White Mocha", prices: MENU_DRINKS.coffee.whiteMocha },
   { name: "Batirol Latte", prices: MENU_DRINKS.coffee.batirolLatte },
   { name: "Black Pearl Latte", prices: MENU_DRINKS.coffee.blackPearlLatte },
   { name: "Twilight Cream", prices: MENU_DRINKS.cream.twilight },

@@ -247,22 +247,10 @@ const coffeeItems: MenuItemData[] = [
     coffeeShots: true,
   },
   {
-    name: "Caramel Latte",
+    name: "Ube Latte",
     description: "",
     image: "",
-    sizes: drinkSizes(MENU_DRINKS.coffee.caramelLatte),
-    sizesByTemperature: {
-      Hot: drinkSizes(MENU_DRINKS.coffee.caramelLatte),
-      Iced: drinkSizes(MENU_DRINKS.coffee.caramelLatte),
-    },
-    temperatureOptionsOverride: ["Hot", "Iced"],
-    coffeeShots: true,
-  },
-  {
-    name: "Mocha",
-    description: "House chocolate and espresso with your choice of milk.",
-    image: "",
-    sizes: drinkSizes(MENU_DRINKS.coffee.mocha),
+    sizes: drinkSizes(MENU_DRINKS.coffee.ubeLatte),
     temperatureOptionsOverride: ["Hot", "Iced"],
     coffeeShots: true,
   },
@@ -291,14 +279,6 @@ const coffeeItems: MenuItemData[] = [
     coffeeShots: true,
   },
   {
-    name: "White Mocha",
-    description: "",
-    image: "",
-    sizes: drinkSizes(MENU_DRINKS.coffee.whiteMocha),
-    temperatureOptionsOverride: ["Hot", "Iced"],
-    coffeeShots: true,
-  },
-  {
     name: "Batirol Latte",
     description: "",
     image: "",
@@ -320,6 +300,7 @@ const COFFEE_MENU_ITEM_NAMES = new Set(coffeeItems.map((item) => item.name));
 
 /** Coffee drinks outside the $6 / $7 tier — large uses +$2 when syncing base price from backend. */
 const COFFEE_TWO_DOLLAR_LARGE_UPCHARGE_NAMES = new Set([
+  "Ube Latte",
   "Spanish Latte",
   "Ube Spanish Latte",
   "Batirol Latte",

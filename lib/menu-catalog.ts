@@ -34,21 +34,21 @@ export const BACKEND_NAME_ALIASES: Record<string, string[]> = {
  */
 export const MENU_DRINKS = {
   matcha: {
-    earlGrey: { regular: 9, large: 11 },
+    earlGrey: { regular: 8.5, large: 10.5 },
     /** Same +$2 large rule as POS drink customizer. */
     ogMatcha: { regular: 7.5, large: 9.5 },
     strawberryMatcha: { regular: 11, large: 13 },
     strawberryCloudMatcha: { regular: 12, large: 14 },
-    ubeCreamMatcha: { regular: 9, large: 11 },
+    ubeCreamMatcha: { regular: 8.5, large: 10.5 },
     mangoMatcha: { regular: 10, large: 12 },
     mangoSeaSaltMatcha: { regular: 11, large: 13 },
   },
   coldBrew: {
-    og: { regular: 9, large: 11 },
-    ubeCream: { regular: 9, large: 11 },
-    brownSugar: { regular: 9, large: 11 },
-    blackPearl: { regular: 9, large: 11 },
-    spanishLatteColdBrew: { regular: 9, large: 11 },
+    og: { regular: 8.5, large: 10.5 },
+    ubeCream: { regular: 8.5, large: 10.5 },
+    brownSugar: { regular: 8.5, large: 10.5 },
+    blackPearl: { regular: 8.5, large: 10.5 },
+    spanishLatteColdBrew: { regular: 8.5, large: 10.5 },
   },
   coffee: {
     flatWhite: { regular: 6.5, large: 7.5 },
@@ -58,21 +58,21 @@ export const MENU_DRINKS = {
     ubeLatte: { regular: 8.5, large: 10.5 },
     ubeSpanishLatte: { regular: 9.5, large: 11.5 },
     spanishLatte: { regular: 8.5, large: 10.5 },
-    biscoffLatte: { regular: 9, large: 10 },
+    biscoffLatte: { regular: 8.5, large: 9.5 },
     batirolLatte: { regular: 8.5, large: 10.5 },
     blackPearlLatte: { regular: 8.5, large: 9.5 },
   },
   cream: {
     twilight: { regular: 8.5, large: 10.5 },
     strawberry: { regular: 8.5, large: 10.5 },
-    batirol: { regular: 9, large: 11 },
+    batirol: { regular: 8.5, large: 10.5 },
     ubeCreamBatirol: { regular: 9.5, large: 11.5 },
   },
   cloud: {
-    blackPearlCoconut: { regular: 9, large: 11 },
+    blackPearlCoconut: { regular: 8.5, large: 10.5 },
     cloverCoconut: { regular: 9, large: 11 },
-    twilightCoconut: { regular: 9, large: 11 },
-    batirolCloud: { regular: 9, large: 11 },
+    twilightCoconut: { regular: 8.5, large: 10.5 },
+    batirolCloud: { regular: 8.5, large: 10.5 },
   },
 } as const;
 

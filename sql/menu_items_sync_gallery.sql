@@ -19,17 +19,17 @@ UPDATE menu_items SET price = 8.5 WHERE name = 'Brown Sugar Cold Brew';
 UPDATE menu_items SET price = 8.5 WHERE name IN ('Black Pearl Cold Brew', 'Black Pearl Cold Brew Latte');
 UPDATE menu_items SET price = 8.5 WHERE name = 'Spanish Latte Cold Brew';
 
-UPDATE menu_items SET price = 6.0 WHERE name IN ('Flat White', 'Iced Latte', 'Americano', 'Long Black', 'Caramel Latte', 'Mocha', 'Biscoff Latte', 'White Mocha', 'Black Pearl Latte');
+UPDATE menu_items SET price = 6.0 WHERE name IN ('Flat White', 'Iced Latte', 'Americano', 'Long Black', 'Caramel Latte', 'Mocha', 'White Mocha', 'Black Pearl Latte');
+UPDATE menu_items SET price = 8.5 WHERE name = 'Biscoff Latte';
 UPDATE menu_items SET price = 8.5 WHERE name IN ('Ube Spanish Latte', 'Spanish Latte', 'Batirol Latte');
 
 UPDATE menu_items SET price = 8.5 WHERE name IN ('Twilight Cream', 'Strawberry Cream', 'Batirol Cream');
 UPDATE menu_items SET price = 9.5 WHERE name = 'Ube Cream Batirol';
 
+UPDATE menu_items SET price = 9.0 WHERE name IN ('Clover Coconut Cloud', 'Clover Cloud');
 UPDATE menu_items SET price = 8.5 WHERE name IN (
   'Black Pearl Coconut Cloud',
   'Black Pearl Cloud',
-  'Clover Coconut Cloud',
-  'Clover Cloud',
   'Twilight Coconut Cloud',
   'Twilight Cloud',
   'Batirol Cloud'
@@ -64,7 +64,7 @@ FROM (VALUES
   ('Mocha (Large)', 7.0, 'Coffee Series'),
   ('Ube Spanish Latte (Large)', 10.5, 'Coffee Series'),
   ('Spanish Latte (Large)', 10.5, 'Coffee Series'),
-  ('Biscoff Latte (Large)', 7.0, 'Coffee Series'),
+  ('Biscoff Latte (Large)', 9.5, 'Coffee Series'),
   ('White Mocha (Large)', 7.0, 'Coffee Series'),
   ('Batirol Latte (Large)', 10.5, 'Coffee Series'),
   ('Black Pearl Latte (Large)', 7.0, 'Coffee Series'),
@@ -73,7 +73,7 @@ FROM (VALUES
   ('Batirol Cream (Large)', 10.5, 'Non-Coffee Series'),
   ('Ube Cream Batirol (Large)', 11.5, 'Non-Coffee Series'),
   ('Black Pearl Coconut Cloud (Large)', 10.5, 'Cloud Series'),
-  ('Clover Coconut Cloud (Large)', 10.5, 'Cloud Series'),
+  ('Clover Coconut Cloud (Large)', 11.0, 'Cloud Series'),
   ('Twilight Coconut Cloud (Large)', 10.5, 'Cloud Series'),
   ('Batirol Cloud (Large)', 10.5, 'Cloud Series')
 ) AS v(name, price, category)
@@ -100,7 +100,7 @@ FROM (VALUES
   ('Batirol Cream', 8.5, 'Non-Coffee Series'),
   ('Ube Cream Batirol', 9.5, 'Non-Coffee Series'),
   ('Black Pearl Coconut Cloud', 8.5, 'Cloud Series'),
-  ('Clover Coconut Cloud', 8.5, 'Cloud Series'),
+  ('Clover Coconut Cloud', 9.0, 'Cloud Series'),
   ('Twilight Coconut Cloud', 8.5, 'Cloud Series'),
   ('Batirol Cloud', 8.5, 'Cloud Series')
 ) AS v(name, price, category)

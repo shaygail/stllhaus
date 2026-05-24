@@ -50,3 +50,8 @@ export function validateRecordsPassword(input: string): boolean {
   if (!expected) return true;
   return safeEqual(input.trim(), expected);
 }
+
+/** Returns false when password is configured and the request is not unlocked. */
+export async function isRecordsAccessDenied(): Promise<boolean> {
+  return hasRecordsAccessPasswordConfigured() && !(await hasRecordsAccess());
+}

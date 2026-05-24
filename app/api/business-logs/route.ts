@@ -4,6 +4,7 @@ import {
   isBusinessLogType,
   parseBusinessLogEntry,
 } from "@/lib/business-logs";
+import { isRecordsAccessDenied } from "@/lib/records-access";
 
 type CreateLogBody = {
   log_type?: unknown;
@@ -19,6 +20,10 @@ type CreateLogBody = {
 };
 
 export async function GET(request: Request) {
+  if (await isRecordsAccessDenied()) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
   const supabase = createBusinessLogsAdminClient();
   if (!supabase) {
     return NextResponse.json({ error: "missing_server_config" }, { status: 503 });
@@ -49,6 +54,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (await isRecordsAccessDenied()) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
   const supabase = createBusinessLogsAdminClient();
   if (!supabase) {
     return NextResponse.json({ error: "missing_server_config" }, { status: 503 });

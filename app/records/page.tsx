@@ -36,7 +36,10 @@ async function getRecentLogs(page: number): Promise<{ logs: BusinessLogEntry[]; 
     return { logs: [], total: 0, error: error.message };
   }
 
-  return { logs: (data ?? []) as BusinessLogEntry[], total: count ?? 0, error: null };
+  return { logs: (data ?? []).filter((row) => {
+    const tags = Array.isArray((row as BusinessLogEntry).tags) ? (row as BusinessLogEntry).tags : [];
+    return !tags.includes("training_record");
+  }) as BusinessLogEntry[], total: count ?? 0, error: null };
 }
 
 function formLabelForEntry(log: BusinessLogEntry, parsed: ReturnType<typeof parseComplianceForm>): string {
@@ -99,7 +102,7 @@ export default async function RecordsPage({
           <p className="mt-6 text-sm text-stll-muted leading-relaxed max-w-md">
             {showProtectedContent
               ? "Your most important operational forms in one place."
-              : "Compliance forms and documentation are password-protected."}
+              : "Compliance forms and staff training records are password-protected. The council registration certificate below stays public."}
           </p>
           {showProtectedContent && (
             <div className="mt-6 flex flex-wrap gap-3">
@@ -108,6 +111,12 @@ export default async function RecordsPage({
                 className="inline-flex px-5 py-2.5 text-[11px] tracking-[0.2em] uppercase border bg-stll-charcoal border-stll-charcoal text-white"
               >
                 Add Form Entry
+              </Link>
+              <Link
+                href="/records/training"
+                className="inline-flex px-5 py-2.5 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal/25 text-stll-charcoal hover:bg-stll-charcoal hover:text-white transition-colors"
+              >
+                Staff Training Records
               </Link>
               {passwordEnabled && (
                 <form action={lockRecords}>
@@ -202,7 +211,7 @@ export default async function RecordsPage({
                 Protected Records Access
               </h2>
               <p className="text-sm text-stll-muted leading-relaxed mb-5">
-                Enter the records password to view compliance forms and documentation.
+                Enter the records password to view compliance forms, staff training records, and other documentation.
               </p>
               <div className="bg-white border border-stll-charcoal/8 p-6 sm:p-8">
                 <form action={unlockRecords} className="flex flex-col sm:flex-row gap-3 sm:items-end">

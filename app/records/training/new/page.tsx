@@ -1,0 +1,35 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { hasRecordsAccess } from "@/lib/records-access";
+import { NewTrainingRecordForm } from "../NewTrainingRecordForm";
+
+export default async function NewTrainingRecordPage() {
+  if (!(await hasRecordsAccess())) {
+    redirect("/records");
+  }
+
+  return (
+    <div className="min-h-screen bg-[#FAF8F5] pt-28 pb-20 px-8 sm:px-16 lg:px-24">
+      <div className="max-w-3xl mx-auto">
+        <p className="text-[10px] tracking-[0.35em] uppercase text-stll-muted/60 mb-4">Staff Training</p>
+        <h1 className="text-4xl sm:text-5xl font-black text-stll-charcoal uppercase leading-[0.95] tracking-tight">
+          New Training Record
+        </h1>
+        <p className="mt-5 text-sm text-stll-muted leading-relaxed max-w-xl">
+          Start a staff training sheet in the SS&amp;S format. Add training sessions after creating the record.
+        </p>
+
+        <div className="mt-8 bg-white border border-stll-charcoal/10 p-6 sm:p-8">
+          <NewTrainingRecordForm />
+        </div>
+
+        <Link
+          href="/records/training"
+          className="inline-flex mt-6 text-[11px] tracking-[0.2em] uppercase text-stll-muted hover:text-stll-charcoal"
+        >
+          ← Back to training records
+        </Link>
+      </div>
+    </div>
+  );
+}

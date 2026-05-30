@@ -11,7 +11,7 @@
 
 1. Confirm Vercel → **stllhaus** project → **Settings → Git** → connected to **`shaygail/stllhaus`**, not `stllhaus-pos`.
 2. Run locally: `npm run build` (runs `assert-customer-site` first).
-3. Production env on **stllhaus** project should include `NEXT_PUBLIC_APP_URL=https://www.stllhaus.co`.
+3. Production env on **stllhaus** project should include `NEXT_PUBLIC_APP_URL=https://www.stllhaus.co` and **`RECORDS_ACCESS_PASSWORD`** (locks `/records`, training records, and business-log APIs; council certificate stays public).
 
 ## Deploy customer site
 

@@ -57,7 +57,7 @@ export default async function RecordsPage({
   const { page: pageRaw, error: errorParam } = await searchParams;
   const passwordEnabled = hasRecordsAccessPasswordConfigured();
   const isUnlocked = await hasRecordsAccess();
-  const showProtectedContent = !passwordEnabled || isUnlocked;
+  const showProtectedContent = isUnlocked;
   const currentPage = showProtectedContent ? parsePage(pageRaw) : 1;
   const { logs, total, error } = showProtectedContent
     ? await getRecentLogs(currentPage)
@@ -205,38 +205,45 @@ export default async function RecordsPage({
             </div>
           </section>
         ) : (
-          passwordEnabled && (
-            <section className="mb-12 border-t border-stll-charcoal/10 pt-10">
-              <h2 className="text-xs tracking-[0.3em] uppercase text-stll-charcoal font-semibold mb-3">
-                Protected Records Access
-              </h2>
-              <p className="text-sm text-stll-muted leading-relaxed mb-5">
-                Enter the records password to view compliance forms, staff training records, and other documentation.
+          <section className="mb-12 border-t border-stll-charcoal/10 pt-10">
+            <h2 className="text-xs tracking-[0.3em] uppercase text-stll-charcoal font-semibold mb-3">
+              Protected Records Access
+            </h2>
+            {passwordEnabled ? (
+              <>
+                <p className="text-sm text-stll-muted leading-relaxed mb-5">
+                  Enter the records password to view compliance forms, staff training records, and other documentation.
+                </p>
+                <div className="bg-white border border-stll-charcoal/8 p-6 sm:p-8">
+                  <form action={unlockRecords} className="flex flex-col sm:flex-row gap-3 sm:items-end">
+                    <label className="block flex-1">
+                      <span className="block text-[10px] tracking-[0.2em] uppercase text-stll-muted mb-2">Password</span>
+                      <input
+                        type="password"
+                        name="password"
+                        required
+                        className="w-full border border-stll-charcoal/20 bg-white px-3 py-3 text-sm text-stll-charcoal focus:outline-none focus:border-stll-charcoal/40"
+                      />
+                    </label>
+                    <button
+                      type="submit"
+                      className="px-6 py-3 text-[11px] tracking-[0.2em] uppercase border bg-stll-charcoal border-stll-charcoal text-white"
+                    >
+                      Unlock
+                    </button>
+                  </form>
+                  {errorParam === "invalid_password" && (
+                    <p className="mt-3 text-sm text-red-700">Incorrect password. Please try again.</p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-stll-muted leading-relaxed">
+                Business records are locked. The site administrator must set{" "}
+                <code className="text-stll-charcoal">RECORDS_ACCESS_PASSWORD</code> before access can be granted.
               </p>
-              <div className="bg-white border border-stll-charcoal/8 p-6 sm:p-8">
-                <form action={unlockRecords} className="flex flex-col sm:flex-row gap-3 sm:items-end">
-                  <label className="block flex-1">
-                    <span className="block text-[10px] tracking-[0.2em] uppercase text-stll-muted mb-2">Password</span>
-                    <input
-                      type="password"
-                      name="password"
-                      required
-                      className="w-full border border-stll-charcoal/20 bg-white px-3 py-3 text-sm text-stll-charcoal focus:outline-none focus:border-stll-charcoal/40"
-                    />
-                  </label>
-                  <button
-                    type="submit"
-                    className="px-6 py-3 text-[11px] tracking-[0.2em] uppercase border bg-stll-charcoal border-stll-charcoal text-white"
-                  >
-                    Unlock
-                  </button>
-                </form>
-                {errorParam === "invalid_password" && (
-                  <p className="mt-3 text-sm text-red-700">Incorrect password. Please try again.</p>
-                )}
-              </div>
-            </section>
-          )
+            )}
+          </section>
         )}
 
         <section className="mb-12 border-t border-stll-charcoal/10 pt-10">

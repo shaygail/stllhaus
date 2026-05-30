@@ -5,9 +5,10 @@
   "private": true,
   "scripts": {
     "assert-customer-site": "node scripts/assert-customer-site.mjs",
+    "assert-records-access": "node scripts/assert-records-access.mjs",
     "dev": "next dev --webpack",
     "dev:prod": "next build --webpack && next start",
-    "prebuild": "npm run assert-customer-site",
+    "prebuild": "npm run assert-customer-site && npm run assert-records-access",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",

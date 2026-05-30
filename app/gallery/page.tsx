@@ -28,6 +28,8 @@ type MenuItemData = {
   hideAddOns?: boolean;
   /** When true with hideAddOns, syrups stay off but cream / cold foam add-ons are still offered. */
   coldFoamsAddOnOnly?: boolean;
+  /** When true, show matcha strength selector. Default: name includes "matcha". */
+  showMatchaStrength?: boolean;
   /** When true, show espresso shot options (1 shot included, double +$0.50, 3 shots +$1). */
   coffeeShots?: boolean;
 };
@@ -98,6 +100,18 @@ const COLD_FOAM_SURCHARGE_USD: Record<string, number> = {
 
 function coldFoamSurchargeUsd(name: string): number {
   return COLD_FOAM_SURCHARGE_USD[name] ?? 0;
+}
+
+const COLD_FOAM_DAIRY_NOTICE =
+  "Cold foam and cream add-ons contain dairy cream.";
+
+function DairyNotice({ message }: { message: string }) {
+  return (
+    <div className="rounded-md border border-stll-charcoal/15 bg-stll-charcoal/3 px-3 py-2">
+      <p className="text-[10px] tracking-[0.18em] uppercase text-stll-charcoal/85">Dairy Notice</p>
+      <p className="mt-1 text-xs text-stll-muted leading-relaxed">{message}</p>
+    </div>
+  );
 }
 
 function slugify(s: string) {
@@ -172,6 +186,69 @@ const matchaItems: MenuItemData[] = [
     description: "Mango matcha topped with sea salt foam.",
     image: "",
     sizes: drinkSizes(MENU_DRINKS.matcha.mangoSeaSaltMatcha),
+  },
+];
+
+const hojichaItems: MenuItemData[] = [
+  {
+    name: "Earl Grey Hojicha",
+    description: "Roasted hojicha with earl grey notes.",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.hojicha.earlGrey),
+    temperatureOptionsOverride: ["Hot", "Iced"],
+    showMatchaStrength: false,
+  },
+  {
+    name: "OG Hojicha Latte",
+    description: "Fully customisable — syrups, cold foams, milk, temperature, and sweetness.",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.hojicha.og),
+    temperatureOptionsOverride: ["Hot", "Iced"],
+    showMatchaStrength: false,
+  },
+  {
+    name: "Strawberry Hojicha",
+    description: "Strawberry and roasted hojicha fusion.",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.hojicha.strawberry),
+    showMatchaStrength: false,
+  },
+  {
+    name: "Strawberry Hojicha Latte",
+    description: "Strawberry and roasted hojicha latte.",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.hojicha.strawberryLatte),
+    temperatureOptionsOverride: ["Hot", "Iced"],
+    showMatchaStrength: false,
+  },
+  {
+    name: "Strawberry Cloud Hojicha",
+    description: "Strawberry, cloud foam, and hojicha.",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.hojicha.strawberryCloud),
+    showMatchaStrength: false,
+  },
+  {
+    name: "Ube Cream Hojicha",
+    description: "Ube cream and roasted hojicha.",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.hojicha.ubeCream),
+    temperatureOptionsOverride: ["Hot", "Iced"],
+    showMatchaStrength: false,
+  },
+  {
+    name: "Mango Hojicha",
+    description: "Mango and hojicha fusion with a smooth, toasty finish.",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.hojicha.mango),
+    showMatchaStrength: false,
+  },
+  {
+    name: "Mango Sea Salt Hojicha",
+    description: "Mango hojicha topped with sea salt foam.",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.hojicha.mangoSeaSalt),
+    showMatchaStrength: false,
   },
 ];
 
@@ -525,7 +602,7 @@ function MenuItemRow({
   addBlockedMessage?: string;
   isPreOrderOnly?: boolean;
 }) {
-  const isMatcha = item.name.toLowerCase().includes("matcha");
+  const showMatchaStrength = item.showMatchaStrength ?? item.name.toLowerCase().includes("matcha");
   const dairyCreamNote = getDairyCreamBaseNote(item.name);
   const slug = slugify(item.name);
   const rowMilkOptions = item.milkOptionsOverride !== undefined ? item.milkOptionsOverride : milkOptions;
@@ -559,9 +636,18 @@ function MenuItemRow({
   };
 
   const handleColdFoamChange = (foam: string) => {
-    setSelectedColdFoams((prev) =>
-      prev.includes(foam) ? prev.filter((f) => f !== foam) : [...prev, foam]
-    );
+    setSelectedColdFoams((prev) => {
+      if (prev.includes(foam)) {
+        return prev.filter((f) => f !== foam);
+      }
+      if (
+        prev.length === 0 &&
+        !window.confirm(`${COLD_FOAM_DAIRY_NOTICE} Continue with this add-on?`)
+      ) {
+        return prev;
+      }
+      return [...prev, foam];
+    });
   };
 
   const handleAddToCart = (e: React.FormEvent) => {
@@ -576,7 +662,7 @@ function MenuItemRow({
     const id = `${slug}-${sizeLabel}-${selectedTemperature || "notemp"}-${sortedSyrups.join("-") || "plain"}-${sortedColdFoams.join("-") || "nocfoam"}-${selectedMilk || "nomilk"}-${sweetness}-${matchaStrength}-${shotId}`;
     let price = parseFloat(validSizes.find((s) => s.label === sizeLabel)?.price.replace("$", "") || "0");
     let matchaDesc = "Default (4g)";
-    if (isMatcha) {
+    if (showMatchaStrength) {
       if (matchaStrength === "extra") { price += 0.5; matchaDesc = "Extra Strong (6g, +$0.50)"; }
       else if (matchaStrength === "strongest") { price += 1; matchaDesc = "Strongest (8g, +$1.00)"; }
     }
@@ -618,7 +704,7 @@ function MenuItemRow({
             : "3 shots (+$1.00)";
       descArr.push(`Espresso: ${shotLine}`);
     }
-    if (isMatcha) descArr.push(`Matcha: ${matchaDesc}`);
+    if (showMatchaStrength) descArr.push(`Matcha: ${matchaDesc}`);
     if (sortedSyrups.length) descArr.push(`Syrups: ${syrupDescParts.join(", ")}`);
     if (sortedColdFoams.length) descArr.push(`Cold foam (add-on): ${coldFoamDescParts.join(", ")}`);
     if (selectedMilk) descArr.push(`Milk: ${milkDesc}`);
@@ -649,14 +735,7 @@ function MenuItemRow({
           {item.description && (
             <p className="text-xs text-stll-muted leading-relaxed">{item.description}</p>
           )}
-          {dairyCreamNote && (
-            <div className="rounded-md border border-stll-charcoal/15 bg-stll-charcoal/3 px-3 py-2">
-              <p className="text-[10px] tracking-[0.18em] uppercase text-stll-charcoal/85">
-                Dairy Notice
-              </p>
-              <p className="mt-1 text-xs text-stll-muted leading-relaxed">{dairyCreamNote}</p>
-            </div>
-          )}
+          {dairyCreamNote && <DairyNotice message={dairyCreamNote} />}
 
           {/* Size */}
           <div>
@@ -767,7 +846,7 @@ function MenuItemRow({
           )}
 
           {/* Matcha Strength below milk + sweetness */}
-          {isMatcha && (
+          {showMatchaStrength && (
             <div>
               <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-2">Matcha Strength</p>
               <div className="flex gap-2 flex-wrap">
@@ -811,6 +890,7 @@ function MenuItemRow({
           {rowShowColdFoams && (
             <div>
               <p className="text-[10px] tracking-[0.25em] uppercase text-stll-muted mb-2">Cold foam (add-on)</p>
+              <p className="text-[10px] text-stll-muted mb-3 leading-relaxed">{COLD_FOAM_DAIRY_NOTICE}</p>
               <div className="flex gap-2 flex-wrap">
                 {COLD_FOAMS.map((foam) => (
                   <label key={foam} className="cursor-pointer">
@@ -829,6 +909,11 @@ function MenuItemRow({
                   </label>
                 ))}
               </div>
+              {selectedColdFoams.length > 0 && (
+                <div className="mt-3">
+                  <DairyNotice message={COLD_FOAM_DAIRY_NOTICE} />
+                </div>
+              )}
             </div>
           )}
 
@@ -1312,6 +1397,7 @@ function MenuSection({
   items,
   milkOptions,
   milkNote,
+  sectionNote,
   showSyrups = true,
   showColdFoams = false,
   onItemAdded,
@@ -1324,6 +1410,7 @@ function MenuSection({
   items: MenuItemData[];
   milkOptions?: string[];
   milkNote?: string;
+  sectionNote?: string;
   showSyrups?: boolean;
   showColdFoams?: boolean;
   onItemAdded?: (itemSummary: string) => void;
@@ -1341,6 +1428,9 @@ function MenuSection({
       <p className="text-[10px] tracking-[0.3em] uppercase text-stll-muted mb-2">{subtitle}</p>
       {milkNote && (
         <p className="text-xs text-stll-muted mb-2 uppercase tracking-[0.15em]">{milkNote}</p>
+      )}
+      {sectionNote && (
+        <p className="text-xs text-stll-muted mb-4 leading-relaxed">{sectionNote}</p>
       )}
       <div className="flex flex-col divide-y divide-stll-charcoal/10">
         {items.map((item) => (
@@ -1371,6 +1461,7 @@ export default function GalleryPage() {
   const openCartPrompt = useCallback((name: string) => setCartPrompt({ open: true, name }), []);
   const [menuState, setMenuState] = useState(() => ({
     matchaItems,
+    hojichaItems,
     coldBrewItems,
     coffeeItems,
     nonCoffeeItems,
@@ -1397,6 +1488,7 @@ export default function GalleryPage() {
         if (cancelled) return;
         setMenuState({
           matchaItems: applyBackendPrices(matchaItems, backendPrices),
+          hojichaItems: applyBackendPrices(hojichaItems, backendPrices),
           coldBrewItems: applyBackendPrices(coldBrewItems, backendPrices),
           coffeeItems: applyBackendPrices(coffeeItems, backendPrices),
           nonCoffeeItems: applyBackendPrices(nonCoffeeItems, backendPrices),
@@ -1434,6 +1526,19 @@ export default function GalleryPage() {
           items={menuState.matchaItems}
           milkOptions={["Oat", "Whole", "Almond", "Soy"]}
           milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
+          showColdFoams
+          onItemAdded={openCartPrompt}
+          canAddToCart={canAddToCart}
+          addBlockedMessage={addBlockedMessage}
+          isPreOrderOnly={isPreOrderOnly}
+        />
+        <MenuSection
+          title="Hojicha Series"
+          subtitle="Roasted green tea lattes, oat milk base"
+          items={menuState.hojichaItems}
+          milkOptions={["Oat", "Whole", "Almond", "Soy"]}
+          milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
+          sectionNote="We use 3g of hojicha per serving."
           showColdFoams
           onItemAdded={openCartPrompt}
           canAddToCart={canAddToCart}

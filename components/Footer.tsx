@@ -8,7 +8,16 @@ export function Footer() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-12">
           {/* Brand */}
           <div className="col-span-2 sm:col-span-1">
-            <p className="text-sm font-bold tracking-[0.35em] uppercase">STLL HAUS</p>
+            <Link href="/" className="inline-block">
+              <Image
+                src="/logo-matcha.png"
+                alt="STLL Haus"
+                width={56}
+                height={56}
+                unoptimized
+                className="h-14 w-14 object-contain opacity-90 hover:opacity-100 transition-opacity"
+              />
+            </Link>
             <p className="mt-4 text-xs text-white/45 leading-relaxed max-w-50">
               a quiet place, <br></br>made for slowing down.
             </p>
@@ -101,12 +110,9 @@ export function Footer() {
         </div>
 
         <div className="mt-16 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Image src="/logo-matcha.png" alt="STLL Haus Logo" width={28} height={28} className="object-contain" />
-            <p className="text-[10px] tracking-[0.25em] uppercase text-white/25">
-              © {new Date().getFullYear()} STLL HAUS · All rights reserved
-            </p>
-          </div>
+          <p className="text-[10px] tracking-[0.25em] uppercase text-white/25">
+            © {new Date().getFullYear()} STLL HAUS · All rights reserved
+          </p>
           <p className="text-[10px] tracking-[0.25em] uppercase text-white/25">
             stllhaus.co
           </p>

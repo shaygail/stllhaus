@@ -20,7 +20,10 @@ export function hasRecordsAccessPasswordConfigured(): boolean {
 
 export async function hasRecordsAccess(): Promise<boolean> {
   const expected = process.env.RECORDS_ACCESS_PASSWORD?.trim();
-  if (!expected) return true;
+  if (!expected) {
+    // Fail closed in production when the password env var is missing.
+    return process.env.NODE_ENV !== "production";
+  }
   const cookieStore = await cookies();
   const token = cookieStore.get(RECORDS_ACCESS_COOKIE)?.value;
   if (!token) return false;
@@ -47,11 +50,10 @@ export async function clearRecordsAccessCookie() {
 
 export function validateRecordsPassword(input: string): boolean {
   const expected = process.env.RECORDS_ACCESS_PASSWORD?.trim();
-  if (!expected) return true;
+  if (!expected) return false;
   return safeEqual(input.trim(), expected);
 }
 
-/** Returns false when password is configured and the request is not unlocked. */
 export async function isRecordsAccessDenied(): Promise<boolean> {
-  return hasRecordsAccessPasswordConfigured() && !(await hasRecordsAccess());
+  return !(await hasRecordsAccess());
 }

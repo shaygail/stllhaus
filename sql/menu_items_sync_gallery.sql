@@ -14,15 +14,10 @@ UPDATE menu_items SET price = 10.0 WHERE name = 'Mango Matcha';
 UPDATE menu_items SET price = 10.5 WHERE name = 'Mango Sea Salt Matcha';
 
 UPDATE menu_items SET price = 8.5 WHERE name IN (
-  'Earl Grey Hojicha',
-  'OG Hojicha Latte',
   'Hojicha Latte',
-  'Strawberry Hojicha',
-  'Strawberry Hojicha Latte',
-  'Strawberry Cloud Hojicha',
-  'Ube Cream Hojicha',
-  'Mango Hojicha',
-  'Mango Sea Salt Hojicha'
+  'OG Hojicha Latte',
+  'Hojicha Strawberry Latte',
+  'Strawberry Hojicha Latte'
 );
 
 UPDATE menu_items SET price = 8.5 WHERE name IN ('Cold Brew', 'OG Cold Brew');
@@ -60,15 +55,10 @@ FROM (VALUES
   ('Ube Cream Matcha (Large)', 10.5, 'Matcha Series'),
   ('Mango Matcha (Large)', 12.0, 'Matcha Series'),
   ('Mango Sea Salt Matcha (Large)', 12.5, 'Matcha Series'),
-  ('Earl Grey Hojicha (Large)', 10.5, 'Hojicha Series'),
-  ('OG Hojicha Latte (Large)', 10.5, 'Hojicha Series'),
   ('Hojicha Latte (Large)', 10.5, 'Hojicha Series'),
-  ('Strawberry Hojicha (Large)', 10.5, 'Hojicha Series'),
+  ('OG Hojicha Latte (Large)', 10.5, 'Hojicha Series'),
+  ('Hojicha Strawberry Latte (Large)', 10.5, 'Hojicha Series'),
   ('Strawberry Hojicha Latte (Large)', 10.5, 'Hojicha Series'),
-  ('Strawberry Cloud Hojicha (Large)', 10.5, 'Hojicha Series'),
-  ('Ube Cream Hojicha (Large)', 10.5, 'Hojicha Series'),
-  ('Mango Hojicha (Large)', 10.5, 'Hojicha Series'),
-  ('Mango Sea Salt Hojicha (Large)', 10.5, 'Hojicha Series'),
   ('OG Cold Brew (Large)', 10.5, 'Cold Brew Series'),
   ('Cold Brew (Large)', 10.5, 'Cold Brew Series'),
   ('Ube Cream Coldbrew Latte (Large)', 10.5, 'Cold Brew Series'),
@@ -116,15 +106,10 @@ FROM (VALUES
   ('Strawberry Cloud Matcha', 12.0, 'Matcha Series'),
   ('Mango Matcha', 10.0, 'Matcha Series'),
   ('Mango Sea Salt Matcha', 10.5, 'Matcha Series'),
-  ('Earl Grey Hojicha', 8.5, 'Hojicha Series'),
-  ('OG Hojicha Latte', 8.5, 'Hojicha Series'),
   ('Hojicha Latte', 8.5, 'Hojicha Series'),
-  ('Strawberry Hojicha', 8.5, 'Hojicha Series'),
+  ('OG Hojicha Latte', 8.5, 'Hojicha Series'),
+  ('Hojicha Strawberry Latte', 8.5, 'Hojicha Series'),
   ('Strawberry Hojicha Latte', 8.5, 'Hojicha Series'),
-  ('Strawberry Cloud Hojicha', 8.5, 'Hojicha Series'),
-  ('Ube Cream Hojicha', 8.5, 'Hojicha Series'),
-  ('Mango Hojicha', 8.5, 'Hojicha Series'),
-  ('Mango Sea Salt Hojicha', 8.5, 'Hojicha Series'),
   ('Twilight Cream', 8.5, 'Non-Coffee Series'),
   ('Strawberry Cream', 8.5, 'Non-Coffee Series'),
   ('Batirol Cream', 8.5, 'Non-Coffee Series'),

@@ -77,7 +77,7 @@ function formatSyrupPriceLabel(amount: number): string {
   return ` +$${amount.toFixed(2)}`;
 }
 
-/** Cream / cold foam add-ons (Matcha, Cold Brew, Coffee Series, Coconut Cloud). */
+/** Cream / cold foam add-ons (Matcha, Cold Brew, Specialty Coffee Series, Coconut Cloud). */
 const COLD_FOAMS = [
   "Sea Salt",
   "Maple Cream",
@@ -191,63 +191,19 @@ const matchaItems: MenuItemData[] = [
 
 const hojichaItems: MenuItemData[] = [
   {
-    name: "Earl Grey Hojicha",
-    description: "Roasted hojicha with earl grey notes.",
-    image: "",
-    sizes: drinkSizes(MENU_DRINKS.hojicha.earlGrey),
-    temperatureOptionsOverride: ["Hot", "Iced"],
-    showMatchaStrength: false,
-  },
-  {
-    name: "OG Hojicha Latte",
+    name: "Hojicha Latte",
     description: "Fully customisable — syrups, cold foams, milk, temperature, and sweetness.",
     image: "",
-    sizes: drinkSizes(MENU_DRINKS.hojicha.og),
+    sizes: drinkSizes(MENU_DRINKS.hojicha.latte),
     temperatureOptionsOverride: ["Hot", "Iced"],
     showMatchaStrength: false,
   },
   {
-    name: "Strawberry Hojicha",
-    description: "Strawberry and roasted hojicha fusion.",
-    image: "",
-    sizes: drinkSizes(MENU_DRINKS.hojicha.strawberry),
-    showMatchaStrength: false,
-  },
-  {
-    name: "Strawberry Hojicha Latte",
+    name: "Hojicha Strawberry Latte",
     description: "Strawberry and roasted hojicha latte.",
     image: "",
     sizes: drinkSizes(MENU_DRINKS.hojicha.strawberryLatte),
     temperatureOptionsOverride: ["Hot", "Iced"],
-    showMatchaStrength: false,
-  },
-  {
-    name: "Strawberry Cloud Hojicha",
-    description: "Strawberry, cloud foam, and hojicha.",
-    image: "",
-    sizes: drinkSizes(MENU_DRINKS.hojicha.strawberryCloud),
-    showMatchaStrength: false,
-  },
-  {
-    name: "Ube Cream Hojicha",
-    description: "Ube cream and roasted hojicha.",
-    image: "",
-    sizes: drinkSizes(MENU_DRINKS.hojicha.ubeCream),
-    temperatureOptionsOverride: ["Hot", "Iced"],
-    showMatchaStrength: false,
-  },
-  {
-    name: "Mango Hojicha",
-    description: "Mango and hojicha fusion with a smooth, toasty finish.",
-    image: "",
-    sizes: drinkSizes(MENU_DRINKS.hojicha.mango),
-    showMatchaStrength: false,
-  },
-  {
-    name: "Mango Sea Salt Hojicha",
-    description: "Mango hojicha topped with sea salt foam.",
-    image: "",
-    sizes: drinkSizes(MENU_DRINKS.hojicha.mangoSeaSalt),
     showMatchaStrength: false,
   },
 ];
@@ -941,7 +897,7 @@ type SipBiteSeriesId = "coldbrew" | "coffee" | "cloud";
 
 const SIP_BITE_SERIES: { id: SipBiteSeriesId; label: string }[] = [
   { id: "coldbrew", label: "Cold Brew" },
-  { id: "coffee", label: "Coffee Series" },
+  { id: "coffee", label: "Specialty Coffee Series" },
   { id: "cloud", label: "Coconut Cloud" },
 ];
 
@@ -1558,7 +1514,7 @@ export default function GalleryPage() {
           isPreOrderOnly={isPreOrderOnly}
         />
         <MenuSection
-          title="Coffee Series"
+          title="Specialty Coffee Series"
           subtitle="House coffee lattes"
           items={menuState.coffeeItems}
           milkOptions={["Oat", "Whole", "Almond", "Soy"]}

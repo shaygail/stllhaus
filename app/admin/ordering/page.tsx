@@ -12,6 +12,8 @@ const defaultForm: OrderingSettings = {
   preOrderWhenClosed: true,
   forceClosed: false,
   forceOpen: false,
+  marketMode: false,
+  marketResumeAt: "",
   timezone: "Pacific/Auckland",
   useWeekdayWeekendSchedule: true,
   weekdayHours: { openTime: "17:30", closeTime: "21:00" },
@@ -176,6 +178,36 @@ export default function AdminOrderingPage() {
             checked={form.forceOpen}
             onChange={(v) => setForm((p) => ({ ...p, forceOpen: v, forceClosed: v ? false : p.forceClosed }))}
           />
+
+          <div className="border border-amber-700/25 bg-amber-50/60 p-4 -mx-1">
+            <Toggle
+              label="At a market (pause online orders)"
+              hint="Shows a 'currently at a market' note and blocks online orders until the resume time below."
+              checked={form.marketMode}
+              onChange={(v) => setForm((p) => ({ ...p, marketMode: v }))}
+            />
+            {form.marketMode && (
+              <div className="mt-4">
+                <label
+                  htmlFor="market-resume"
+                  className="block text-[10px] tracking-[0.2em] uppercase text-stll-muted mb-1.5"
+                >
+                  Resume online orders at
+                </label>
+                <input
+                  id="market-resume"
+                  type="datetime-local"
+                  value={form.marketResumeAt}
+                  onChange={(e) => setForm((p) => ({ ...p, marketResumeAt: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-stll-charcoal/20 bg-white"
+                />
+                <p className="text-xs text-stll-muted mt-1.5 leading-relaxed">
+                  Customers see “We&apos;ll resume online orders at …”. Orders re-open automatically once
+                  this time passes. Leave blank to just say “back soon”.
+                </p>
+              </div>
+            )}
+          </div>
 
           <Toggle
             label="Different hours on weekdays vs weekends"

@@ -16,6 +16,10 @@ export type OrderingSettings = {
   forceClosed: boolean;
   /** Ignore hours and treat as open (override). */
   forceOpen: boolean;
+  /** At a market — pause all online orders with a custom "back soon" note. */
+  marketMode: boolean;
+  /** Local datetime (`YYYY-MM-DDTHH:mm`) when online orders resume; auto-clears market mode once passed. Empty = no set time. */
+  marketResumeAt: string;
   /** IANA timezone, e.g. Pacific/Auckland */
   timezone: string;
   /** Mon–Fri vs Sat–Sun hours; when false, uses {@link singleHours} only. */
@@ -38,6 +42,8 @@ export type OrderingStatus = {
   status: "open" | "closed" | "disabled";
   canAddToCart: boolean;
   isPreOrderOnly: boolean;
+  /** True when closed specifically because market mode is on. */
+  marketClosed: boolean;
   opensAtLabel: string | null;
   closesAtLabel: string | null;
   /** Local datetime for pickup minimum (no timezone suffix). */
@@ -84,6 +90,8 @@ export function defaultOrderingSettings(): OrderingSettings {
     preOrderWhenClosed: envBool("ORDERING_PREORDER_WHEN_CLOSED", true),
     forceClosed: envBool("ORDERING_FORCE_CLOSED", false),
     forceOpen: envBool("ORDERING_FORCE_OPEN", false),
+    marketMode: envBool("ORDERING_MARKET_MODE", false),
+    marketResumeAt: normalizeLocalDateTime(process.env.ORDERING_MARKET_RESUME_AT) ?? "",
     timezone: process.env.ORDERING_TIMEZONE?.trim() || DEFAULT_TIMEZONE,
     useWeekdayWeekendSchedule: envBool("ORDERING_USE_WEEKDAY_WEEKEND", true),
     weekdayHours: {
@@ -102,6 +110,40 @@ export function defaultOrderingSettings(): OrderingSettings {
 export function normalizeHm(hm: string): string {
   const [h, m] = hm.split(":");
   return `${String(parseInt(h ?? "0", 10)).padStart(2, "0")}:${String(parseInt(m ?? "0", 10)).padStart(2, "0")}`;
+}
+
+const MONTH_LABELS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+/** Accept `YYYY-MM-DDTHH:mm` (seconds optional) and normalise to minute precision, else undefined. */
+export function normalizeLocalDateTime(raw: string | undefined | null): string | undefined {
+  const v = raw?.trim();
+  if (!v) return undefined;
+  const m = v.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  return m ? `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}` : undefined;
+}
+
+/** Current local wall-clock as `YYYY-MM-DDTHH:mm` in the given timezone (sortable). */
+function localDateTimeString(date: Date, timeZone: string): string {
+  const mins = localMinutesSinceMidnight(date, timeZone);
+  const hh = String(Math.floor(mins / 60)).padStart(2, "0");
+  const mm = String(mins % 60).padStart(2, "0");
+  return `${localDateKey(date, timeZone)}T${hh}:${mm}`;
+}
+
+/** Human label for a stored resume datetime, e.g. "2:00 PM" (today) or "2:00 PM on 8 Jul". */
+function formatResumeLabel(local: string, timeZone: string, now: Date): string | null {
+  const norm = normalizeLocalDateTime(local);
+  if (!norm) return null;
+  const [datePart, timePart] = norm.split("T");
+  const timeLabel = formatTimeLabel(timePart ?? "00:00", timeZone);
+  if (datePart === localDateKey(now, timeZone)) return timeLabel;
+  const [, mo, day] = (datePart ?? "").split("-");
+  const monthIdx = parseInt(mo ?? "1", 10) - 1;
+  const dayNum = parseInt(day ?? "1", 10);
+  const monthLabel = MONTH_LABELS[monthIdx] ?? "";
+  return monthLabel ? `${timeLabel} on ${dayNum} ${monthLabel}` : timeLabel;
 }
 
 function parseHmToMinutes(hm: string): number {
@@ -166,16 +208,19 @@ export function localMinutesSinceMidnight(date: Date, timeZone: string): number 
   return h * 60 + m;
 }
 
-export function formatTimeLabel(hm: string, timeZone: string): string {
-  const [h, mi] = hm.split(":").map((x) => parseInt(x, 10));
-  const d = new Date();
-  d.setHours(h ?? 0, mi ?? 0, 0, 0);
-  return new Intl.DateTimeFormat("en-NZ", {
-    timeZone,
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).format(d);
+/**
+ * Format a wall-clock `HH:mm` (already in the store's timezone) as a friendly
+ * 12-hour label like `5:30 PM`. Intentionally timezone-independent: `hm` is a
+ * wall-clock time, so converting through Date/timezone would wrongly shift it
+ * (e.g. render 17:30 as "5:30 AM" on a UTC server).
+ */
+export function formatTimeLabel(hm: string, _timeZone?: string): string {
+  const [hRaw, miRaw] = hm.split(":");
+  const h = parseInt(hRaw ?? "0", 10) || 0;
+  const mi = parseInt(miRaw ?? "0", 10) || 0;
+  const period = h < 12 ? "AM" : "PM";
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}:${String(mi).padStart(2, "0")} ${period}`;
 }
 
 function isClosedDay(date: Date, settings: OrderingSettings): boolean {
@@ -270,6 +315,8 @@ export function mergeOrderingSettings(partial: unknown): OrderingSettings {
       typeof p.preOrderWhenClosed === "boolean" ? p.preOrderWhenClosed : base.preOrderWhenClosed,
     forceClosed: typeof p.forceClosed === "boolean" ? p.forceClosed : base.forceClosed,
     forceOpen: typeof p.forceOpen === "boolean" ? p.forceOpen : base.forceOpen,
+    marketMode: typeof p.marketMode === "boolean" ? p.marketMode : base.marketMode,
+    marketResumeAt: normalizeLocalDateTime(typeof p.marketResumeAt === "string" ? p.marketResumeAt : "") ?? "",
     timezone: typeof p.timezone === "string" && p.timezone.trim() ? p.timezone.trim() : base.timezone,
     useWeekdayWeekendSchedule,
     weekdayHours: normalizeDayHours(p.weekdayHours, base.weekdayHours),
@@ -291,11 +338,32 @@ export function computeOrderingStatus(settings: OrderingSettings, now = new Date
       status: "disabled",
       canAddToCart: false,
       isPreOrderOnly: false,
+      marketClosed: false,
       opensAtLabel,
       closesAtLabel,
       nextOpenAt,
       message: "Online ordering is temporarily unavailable. Please check back soon.",
     };
+  }
+
+  if (settings.marketMode) {
+    const resume = normalizeLocalDateTime(settings.marketResumeAt);
+    const stillAtMarket = !resume || localDateTimeString(now, tz) < resume;
+    if (stillAtMarket) {
+      const resumeLabel = resume ? formatResumeLabel(resume, tz, now) : null;
+      return {
+        status: "closed",
+        canAddToCart: false,
+        isPreOrderOnly: false,
+        marketClosed: true,
+        opensAtLabel,
+        closesAtLabel,
+        nextOpenAt,
+        message: resumeLabel
+          ? `Sorry, we're currently at a market. We'll resume online orders at ${resumeLabel}.`
+          : `Sorry, we're currently at a market. We'll resume online orders soon.`,
+      };
+    }
   }
 
   const physicallyOpen =
@@ -306,6 +374,7 @@ export function computeOrderingStatus(settings: OrderingSettings, now = new Date
       status: "open",
       canAddToCart: true,
       isPreOrderOnly: false,
+      marketClosed: false,
       opensAtLabel,
       closesAtLabel,
       nextOpenAt,
@@ -347,6 +416,7 @@ export function computeOrderingStatus(settings: OrderingSettings, now = new Date
     status: "closed",
     canAddToCart,
     isPreOrderOnly: canAddToCart && canPreOrder,
+    marketClosed: false,
     opensAtLabel,
     closesAtLabel,
     nextOpenAt,

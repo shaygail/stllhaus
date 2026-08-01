@@ -912,7 +912,7 @@ const SIOMAI_DIPPING: { id: SipBiteDippingId; label: string }[] = [
 const SIOMAI_SNACK_6_NAME = "Pork and Shrimp Siomai (6 pcs)";
 const SIOMAI_SNACK_6_PRICE = 9.5;
 const SIOMAI_SNACK_12_NAME = "Pork and Shrimp Siomai (12 pcs)";
-const SIOMAI_SNACK_12_PRICE = 17.5;
+const SIOMAI_SNACK_12_PRICE = 18;
 
 function SiomaiDippingFields({
   groupName,

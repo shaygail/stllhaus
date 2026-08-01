@@ -25,61 +25,65 @@ export const BACKEND_NAME_ALIASES: Record<string, string[]> = {
   "Mango Sea Salt Matcha": ["Mango Seasalt Matcha"],
   "Ube Cream Coldbrew Latte": ["Ube Cream Cold Brew"],
   "Black Pearl Cold Brew Latte": ["Black Pearl Cold Brew"],
+  "Sea Salt Cold Brew": ["Seasalt Cold Brew"],
   "OG Cold Brew": ["Cold Brew"],
   "Clover Coconut Cloud": ["Clover Cloud"],
+  "Ube Espresso Latte": ["Ube Espresso Latte"],
+  "Ube Latte": ["Twilight Cream"],
 };
 
 /**
  * Regular/Large pairs aligned with POS `menu-sync.json` and gallery rules:
  * - Matcha, cold brew, cream, cloud: large = regular + $2
  * - Most coffee: large = regular + $1
- * - Ube Latte, Spanish Latte, Ube Spanish Latte, Batirol Latte: large = regular + $2 (see `app/gallery/page.tsx`)
+ * - Ube Espresso Latte, Spanish Latte, Ube Spanish Latte, Batirol Latte: large = regular + $2 (see `app/gallery/page.tsx`)
  */
 export const MENU_DRINKS = {
   matcha: {
     earlGrey: { regular: 9, large: 11 },
     /** Same +$2 large rule as POS drink customizer. */
     ogMatcha: { regular: 8.5, large: 10.5 },
-    strawberryMatcha: { regular: 12, large: 14 },
+    strawberryMatcha: { regular: 11.5, large: 13.5 },
     strawberryCloudMatcha: { regular: 11, large: 13 },
     ubeCreamMatcha: { regular: 10, large: 12 },
     mangoMatcha: { regular: 10, large: 12 },
-    mangoSeaSaltMatcha: { regular: 12, large: 14 },
+    mangoSeaSaltMatcha: { regular: 11.5, large: 13.5 },
   },
   hojicha: {
     latte: { regular: 8.5, large: 10.5 },
     strawberryLatte: { regular: 10, large: 12 },
   },
   coldBrew: {
-    og: { regular: 8, large: 10 },
-    ubeCream: { regular: 8, large: 10 },
-    brownSugar: { regular: 8, large: 10 },
-    blackPearl: { regular: 8, large: 10 },
-    spanishLatteColdBrew: { regular: 8, large: 10 },
+    og: { regular: 9, large: 11 },
+    ubeCream: { regular: 10, large: 12 },
+    brownSugar: { regular: 9, large: 11 },
+    blackPearl: { regular: 10, large: 12 },
+    seaSalt: { regular: 10, large: 12 },
+    spanishLatteColdBrew: { regular: 9, large: 11 },
   },
   coffee: {
     flatWhite: { regular: 6.5, large: 7.5 },
     icedLatte: { regular: 7.5, large: 8.5 },
     americano: { regular: 6, large: 7 },
     longBlack: { regular: 6, large: 7 },
-    ubeLatte: { regular: 8.5, large: 10.5 },
-    ubeSpanishLatte: { regular: 8.5, large: 10.5 },
+    ubeEspressoLatte: { regular: 9.5, large: 11.5 },
+    ubeSpanishLatte: { regular: 9.5, large: 11.5 },
     spanishLatte: { regular: 10, large: 12 },
-    biscoffLatte: { regular: 8.5, large: 9.5 },
+    biscoffLatte: { regular: 9.5, large: 10.5 },
     batirolLatte: { regular: 9.5, large: 11.5 },
-    blackPearlLatte: { regular: 10, large: 12 },
+    blackPearlLatte: { regular: 9.5, large: 10.5 },
   },
   cream: {
-    twilight: { regular: 8.5, large: 10.5 },
-    strawberry: { regular: 11, large: 13 },
+    ubeLatte: { regular: 8.5, large: 10.5 },
+    strawberry: { regular: 10, large: 12 },
     batirol: { regular: 11, large: 13 },
     ubeCreamBatirol: { regular: 11, large: 13 },
   },
   cloud: {
-    blackPearlCoconut: { regular: 8, large: 10 },
-    cloverCoconut: { regular: 8, large: 10 },
-    twilightCoconut: { regular: 8, large: 10 },
-    batirolCloud: { regular: 8.5, large: 10.5 },
+    blackPearlCoconut: { regular: 9, large: 11 },
+    cloverCoconut: { regular: 9, large: 11 },
+    twilightCoconut: { regular: 9, large: 11 },
+    batirolCloud: { regular: 9, large: 11 },
   },
 } as const;
 
@@ -98,18 +102,19 @@ export const MENU_DRINK_ROWS: { name: string; prices: DrinkPrices }[] = [
   { name: "Ube Cream Coldbrew Latte", prices: MENU_DRINKS.coldBrew.ubeCream },
   { name: "Brown Sugar Cold Brew", prices: MENU_DRINKS.coldBrew.brownSugar },
   { name: "Black Pearl Cold Brew Latte", prices: MENU_DRINKS.coldBrew.blackPearl },
+  { name: "Sea Salt Cold Brew", prices: MENU_DRINKS.coldBrew.seaSalt },
   { name: "Spanish Latte Cold Brew", prices: MENU_DRINKS.coldBrew.spanishLatteColdBrew },
   { name: "Flat White", prices: MENU_DRINKS.coffee.flatWhite },
   { name: "Iced Latte", prices: MENU_DRINKS.coffee.icedLatte },
   { name: "Americano", prices: MENU_DRINKS.coffee.americano },
   { name: "Long Black", prices: MENU_DRINKS.coffee.longBlack },
-  { name: "Ube Latte", prices: MENU_DRINKS.coffee.ubeLatte },
+  { name: "Ube Espresso Latte", prices: MENU_DRINKS.coffee.ubeEspressoLatte },
   { name: "Ube Spanish Latte", prices: MENU_DRINKS.coffee.ubeSpanishLatte },
   { name: "Spanish Latte", prices: MENU_DRINKS.coffee.spanishLatte },
   { name: "Biscoff Latte", prices: MENU_DRINKS.coffee.biscoffLatte },
   { name: "Batirol Latte", prices: MENU_DRINKS.coffee.batirolLatte },
   { name: "Black Pearl Latte", prices: MENU_DRINKS.coffee.blackPearlLatte },
-  { name: "Twilight Cream", prices: MENU_DRINKS.cream.twilight },
+  { name: "Ube Latte", prices: MENU_DRINKS.cream.ubeLatte },
   { name: "Strawberry Cream", prices: MENU_DRINKS.cream.strawberry },
   { name: "Batirol Cream", prices: MENU_DRINKS.cream.batirol },
   { name: "Ube Cream Batirol", prices: MENU_DRINKS.cream.ubeCreamBatirol },

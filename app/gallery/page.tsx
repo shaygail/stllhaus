@@ -120,6 +120,9 @@ function slugify(s: string) {
 
 function getDairyCreamBaseNote(itemName: string): string | null {
   const name = itemName.toLowerCase();
+  if (name === "ube latte") {
+    return "Ube cream top. Contains dairy.";
+  }
   if (name.includes("twilight cream") && !name.includes("coconut")) {
     return "Ube cream top. Contains dairy.";
   }
@@ -230,6 +233,12 @@ const coldBrewItems: MenuItemData[] = [
     sizes: drinkSizes(MENU_DRINKS.coldBrew.blackPearl),
   },
   {
+    name: "Sea Salt Cold Brew",
+    description: "Slow-steeped cold brew topped with sea salt foam.",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.coldBrew.seaSalt),
+  },
+  {
     name: "Spanish Latte Cold Brew",
     description: "No extra syrup add-ons — cold foam add-ons still available.",
     image: "",
@@ -283,10 +292,10 @@ const coffeeItems: MenuItemData[] = [
     coffeeShots: true,
   },
   {
-    name: "Ube Latte",
+    name: "Ube Espresso Latte",
     description: "",
     image: "",
-    sizes: drinkSizes(MENU_DRINKS.coffee.ubeLatte),
+    sizes: drinkSizes(MENU_DRINKS.coffee.ubeEspressoLatte),
     temperatureOptionsOverride: ["Hot", "Iced"],
     coffeeShots: true,
   },
@@ -336,7 +345,7 @@ const COFFEE_MENU_ITEM_NAMES = new Set(coffeeItems.map((item) => item.name));
 
 /** Coffee drinks outside the $6 / $7 tier — large uses +$2 when syncing base price from backend. */
 const COFFEE_TWO_DOLLAR_LARGE_UPCHARGE_NAMES = new Set([
-  "Ube Latte",
+  "Ube Espresso Latte",
   "Spanish Latte",
   "Ube Spanish Latte",
   "Batirol Latte",
@@ -349,11 +358,11 @@ function largeSizeUpchargeForMenuItem(itemName: string): number {
 
 const nonCoffeeItems: MenuItemData[] = [
   {
-    name: "Twilight Cream",
+    name: "Ube Latte",
     description:
       "Ube cream top with your choice of milk. Oat or whole at menu price; almond or soy +$1. Syrups not included.",
     image: "",
-    sizes: drinkSizes(MENU_DRINKS.cream.twilight),
+    sizes: drinkSizes(MENU_DRINKS.cream.ubeLatte),
     temperatureOptionsOverride: ["Hot", "Iced"],
     hideAddOns: true,
   },

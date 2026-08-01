@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { getResendClient } from "@/lib/resend-client";
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,7 +8,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
     }
 
-
+    const resend = getResendClient();
     const html = `
       <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto; color: #1a1a1a; padding: 32px 24px;">
         <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 4px;">New Contact Inquiry</h2>

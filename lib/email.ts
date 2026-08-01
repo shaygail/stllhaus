@@ -1,7 +1,5 @@
 import { publicSiteUrl } from "@/lib/site-url";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { getResendClient } from "@/lib/resend-client";
 
 function escapeHtml(s: string) {
   return s
@@ -37,7 +35,7 @@ export async function sendOrderReadyForPickupEmail({
       <p style="font-size: 13px; color: #888; margin-top: 24px;">Thank you for ordering with STLL HAUS.</p>
     </div>
   `;
-  const { data, error } = await resend.emails.send({
+  const { data, error } = await getResendClient().emails.send({
     from: "noreply@stllhaus.co",
     to: customerEmail,
     subject: "Your order is ready for pickup — STLL HAUS",
@@ -185,7 +183,7 @@ export async function sendOrderConfirmationEmail({
     </div>
   `;
 
-  const { data, error } = await resend.emails.send({
+  const { data, error } = await getResendClient().emails.send({
     from: "noreply@stllhaus.co",
     to: customerEmail,
     subject: `Order confirmation — STLL HAUS${orderId ? ` · ${orderId.slice(0, 8)}` : ""}`,
@@ -230,7 +228,7 @@ export async function sendSignupConfirmationEmail({
     </div>
   `;
 
-  const { data, error } = await resend.emails.send({
+  const { data, error } = await getResendClient().emails.send({
     from: "noreply@stllhaus.co",
     to: email,
     subject: "Confirm your signup — STLL HAUS",
@@ -276,7 +274,7 @@ export async function sendSigninMagicLinkEmail({
     </div>
   `;
 
-  const { data, error } = await resend.emails.send({
+  const { data, error } = await getResendClient().emails.send({
     from: "noreply@stllhaus.co",
     to: email,
     subject: "Your sign-in link — STLL HAUS",
@@ -399,7 +397,7 @@ export async function sendOrderNotification({
     </div>
   `;
 
-  const { data, error } = await resend.emails.send({
+  const { data, error } = await getResendClient().emails.send({
     from: "noreply@stllhaus.co",
     to: toEmail,
     subject: `New Order from ${customerName} — ${pickupTime || "ASAP"}${

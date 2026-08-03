@@ -30,6 +30,7 @@ export const BACKEND_NAME_ALIASES: Record<string, string[]> = {
   "Clover Coconut Cloud": ["Clover Cloud"],
   "Ube Espresso Latte": ["Ube Espresso Latte"],
   "Ube Latte": ["Twilight Cream"],
+  "Sea Salt Americano": ["Seasalt Americano"],
 };
 
 /**
@@ -72,6 +73,7 @@ export const MENU_DRINKS = {
     biscoffLatte: { regular: 9.5, large: 10.5 },
     batirolLatte: { regular: 9.5, large: 11.5 },
     blackPearlLatte: { regular: 9.5, large: 10.5 },
+    seaSaltAmericano: { regular: 9, large: 11 },
   },
   cream: {
     ubeLatte: { regular: 8.5, large: 10.5 },
@@ -114,6 +116,7 @@ export const MENU_DRINK_ROWS: { name: string; prices: DrinkPrices }[] = [
   { name: "Biscoff Latte", prices: MENU_DRINKS.coffee.biscoffLatte },
   { name: "Batirol Latte", prices: MENU_DRINKS.coffee.batirolLatte },
   { name: "Black Pearl Latte", prices: MENU_DRINKS.coffee.blackPearlLatte },
+  { name: "Sea Salt Americano", prices: MENU_DRINKS.coffee.seaSaltAmericano },
   { name: "Ube Latte", prices: MENU_DRINKS.cream.ubeLatte },
   { name: "Strawberry Cream", prices: MENU_DRINKS.cream.strawberry },
   { name: "Batirol Cream", prices: MENU_DRINKS.cream.batirol },

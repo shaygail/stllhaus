@@ -248,7 +248,7 @@ const coldBrewItems: MenuItemData[] = [
   },
 ];
 
-const coffeeItems: MenuItemData[] = [
+const classicCoffeeItems: MenuItemData[] = [
   {
     name: "Flat White",
     description: "",
@@ -291,6 +291,9 @@ const coffeeItems: MenuItemData[] = [
     milkOptionsOverride: [],
     coffeeShots: true,
   },
+];
+
+const specialtyCoffeeItems: MenuItemData[] = [
   {
     name: "Ube Espresso Latte",
     description: "",
@@ -339,7 +342,22 @@ const coffeeItems: MenuItemData[] = [
     temperatureOptionsOverride: ["Hot", "Iced"],
     coffeeShots: true,
   },
+  {
+    name: "Sea Salt Americano",
+    description: "Espresso topped with sea salt foam.",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.coffee.seaSaltAmericano),
+    sizesByTemperature: {
+      Hot: drinkSizes(MENU_DRINKS.coffee.seaSaltAmericano),
+      Iced: drinkSizes(MENU_DRINKS.coffee.seaSaltAmericano),
+    },
+    temperatureOptionsOverride: ["Hot", "Iced"],
+    milkOptionsOverride: [],
+    coffeeShots: true,
+  },
 ];
+
+const coffeeItems: MenuItemData[] = [...classicCoffeeItems, ...specialtyCoffeeItems];
 
 const COFFEE_MENU_ITEM_NAMES = new Set(coffeeItems.map((item) => item.name));
 
@@ -349,6 +367,7 @@ const COFFEE_TWO_DOLLAR_LARGE_UPCHARGE_NAMES = new Set([
   "Spanish Latte",
   "Ube Spanish Latte",
   "Batirol Latte",
+  "Sea Salt Americano",
 ]);
 
 function largeSizeUpchargeForMenuItem(itemName: string): number {
@@ -1428,7 +1447,8 @@ export default function GalleryPage() {
     matchaItems,
     hojichaItems,
     coldBrewItems,
-    coffeeItems,
+    classicCoffeeItems,
+    specialtyCoffeeItems,
     nonCoffeeItems,
     cloudItems,
   }));
@@ -1455,7 +1475,8 @@ export default function GalleryPage() {
           matchaItems: applyBackendPrices(matchaItems, backendPrices),
           hojichaItems: applyBackendPrices(hojichaItems, backendPrices),
           coldBrewItems: applyBackendPrices(coldBrewItems, backendPrices),
-          coffeeItems: applyBackendPrices(coffeeItems, backendPrices),
+          classicCoffeeItems: applyBackendPrices(classicCoffeeItems, backendPrices),
+          specialtyCoffeeItems: applyBackendPrices(specialtyCoffeeItems, backendPrices),
           nonCoffeeItems: applyBackendPrices(nonCoffeeItems, backendPrices),
           cloudItems: applyBackendPrices(cloudItems, backendPrices),
         });
@@ -1523,9 +1544,21 @@ export default function GalleryPage() {
           isPreOrderOnly={isPreOrderOnly}
         />
         <MenuSection
+          title="Classic Coffee"
+          subtitle="Espresso staples"
+          items={menuState.classicCoffeeItems}
+          milkOptions={["Oat", "Whole", "Almond", "Soy"]}
+          milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
+          showColdFoams
+          onItemAdded={openCartPrompt}
+          canAddToCart={canAddToCart}
+          addBlockedMessage={addBlockedMessage}
+          isPreOrderOnly={isPreOrderOnly}
+        />
+        <MenuSection
           title="Specialty Coffee Series"
           subtitle="House coffee lattes"
-          items={menuState.coffeeItems}
+          items={menuState.specialtyCoffeeItems}
           milkOptions={["Oat", "Whole", "Almond", "Soy"]}
           milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
           showColdFoams
@@ -1561,7 +1594,7 @@ export default function GalleryPage() {
         />
         <SnacksSection
           coldBrewItems={menuState.coldBrewItems}
-          coffeeItems={menuState.coffeeItems}
+          coffeeItems={[...menuState.classicCoffeeItems, ...menuState.specialtyCoffeeItems]}
           cloudItems={menuState.cloudItems}
           milkOptions={["Oat", "Whole", "Almond", "Soy"]}
           onItemAdded={openCartPrompt}

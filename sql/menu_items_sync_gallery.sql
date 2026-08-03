@@ -39,6 +39,7 @@ UPDATE menu_items SET price = 9.5 WHERE name IN (
   'Black Pearl Latte'
 );
 UPDATE menu_items SET price = 10.0 WHERE name = 'Spanish Latte';
+UPDATE menu_items SET price = 9.0 WHERE name IN ('Sea Salt Americano', 'Seasalt Americano');
 UPDATE menu_items SET price = 9.5 WHERE name = 'Batirol Latte';
 
 UPDATE menu_items SET price = 8.5 WHERE name IN ('Ube Latte', 'Twilight Cream');
@@ -101,6 +102,8 @@ FROM (VALUES
   ('White Mocha (Large)', 7.0, 'Coffee Series'),
   ('Batirol Latte (Large)', 11.5, 'Coffee Series'),
   ('Black Pearl Latte (Large)', 10.5, 'Coffee Series'),
+  ('Sea Salt Americano (Large)', 11.0, 'Coffee Series'),
+  ('Seasalt Americano (Large)', 11.0, 'Coffee Series'),
   ('Twilight Cream (Large)', 10.5, 'Non-Coffee Series'),
   ('Ube Latte (Large)', 10.5, 'Non-Coffee Series'),
   ('Strawberry Cream (Large)', 12.0, 'Non-Coffee Series'),

@@ -35,9 +35,9 @@ UPDATE menu_items SET price = 6.0 WHERE name IN ('Americano', 'Long Black', 'Car
 UPDATE menu_items SET price = 9.5 WHERE name IN (
   'Biscoff Latte',
   'Ube Espresso Latte',
-  'Ube Spanish Latte',
   'Black Pearl Latte'
 );
+UPDATE menu_items SET price = 11.0 WHERE name = 'Ube Spanish Latte';
 UPDATE menu_items SET price = 10.0 WHERE name = 'Spanish Latte';
 UPDATE menu_items SET price = 9.0 WHERE name IN ('Sea Salt Americano', 'Seasalt Americano');
 UPDATE menu_items SET price = 9.5 WHERE name = 'Batirol Latte';
@@ -96,7 +96,7 @@ FROM (VALUES
   ('Caramel Latte (Large)', 7.0, 'Coffee Series'),
   ('Mocha (Large)', 7.0, 'Coffee Series'),
   ('Ube Espresso Latte (Large)', 11.5, 'Coffee Series'),
-  ('Ube Spanish Latte (Large)', 11.5, 'Coffee Series'),
+  ('Ube Spanish Latte (Large)', 13.0, 'Coffee Series'),
   ('Spanish Latte (Large)', 12.0, 'Coffee Series'),
   ('Biscoff Latte (Large)', 10.5, 'Coffee Series'),
   ('White Mocha (Large)', 7.0, 'Coffee Series'),

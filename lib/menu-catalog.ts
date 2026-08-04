@@ -68,7 +68,7 @@ export const MENU_DRINKS = {
     americano: { regular: 6, large: 7 },
     longBlack: { regular: 6, large: 7 },
     ubeEspressoLatte: { regular: 9.5, large: 11.5 },
-    ubeSpanishLatte: { regular: 9.5, large: 11.5 },
+    ubeSpanishLatte: { regular: 11, large: 13 },
     spanishLatte: { regular: 10, large: 12 },
     biscoffLatte: { regular: 9.5, large: 10.5 },
     batirolLatte: { regular: 9.5, large: 11.5 },

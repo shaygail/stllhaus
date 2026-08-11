@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useActionState } from "react";
+import { adminSignInAction, type AdminSignInState } from "./actions";
 
 type LoginClientProps = {
   adminSignInEnabled: boolean;
@@ -11,61 +12,10 @@ type LoginClientProps = {
 export function LoginClient({ adminSignInEnabled }: LoginClientProps) {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/account";
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-  const [adminEmail, setAdminEmail] = useState("");
-  const [adminPassword, setAdminPassword] = useState("");
-
-  async function signInAsAdmin(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setPending(true);
-    try {
-      const res = await fetch("/api/auth/admin-signin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        redirect: "manual",
-        body: JSON.stringify({
-          email: adminEmail.trim(),
-          password: adminPassword,
-          next,
-        }),
-      });
-
-      if (res.status === 303 || res.status === 302 || res.status === 307 || res.status === 308) {
-        const location = res.headers.get("Location");
-        window.location.href = location ?? next;
-        return;
-      }
-
-      const data = (await res.json()) as {
-        success?: boolean;
-        redirect?: string;
-        error?: string;
-        detail?: string;
-      };
-
-      if (res.status === 503) {
-        setError(data.detail ?? "Team sign-in is not configured yet.");
-        return;
-      }
-      if (res.status === 401) {
-        setError("Incorrect team email or password.");
-        return;
-      }
-      if (!res.ok) {
-        setError(data.detail ?? data.error ?? "Could not sign in. Try again.");
-        return;
-      }
-
-      window.location.href = data.redirect ?? next;
-    } catch {
-      setError("Could not sign in. Try again.");
-    } finally {
-      setPending(false);
-    }
-  }
+  const [state, formAction, pending] = useActionState<AdminSignInState, FormData>(
+    adminSignInAction,
+    null
+  );
 
   return (
     <div className="min-h-[70vh] flex flex-col items-center justify-center px-6 py-24">
@@ -78,7 +28,8 @@ export function LoginClient({ adminSignInEnabled }: LoginClientProps) {
       </p>
 
       {adminSignInEnabled ? (
-        <form onSubmit={(e) => void signInAsAdmin(e)} className="w-full max-w-sm flex flex-col gap-3">
+        <form action={formAction} className="w-full max-w-sm flex flex-col gap-3">
+          <input type="hidden" name="next" value={next} />
           <label htmlFor="admin-email" className="sr-only">
             Team email
           </label>
@@ -87,8 +38,6 @@ export function LoginClient({ adminSignInEnabled }: LoginClientProps) {
             type="email"
             name="email"
             autoComplete="username"
-            value={adminEmail}
-            onChange={(e) => setAdminEmail(e.target.value)}
             placeholder="Team email"
             required
             className="w-full px-4 py-3 text-sm border border-stll-charcoal/20 bg-white text-stll-charcoal placeholder:text-stll-muted/60 focus:outline-none focus:border-stll-charcoal/40"
@@ -101,8 +50,6 @@ export function LoginClient({ adminSignInEnabled }: LoginClientProps) {
             type="password"
             name="password"
             autoComplete="current-password"
-            value={adminPassword}
-            onChange={(e) => setAdminPassword(e.target.value)}
             placeholder="Team password"
             required
             className="w-full px-4 py-3 text-sm border border-stll-charcoal/20 bg-white text-stll-charcoal placeholder:text-stll-muted/60 focus:outline-none focus:border-stll-charcoal/40"
@@ -121,7 +68,9 @@ export function LoginClient({ adminSignInEnabled }: LoginClientProps) {
         </p>
       )}
 
-      {error && <p className="mt-4 text-sm text-red-700 text-center max-w-md">{error}</p>}
+      {state?.error && (
+        <p className="mt-4 text-sm text-red-700 text-center max-w-md">{state.error}</p>
+      )}
       <Link href="/" className="mt-10 text-[11px] tracking-[0.2em] uppercase text-stll-muted hover:text-stll-charcoal">
         ← Back to home
       </Link>

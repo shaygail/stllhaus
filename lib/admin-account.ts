@@ -31,7 +31,7 @@ export function verifyAdminAccountCredentials(email: string, password: string): 
 
   const normalizedEmail = email.trim().toLowerCase();
   if (!safeSecretEqual(normalizedEmail, expectedEmail)) return false;
-  return safeSecretEqual(password, expectedPassword);
+  return safeSecretEqual(password.trim(), expectedPassword);
 }
 
 async function findUserIdByEmail(email: string): Promise<string | null> {

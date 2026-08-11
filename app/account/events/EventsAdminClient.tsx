@@ -1,6 +1,7 @@
 "use client";
 
 import type { MarketEventInput } from "@/lib/market-events";
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
@@ -18,23 +19,17 @@ const emptyForm: MarketEventInput = {
   endTime: "13:00",
   location: "",
   description: "",
-  imagePath: "/ube.jpg",
-  imageAlt: "STLL HAUS ube matcha drink, New Plymouth",
+  imagePath: "",
+  imageAlt: "",
   published: true,
 };
-
-const IMAGE_OPTIONS = [
-  { path: "/ube.jpg", alt: "STLL HAUS ube matcha drink, New Plymouth" },
-  { path: "/head-webpage.jpg", alt: "STLL HAUS matcha and coffee bar at a local market, Taranaki" },
-  { path: "/part2.jpg", alt: "STLL HAUS cloud collection drinks, New Plymouth" },
-  { path: "/niyo photo.png", alt: "STLL HAUS handcrafted matcha drink, New Plymouth" },
-];
 
 export function EventsAdminClient() {
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [form, setForm] = useState<MarketEventInput>(emptyForm);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingPoster, setUploadingPoster] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -87,6 +82,51 @@ export function EventsAdminClient() {
     setSuccess(null);
     setError(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function uploadPoster(file: File) {
+    setUploadingPoster(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const body = new FormData();
+      body.append("poster", file);
+      if (form.id) body.append("eventId", form.id);
+
+      const res = await fetch("/api/admin/events/poster", {
+        method: "POST",
+        body,
+      });
+      const data = (await res.json()) as { url?: string; error?: string; detail?: string };
+
+      if (res.status === 401) {
+        setError("You do not have admin access.");
+        return;
+      }
+      if (res.status === 503) {
+        setError(data.detail ?? "Poster uploads are not configured yet.");
+        return;
+      }
+      if (!res.ok || !data.url) {
+        setError(data.detail ?? data.error ?? "Could not upload poster.");
+        return;
+      }
+
+      const altDefault = form.name.trim()
+        ? `${form.name.trim()} — STLL HAUS market poster`
+        : "STLL HAUS market poster";
+
+      setForm((prev) => ({
+        ...prev,
+        imagePath: data.url,
+        imageAlt: prev.imageAlt?.trim() ? prev.imageAlt : altDefault,
+      }));
+      setSuccess("Poster uploaded. Save the event to publish it.");
+    } catch {
+      setError("Upload failed. Try again.");
+    } finally {
+      setUploadingPoster(false);
+    }
   }
 
   async function saveEvent(e: React.FormEvent) {
@@ -248,33 +288,71 @@ export function EventsAdminClient() {
           />
         </Field>
 
-        <Field label="Image">
-          <select
-            value={form.imagePath ?? ""}
-            onChange={(e) => {
-              const selected = IMAGE_OPTIONS.find((option) => option.path === e.target.value);
-              setForm((prev) => ({
-                ...prev,
-                imagePath: e.target.value,
-                imageAlt: selected?.alt ?? prev.imageAlt,
-              }));
-            }}
-            className={inputClass}
-          >
-            <option value="">No image</option>
-            {IMAGE_OPTIONS.map((option) => (
-              <option key={option.path} value={option.path}>
-                {option.path}
-              </option>
-            ))}
-          </select>
+        <Field label="Market poster (optional)">
+          <p className="text-xs text-stll-muted leading-relaxed mb-3">
+            One poster image per event — JPG, PNG, WebP, or GIF, up to 5 MB. Shown on the Events page card.
+          </p>
+          {form.imagePath ? (
+            <div className="mb-4 border border-stll-charcoal/15 bg-white overflow-hidden">
+              <div className="relative aspect-[16/9] bg-stll-light">
+                <Image
+                  src={form.imagePath}
+                  alt={form.imageAlt || "Event poster preview"}
+                  fill
+                  unoptimized
+                  className="object-cover object-center"
+                />
+              </div>
+              <div className="flex flex-wrap gap-3 p-3 border-t border-stll-charcoal/10">
+                <label className="cursor-pointer text-[10px] tracking-[0.2em] uppercase text-stll-charcoal border border-stll-charcoal/20 px-4 py-2 hover:bg-stll-charcoal/5">
+                  {uploadingPoster ? "Uploading…" : "Replace poster"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="sr-only"
+                    disabled={uploadingPoster}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void uploadPoster(file);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setForm((prev) => ({ ...prev, imagePath: "", imageAlt: "" }))}
+                  className="text-[10px] tracking-[0.2em] uppercase text-red-700 border border-red-200 px-4 py-2 hover:bg-red-50"
+                >
+                  Remove poster
+                </button>
+              </div>
+            </div>
+          ) : (
+            <label className="flex flex-col items-center justify-center gap-2 border border-dashed border-stll-charcoal/25 bg-white px-6 py-10 cursor-pointer hover:border-stll-charcoal/40 transition-colors">
+              <span className="text-[10px] tracking-[0.25em] uppercase text-stll-muted">
+                {uploadingPoster ? "Uploading…" : "Upload market poster"}
+              </span>
+              <span className="text-xs text-stll-muted/70">Click to choose an image</span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="sr-only"
+                disabled={uploadingPoster}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void uploadPoster(file);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          )}
         </Field>
 
-        <Field label="Image alt text">
+        <Field label="Poster alt text (accessibility)">
           <input
             value={form.imageAlt ?? ""}
             onChange={(e) => setForm((prev) => ({ ...prev, imageAlt: e.target.value }))}
-            placeholder="STLL HAUS ube matcha drink, New Plymouth"
+            placeholder="Stratford Market — STLL HAUS market poster"
             className={inputClass}
           />
         </Field>
@@ -291,7 +369,7 @@ export function EventsAdminClient() {
 
         <button
           type="submit"
-          disabled={saving}
+          disabled={saving || uploadingPoster}
           className="w-full sm:w-auto px-8 py-3.5 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal bg-stll-charcoal text-white hover:bg-stll-charcoal/90 transition-colors disabled:opacity-50"
         >
           {saving ? "Saving…" : form.id ? "Update event" : "Create event"}

@@ -1,4 +1,5 @@
 import type { MarketEvent } from "@/lib/market-events";
+import { eventImageForSchema } from "@/lib/event-image";
 import { publicSiteUrl } from "@/lib/site-url";
 
 function parseLocationParts(location: string) {
@@ -42,7 +43,7 @@ export function buildEventsJsonLd(events: MarketEvent[]) {
           url: siteUrl,
         },
         ...(event.image
-          ? { image: `${siteUrl}${event.image}` }
+          ? { image: eventImageForSchema(event.image, siteUrl) }
           : {}),
       };
     }),

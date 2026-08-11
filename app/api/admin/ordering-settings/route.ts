@@ -1,6 +1,7 @@
 import { authorizeAdminRequest } from "@/lib/admin-request-auth";
 import { mergeOrderingSettings, type OrderingSettings } from "@/lib/ordering-settings";
 import { loadOrderingSettings, saveOrderingSettings } from "@/lib/ordering-settings-store";
+import { formatSupabaseAdminError } from "@/lib/supabase-admin-errors";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
@@ -39,11 +40,12 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error: "missing_supabase_config",
-          detail: "Add Supabase keys and run supabase/ordering_settings.sql, or use env ORDERING_* defaults only.",
+          detail: "Add Supabase keys to env and run supabase/admin_setup.sql in the Supabase SQL Editor.",
         },
         { status: 503 }
       );
     }
-    return NextResponse.json({ error: msg }, { status: 500 });
+    const formatted = formatSupabaseAdminError(e, "supabase/admin_setup.sql");
+    return NextResponse.json(formatted, { status: 500 });
   }
 }

@@ -20,6 +20,7 @@ const defaultForm: OrderingSettings = {
   weekendHours: { openTime: "11:00", closeTime: "21:00" },
   singleHours: { openTime: "11:00", closeTime: "21:00" },
   closedDays: [],
+  priceUpdateNoticeEnabled: false,
 };
 
 export default function AdminOrderingPage() {
@@ -190,6 +191,16 @@ export default function AdminOrderingPage() {
                 </p>
               </div>
             )}
+          </div>
+
+          <div className="border border-stll-charcoal/10 bg-white/80 p-4 -mx-1 space-y-1">
+            <p className="text-[10px] tracking-[0.2em] uppercase text-stll-muted mb-3">Website notices</p>
+            <Toggle
+              label="Price update popup"
+              hint="Shows a one-time notice about drink price changes when someone first opens the site (until they dismiss it)."
+              checked={form.priceUpdateNoticeEnabled}
+              onChange={(v) => setForm((p) => ({ ...p, priceUpdateNoticeEnabled: v }))}
+            />
           </div>
 
           <Toggle

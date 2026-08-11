@@ -5,6 +5,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CartProvider } from "@/components/CartContext";
 import { PriceUpdateNotice } from "@/components/PriceUpdateNotice";
+import { loadOrderingSettings } from "@/lib/ordering-settings-store";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -24,11 +25,13 @@ export const viewport = {
   maximumScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const settings = await loadOrderingSettings();
+
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
       <head>
@@ -39,7 +42,7 @@ export default function RootLayout({
           <Navbar />
           <main className="flex-1">{children}</main>
           <Footer />
-          <PriceUpdateNotice />
+          <PriceUpdateNotice enabled={settings.priceUpdateNoticeEnabled} />
         </CartProvider>
       </body>
     </html>

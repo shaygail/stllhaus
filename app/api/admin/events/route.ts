@@ -1,4 +1,5 @@
 import { authorizeAdminRequest } from "@/lib/admin-request-auth";
+import { formatSupabaseAdminError } from "@/lib/supabase-admin-errors";
 import {
   deleteMarketEvent,
   loadAllMarketEvents,
@@ -85,12 +86,13 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error: "missing_supabase_config",
-          detail: "Add Supabase keys and run supabase/market_events.sql.",
+          detail: "Add Supabase keys to env and run supabase/admin_setup.sql in the Supabase SQL Editor.",
         },
         { status: 503 }
       );
     }
-    return NextResponse.json({ error: msg }, { status: 500 });
+    const formatted = formatSupabaseAdminError(e, "supabase/admin_setup.sql");
+    return NextResponse.json(formatted, { status: 500 });
   }
 }
 

@@ -46,11 +46,14 @@ export async function saveOrderingSettings(settings: OrderingSettings): Promise<
     throw new Error("missing_supabase_config");
   }
 
-  const { error } = await supabase.from("ordering_settings").upsert({
-    id: ROW_ID,
-    settings,
-    updated_at: new Date().toISOString(),
-  });
+  const { error } = await supabase.from("ordering_settings").upsert(
+    {
+      id: ROW_ID,
+      settings,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "id" }
+  );
 
   if (error) throw error;
   cache = { settings, fetchedAt: Date.now() };

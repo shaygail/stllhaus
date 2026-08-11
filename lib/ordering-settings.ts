@@ -32,6 +32,8 @@ export type OrderingSettings = {
   singleHours: DayHours;
   /** Days with no service: 0 = Sunday … 6 = Saturday */
   closedDays: number[];
+  /** Show the price-update popup when visitors first open the site. */
+  priceUpdateNoticeEnabled: boolean;
   /** @deprecated Use singleHours — kept for older saved JSON. */
   openTime?: string;
   /** @deprecated Use singleHours — kept for older saved JSON. */
@@ -104,6 +106,7 @@ export function defaultOrderingSettings(): OrderingSettings {
     },
     singleHours: single,
     closedDays: envClosedDays(),
+    priceUpdateNoticeEnabled: envBool("PRICE_UPDATE_NOTICE_ENABLED", false),
   };
 }
 
@@ -323,6 +326,10 @@ export function mergeOrderingSettings(partial: unknown): OrderingSettings {
     weekendHours: normalizeDayHours(p.weekendHours, base.weekendHours),
     singleHours: normalizeDayHours(p.singleHours, legacySingle),
     closedDays,
+    priceUpdateNoticeEnabled:
+      typeof p.priceUpdateNoticeEnabled === "boolean"
+        ? p.priceUpdateNoticeEnabled
+        : base.priceUpdateNoticeEnabled,
   };
 }
 

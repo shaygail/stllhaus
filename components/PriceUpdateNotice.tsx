@@ -4,7 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 
 const STORAGE_KEY = "stll-price-update-notice-v1";
 
-export function PriceUpdateNotice() {
+type PriceUpdateNoticeProps = {
+  enabled: boolean;
+};
+
+export function PriceUpdateNotice({ enabled }: PriceUpdateNoticeProps) {
   const [open, setOpen] = useState(false);
 
   const dismiss = useCallback(() => {
@@ -17,13 +21,14 @@ export function PriceUpdateNotice() {
   }, []);
 
   useEffect(() => {
+    if (!enabled) return;
     try {
       if (localStorage.getItem(STORAGE_KEY) === "dismissed") return;
       setOpen(true);
     } catch {
       setOpen(true);
     }
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
     if (!open) return;
@@ -38,7 +43,7 @@ export function PriceUpdateNotice() {
     };
   }, [open, dismiss]);
 
-  if (!open) return null;
+  if (!enabled || !open) return null;
 
   return (
     <div

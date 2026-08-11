@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 type LoginClientProps = {
@@ -9,7 +9,6 @@ type LoginClientProps = {
 };
 
 export function LoginClient({ adminSignInEnabled }: LoginClientProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/account";
   const [error, setError] = useState<string | null>(null);
@@ -25,12 +24,21 @@ export function LoginClient({ adminSignInEnabled }: LoginClientProps) {
       const res = await fetch("/api/auth/admin-signin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        redirect: "manual",
         body: JSON.stringify({
           email: adminEmail.trim(),
           password: adminPassword,
           next,
         }),
       });
+
+      if (res.status === 303 || res.status === 302 || res.status === 307 || res.status === 308) {
+        const location = res.headers.get("Location");
+        window.location.href = location ?? next;
+        return;
+      }
+
       const data = (await res.json()) as {
         success?: boolean;
         redirect?: string;
@@ -47,12 +55,11 @@ export function LoginClient({ adminSignInEnabled }: LoginClientProps) {
         return;
       }
       if (!res.ok) {
-        setError(data.detail ?? "Could not sign in. Try again.");
+        setError(data.detail ?? data.error ?? "Could not sign in. Try again.");
         return;
       }
 
-      router.push(data.redirect ?? "/account");
-      router.refresh();
+      window.location.href = data.redirect ?? next;
     } catch {
       setError("Could not sign in. Try again.");
     } finally {

@@ -5,6 +5,7 @@ import {
   syncAdminSupabaseUser,
   verifyAdminAccountCredentials,
 } from "@/lib/admin-account";
+import { createBusinessLogsAdminClient } from "@/lib/business-logs";
 import { createSupabaseRouteHandlerClient } from "@/lib/supabase/route-handler";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -62,15 +63,44 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const response = NextResponse.json({ success: true, redirect: nextPath });
-  const supabase = createSupabaseRouteHandlerClient(request, response);
-  const { error } = await supabase.auth.signInWithPassword({
-    email: getAdminAccountEmail()!,
-    password: getAdminAccountPassword()!,
+  const adminEmail = getAdminAccountEmail()!;
+  const adminPassword = getAdminAccountPassword()!;
+  const adminClient = createBusinessLogsAdminClient();
+  if (!adminClient) {
+    return NextResponse.json(
+      { error: "missing_supabase_config", detail: "Supabase service role key is required for team sign-in." },
+      { status: 503 }
+    );
+  }
+
+  const { data: signInData, error: signInError } = await adminClient.auth.signInWithPassword({
+    email: adminEmail,
+    password: adminPassword,
   });
 
-  if (error) {
-    return NextResponse.json({ error: "sign_in_failed", detail: error.message }, { status: 500 });
+  if (signInError || !signInData.session) {
+    return NextResponse.json(
+      {
+        error: "sign_in_failed",
+        detail: signInError?.message ?? "Supabase did not return a session. Check your Supabase keys.",
+      },
+      { status: 500 }
+    );
+  }
+
+  const redirectUrl = new URL(nextPath, request.url);
+  const response = NextResponse.redirect(redirectUrl);
+  const supabase = createSupabaseRouteHandlerClient(request, response);
+  const { error: sessionError } = await supabase.auth.setSession({
+    access_token: signInData.session.access_token,
+    refresh_token: signInData.session.refresh_token,
+  });
+
+  if (sessionError) {
+    return NextResponse.json(
+      { error: "session_failed", detail: sessionError.message },
+      { status: 500 }
+    );
   }
 
   return response;

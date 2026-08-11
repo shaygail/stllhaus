@@ -39,4 +39,15 @@ if (!ok) {
   process.exit(1);
 }
 
-console.log("\nAdmin tables are ready. Saves from /admin/ordering and /account/events should work.");
+const bucket = "market-posters";
+const { data: buckets, error: bucketListErr } = await supabase.storage.listBuckets();
+const hasBucket = buckets?.some((b) => b.name === bucket || b.id === bucket);
+
+if (bucketListErr || !hasBucket) {
+  console.log(`✗ ${bucket}: ${bucketListErr?.message ?? "bucket not found"}`);
+  console.log("\nRe-run supabase/admin_setup.sql in Supabase → SQL Editor (includes poster storage), then re-run this script.");
+  process.exit(1);
+}
+
+console.log(`✓ ${bucket}: ready`);
+console.log("\nAdmin tables and poster storage are ready.");

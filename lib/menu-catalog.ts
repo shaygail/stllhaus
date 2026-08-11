@@ -45,7 +45,7 @@ export const MENU_DRINKS = {
     /** Same +$2 large rule as POS drink customizer. */
     ogMatcha: { regular: 8.5, large: 10.5 },
     strawberryMatcha: { regular: 11.5, large: 13.5 },
-    strawberryCloudMatcha: { regular: 11, large: 13 },
+    strawberryCloudMatcha: { regular: 12, large: 14 },
     ubeCreamMatcha: { regular: 10, large: 12 },
     mangoMatcha: { regular: 10, large: 12 },
     mangoSeaSaltMatcha: { regular: 11.5, large: 13.5 },

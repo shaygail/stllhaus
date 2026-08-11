@@ -8,7 +8,7 @@ BEGIN;
 UPDATE menu_items SET price = 9.0 WHERE name = 'Earl Grey Matcha';
 UPDATE menu_items SET price = 8.5 WHERE name IN ('Matcha Latte', 'Classic Matcha', 'OG Matcha Latte');
 UPDATE menu_items SET price = 11.5 WHERE name = 'Strawberry Matcha';
-UPDATE menu_items SET price = 11.0 WHERE name = 'Strawberry Cloud Matcha';
+UPDATE menu_items SET price = 12.0 WHERE name = 'Strawberry Cloud Matcha';
 UPDATE menu_items SET price = 10.0 WHERE name IN ('Ube Cream Matcha', 'Mango Matcha');
 UPDATE menu_items SET price = 11.5 WHERE name IN ('Mango Sea Salt Matcha', 'Mango Seasalt Matcha');
 
@@ -69,7 +69,7 @@ FROM (VALUES
   ('Matcha Latte (Large)', 10.5, 'Matcha Series'),
   ('Classic Matcha (Large)', 10.5, 'Matcha Series'),
   ('Strawberry Matcha (Large)', 13.5, 'Matcha Series'),
-  ('Strawberry Cloud Matcha (Large)', 13.0, 'Matcha Series'),
+  ('Strawberry Cloud Matcha (Large)', 14.0, 'Matcha Series'),
   ('Ube Cream Matcha (Large)', 12.0, 'Matcha Series'),
   ('Mango Matcha (Large)', 12.0, 'Matcha Series'),
   ('Mango Sea Salt Matcha (Large)', 13.5, 'Matcha Series'),

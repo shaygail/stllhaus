@@ -1,12 +1,12 @@
--- Run once in Supabase SQL editor (after market_events.sql).
--- Public read for event posters; uploads go through the site admin API (service role).
+-- Deprecated: poster storage is included in admin_setup.sql.
+-- Safe to re-run if you only need the bucket.
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
   'market-posters',
   'market-posters',
   true,
-  5242880,
+  4194304,
   ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 )
 ON CONFLICT (id) DO UPDATE SET

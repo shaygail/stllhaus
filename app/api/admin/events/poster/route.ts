@@ -14,8 +14,23 @@ export async function POST(request: Request) {
   }
 
   const file = formData.get("poster");
-  if (!(file instanceof File) || file.size === 0) {
-    return NextResponse.json({ error: "missing_file" }, { status: 400 });
+  if (!(file instanceof File)) {
+    return NextResponse.json(
+      {
+        error: "missing_file",
+        detail: "No image was received. If the photo is very large, wait for compression to finish and try again.",
+      },
+      { status: 400 }
+    );
+  }
+  if (file.size === 0) {
+    return NextResponse.json(
+      {
+        error: "empty_file",
+        detail: "The upload arrived empty — often caused by a photo that is too large. Try a smaller JPG or PNG.",
+      },
+      { status: 400 }
+    );
   }
 
   const eventIdRaw = formData.get("eventId");
@@ -39,11 +54,12 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error: "storage_bucket_missing",
-          detail: "Run supabase/market_posters_storage.sql in the Supabase SQL editor to enable poster uploads.",
+          detail:
+            "Poster storage is not set up. Run supabase/admin_setup.sql in the Supabase SQL Editor (includes the market-posters bucket), then try again.",
         },
         { status: 503 }
       );
     }
-    return NextResponse.json({ error: msg }, { status: 400 });
+    return NextResponse.json({ error: msg, detail: msg }, { status: 400 });
   }
 }

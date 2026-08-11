@@ -33,11 +33,11 @@ export default async function RootLayout({
   const settings = await loadOrderingSettings();
 
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`}>
+    <html lang="en" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
         <link rel="icon" href="/icon.png" type="image/png" />
       </head>
-      <body className="min-h-full bg-stll-cream text-stll-charcoal">
+      <body className="min-h-full bg-stll-cream text-stll-charcoal" suppressHydrationWarning>
         <CartProvider>
           <Navbar />
           <main className="flex-1">{children}</main>

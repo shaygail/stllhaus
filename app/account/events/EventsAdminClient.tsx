@@ -1,6 +1,8 @@
 "use client";
 
 import type { MarketEventInput } from "@/lib/market-events";
+import { preparePosterForUpload } from "@/lib/market-poster-client";
+import { posterSizeLabel } from "@/lib/market-poster-limits";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -89,8 +91,16 @@ export function EventsAdminClient() {
     setError(null);
     setSuccess(null);
     try {
+      let prepared: File;
+      try {
+        prepared = await preparePosterForUpload(file);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not prepare image for upload.");
+        return;
+      }
+
       const body = new FormData();
-      body.append("poster", file);
+      body.append("poster", prepared);
       if (form.id) body.append("eventId", form.id);
 
       const res = await fetch("/api/admin/events/poster", {
@@ -112,16 +122,21 @@ export function EventsAdminClient() {
         return;
       }
 
+      if (prepared !== file) {
+        setSuccess("Poster compressed and uploaded. Save the event to publish it.");
+      } else {
+        setSuccess("Poster uploaded. Save the event to publish it.");
+      }
+
       const altDefault = form.name.trim()
         ? `${form.name.trim()} — STLL HAUS market poster`
         : "STLL HAUS market poster";
 
       setForm((prev) => ({
         ...prev,
-        imagePath: data.url,
+        imagePath: data.url!,
         imageAlt: prev.imageAlt?.trim() ? prev.imageAlt : altDefault,
       }));
-      setSuccess("Poster uploaded. Save the event to publish it.");
     } catch {
       setError("Upload failed. Try again.");
     } finally {
@@ -290,7 +305,7 @@ export function EventsAdminClient() {
 
         <Field label="Market poster (optional)">
           <p className="text-xs text-stll-muted leading-relaxed mb-3">
-            One poster image per event — JPG, PNG, WebP, or GIF, up to 5 MB. Shown on the Events page card.
+            One poster image per event — JPG, PNG, WebP, or GIF, up to {posterSizeLabel()}. Large photos are compressed automatically. Shown on the Events page card.
           </p>
           {form.imagePath ? (
             <div className="mb-4 border border-stll-charcoal/15 bg-white overflow-hidden">

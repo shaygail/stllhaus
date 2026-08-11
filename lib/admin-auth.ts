@@ -1,4 +1,6 @@
-/** Shared admin API guard — uses `ADMIN_STATS_SECRET` (same key as stats / ordering admin). */
+import { isAdminAccountConfigured } from "@/lib/admin-account";
+
+/** Shared admin API guard — team session or `ADMIN_STATS_SECRET`. */
 
 export function getAdminSecretFromBody(body: unknown): string {
   if (typeof body !== "object" || body === null || !("secret" in body)) return "";
@@ -6,7 +8,7 @@ export function getAdminSecretFromBody(body: unknown): string {
 }
 
 export function isAdminConfigured(): boolean {
-  return Boolean(process.env.ADMIN_STATS_SECRET?.trim());
+  return Boolean(process.env.ADMIN_STATS_SECRET?.trim()) || isAdminAccountConfigured();
 }
 
 export function verifyAdminSecret(secret: string): boolean {

@@ -2,7 +2,7 @@
 
 import type { OrderingSettings } from "@/lib/ordering-settings";
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -23,16 +23,14 @@ const defaultForm: OrderingSettings = {
 };
 
 export default function AdminOrderingPage() {
-  const [secret, setSecret] = useState("");
   const [form, setForm] = useState<OrderingSettings>(defaultForm);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  async function loadSettings(e: React.FormEvent) {
-    e.preventDefault();
+  const loadSettings = useCallback(async () => {
     setError(null);
     setSuccess(null);
     setLoading(true);
@@ -40,15 +38,11 @@ export default function AdminOrderingPage() {
       const res = await fetch("/api/admin/ordering-settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ secret: secret.trim() }),
+        body: JSON.stringify({}),
       });
       const data = (await res.json()) as { settings?: OrderingSettings; error?: string; detail?: string };
-      if (res.status === 503 && data.error === "admin_stats_not_configured") {
-        setError("Add ADMIN_STATS_SECRET to your server environment, redeploy, then try again.");
-        return;
-      }
       if (res.status === 401) {
-        setError("Incorrect admin key.");
+        setError("You do not have admin access. Sign in at /login first.");
         return;
       }
       if (!res.ok) {
@@ -64,7 +58,11 @@ export default function AdminOrderingPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    void loadSettings();
+  }, [loadSettings]);
 
   async function saveSettings(e: React.FormEvent) {
     e.preventDefault();
@@ -75,11 +73,11 @@ export default function AdminOrderingPage() {
       const res = await fetch("/api/admin/ordering-settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ secret: secret.trim(), settings: form }),
+        body: JSON.stringify({ settings: form }),
       });
       const data = (await res.json()) as { saved?: boolean; error?: string; detail?: string };
       if (res.status === 401) {
-        setError("Incorrect admin key.");
+        setError("You do not have admin access. Sign in at /login first.");
         return;
       }
       if (!res.ok) {
@@ -110,8 +108,7 @@ export default function AdminOrderingPage() {
       <h1 className="text-2xl font-black uppercase tracking-tight text-stll-charcoal mb-2">Menu ordering</h1>
       <p className="text-sm text-stll-muted leading-relaxed mb-8">
         Control when customers can order on the website. When closed, you can block cart entirely or allow
-        pre-orders for pickup after you open. Uses the same admin key as registration stats (
-        <span className="font-semibold text-stll-charcoal">ADMIN_STATS_SECRET</span>). Run{" "}
+        pre-orders for pickup after you open. Run{" "}
         <code className="text-xs">supabase/ordering_settings.sql</code> once so settings persist in Supabase.
       </p>
       <p className="text-sm text-stll-muted leading-relaxed mb-8 -mt-4">
@@ -128,27 +125,9 @@ export default function AdminOrderingPage() {
         </Link>
       </p>
 
-      <form onSubmit={(e) => void loadSettings(e)} className="flex flex-col gap-4 mb-10">
-        <label htmlFor="admin-secret" className="sr-only">
-          Admin secret
-        </label>
-        <input
-          id="admin-secret"
-          type="password"
-          autoComplete="off"
-          value={secret}
-          onChange={(e) => setSecret(e.target.value)}
-          placeholder="Admin key"
-          className="w-full px-4 py-3 text-sm border border-stll-charcoal/20 bg-white text-stll-charcoal placeholder:text-stll-muted/60 focus:outline-none focus:border-stll-charcoal/40"
-        />
-        <button
-          type="submit"
-          disabled={loading || !secret.trim()}
-          className="w-full px-8 py-3.5 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal bg-stll-charcoal text-white hover:bg-stll-charcoal/90 transition-colors disabled:opacity-50"
-        >
-          {loading ? "Loading…" : loaded ? "Reload settings" : "Load settings"}
-        </button>
-      </form>
+      {loading && !loaded && (
+        <p className="text-sm text-stll-muted mb-8">Loading settings…</p>
+      )}
 
       {loaded && (
         <form onSubmit={(e) => void saveSettings(e)} className="flex flex-col gap-6 border-t border-stll-charcoal/10 pt-10">
@@ -263,7 +242,7 @@ export default function AdminOrderingPage() {
 
           <button
             type="submit"
-            disabled={saving || !secret.trim()}
+            disabled={saving}
             className="w-full px-8 py-3.5 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal bg-stll-charcoal text-white hover:bg-stll-charcoal/90 transition-colors disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save settings"}
@@ -275,10 +254,10 @@ export default function AdminOrderingPage() {
       {error && <p className="mt-6 text-sm text-red-700 leading-relaxed">{error}</p>}
 
       <Link
-        href="/"
+        href="/account"
         className="mt-12 inline-block text-[11px] tracking-[0.2em] uppercase text-stll-muted hover:text-stll-charcoal"
       >
-        ← Back to home
+        ← Admin hub
       </Link>
     </div>
   );

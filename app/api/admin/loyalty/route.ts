@@ -1,10 +1,4 @@
-import {
-  adminNotConfiguredResponse,
-  adminUnauthorizedResponse,
-  getAdminSecretFromBody,
-  isAdminConfigured,
-  verifyAdminSecret,
-} from "@/lib/admin-auth";
+import { authorizeAdminRequest } from "@/lib/admin-request-auth";
 import {
   buildLoyaltySummary,
   hasLoyaltyActivity,
@@ -20,10 +14,6 @@ import { NextResponse } from "next/server";
  * Body: `{ "secret": "<ADMIN_STATS_SECRET>", "includeZero"?: boolean }`
  */
 export async function POST(request: Request) {
-  if (!isAdminConfigured()) {
-    return adminNotConfiguredResponse();
-  }
-
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!serviceKey || !url) {
@@ -34,13 +24,11 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+    body = {};
   }
 
-  const secret = getAdminSecretFromBody(body);
-  if (!verifyAdminSecret(secret)) {
-    return adminUnauthorizedResponse();
-  }
+  const auth = await authorizeAdminRequest(body);
+  if (!auth.ok) return auth.response;
 
   const includeZero =
     typeof body === "object" &&

@@ -2,7 +2,7 @@
 
 import type { AdminLoyaltyMember, AdminLoyaltySummary } from "@/lib/admin-loyalty";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 function formatWhen(iso: string | null): string {
   if (!iso) return "—";
@@ -12,13 +12,12 @@ function formatWhen(iso: string | null): string {
 }
 
 export default function AdminLoyaltyPage() {
-  const [secret, setSecret] = useState("");
   const [includeZero, setIncludeZero] = useState(false);
   const [search, setSearch] = useState("");
   const [members, setMembers] = useState<AdminLoyaltyMember[] | null>(null);
   const [summary, setSummary] = useState<AdminLoyaltySummary | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const filtered = useMemo(() => {
     if (!members) return [];
@@ -32,31 +31,22 @@ export default function AdminLoyaltyPage() {
     );
   }, [members, search]);
 
-  async function fetchLoyalty(e: React.FormEvent) {
-    e.preventDefault();
+  const fetchLoyalty = useCallback(async () => {
     setError(null);
-    setMembers(null);
-    setSummary(null);
     setLoading(true);
     try {
       const res = await fetch("/api/admin/loyalty", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ secret: secret.trim(), includeZero }),
+        body: JSON.stringify({ includeZero }),
       });
       const data = (await res.json()) as {
         members?: AdminLoyaltyMember[];
         summary?: AdminLoyaltySummary;
         error?: string;
       };
-      if (res.status === 503 && data.error === "admin_stats_not_configured") {
-        setError(
-          "Admin is not configured yet. Add ADMIN_STATS_SECRET and SUPABASE_SERVICE_ROLE_KEY to your server environment, redeploy, then try again."
-        );
-        return;
-      }
       if (res.status === 401) {
-        setError("Incorrect admin key.");
+        setError("You do not have admin access. Sign in at /login first.");
         return;
       }
       if (!res.ok) {
@@ -72,16 +62,18 @@ export default function AdminLoyaltyPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [includeZero]);
+
+  useEffect(() => {
+    void fetchLoyalty();
+  }, [fetchLoyalty]);
 
   return (
     <div className="min-h-[70vh] px-6 py-24 max-w-5xl mx-auto">
       <p className="text-[10px] tracking-[0.35em] uppercase text-stll-muted mb-4">Admin</p>
       <h1 className="text-2xl font-black uppercase tracking-tight text-stll-charcoal mb-2">Loyalty members</h1>
       <p className="text-sm text-stll-muted leading-relaxed mb-4">
-        Points and rewards for signed-in customers (stored in Supabase Auth). Uses the same key as{" "}
-        <span className="font-semibold text-stll-charcoal">ADMIN_STATS_SECRET</span>. Guest checkout is not
-        included.
+        Historical points and rewards for accounts that signed up before loyalty was removed.
       </p>
       <p className="text-sm text-stll-muted leading-relaxed mb-8">
         <Link href="/admin/stats" className="underline underline-offset-2 hover:text-stll-charcoal">
@@ -97,36 +89,19 @@ export default function AdminLoyaltyPage() {
         </Link>
       </p>
 
-      <form onSubmit={(e) => void fetchLoyalty(e)} className="flex flex-col gap-4 mb-8 max-w-md">
-        <label htmlFor="admin-secret" className="sr-only">
-          Admin secret
-        </label>
+      <label className="flex items-start gap-3 text-[11px] text-stll-charcoal leading-relaxed cursor-pointer mb-8 max-w-md">
         <input
-          id="admin-secret"
-          type="password"
-          autoComplete="off"
-          value={secret}
-          onChange={(e) => setSecret(e.target.value)}
-          placeholder="Admin key"
-          className="w-full px-4 py-3 text-sm border border-stll-charcoal/20 bg-white text-stll-charcoal placeholder:text-stll-muted/60 focus:outline-none focus:border-stll-charcoal/40"
+          type="checkbox"
+          checked={includeZero}
+          onChange={(e) => setIncludeZero(e.target.checked)}
+          className="mt-0.5 h-4 w-4 shrink-0 border-stll-charcoal/40 accent-stll-charcoal"
         />
-        <label className="flex items-start gap-3 text-[11px] text-stll-charcoal leading-relaxed cursor-pointer">
-          <input
-            type="checkbox"
-            checked={includeZero}
-            onChange={(e) => setIncludeZero(e.target.checked)}
-            className="mt-0.5 h-4 w-4 shrink-0 border-stll-charcoal/40 accent-stll-charcoal"
-          />
-          Show all registered accounts (including 0 points)
-        </label>
-        <button
-          type="submit"
-          disabled={loading || !secret.trim()}
-          className="w-full px-8 py-3.5 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal bg-stll-charcoal text-white hover:bg-stll-charcoal/90 transition-colors disabled:opacity-50"
-        >
-          {loading ? "Loading…" : "Load loyalty data"}
-        </button>
-      </form>
+        Show all registered accounts (including 0 points)
+      </label>
+
+      {loading && !summary && (
+        <p className="text-sm text-stll-muted mb-8">Loading loyalty data…</p>
+      )}
 
       {summary && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
@@ -250,10 +225,10 @@ export default function AdminLoyaltyPage() {
       {error && <p className="mt-6 text-sm text-red-700 leading-relaxed">{error}</p>}
 
       <Link
-        href="/"
+        href="/account"
         className="mt-12 inline-block text-[11px] tracking-[0.2em] uppercase text-stll-muted hover:text-stll-charcoal"
       >
-        ← Back to home
+        ← Admin hub
       </Link>
     </div>
   );

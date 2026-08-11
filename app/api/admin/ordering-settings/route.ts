@@ -1,34 +1,18 @@
+import { authorizeAdminRequest } from "@/lib/admin-request-auth";
 import { mergeOrderingSettings, type OrderingSettings } from "@/lib/ordering-settings";
 import { loadOrderingSettings, saveOrderingSettings } from "@/lib/ordering-settings-store";
 import { NextResponse } from "next/server";
 
-function verifyAdminSecret(secret: string): boolean {
-  const adminSecret = process.env.ADMIN_STATS_SECRET?.trim();
-  if (!adminSecret) return false;
-  return secret === adminSecret;
-}
-
 export async function POST(request: Request) {
-  const adminSecret = process.env.ADMIN_STATS_SECRET?.trim();
-  if (!adminSecret) {
-    return NextResponse.json({ error: "admin_stats_not_configured" }, { status: 503 });
-  }
-
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+    body = {};
   }
 
-  const secret =
-    typeof body === "object" && body !== null && "secret" in body
-      ? String((body as { secret: unknown }).secret ?? "")
-      : "";
-
-  if (!verifyAdminSecret(secret)) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const auth = await authorizeAdminRequest(body);
+  if (!auth.ok) return auth.response;
 
   const savePayload =
     typeof body === "object" && body !== null && "settings" in body

@@ -1,6 +1,6 @@
 "use server";
 
-import { verifyAdminAccountCredentials } from "@/lib/admin-account";
+import { verifyAdminEmail } from "@/lib/admin-account";
 import { establishAdminSession, sanitizeAdminNextPath } from "@/lib/admin-sign-in";
 import { redirect } from "next/navigation";
 
@@ -20,11 +20,11 @@ export async function adminSignInAction(
     return { error: "Enter team email and password." };
   }
 
-  if (!verifyAdminAccountCredentials(email, password)) {
+  if (!verifyAdminEmail(email)) {
     return { error: "Incorrect team email or password." };
   }
 
-  const session = await establishAdminSession();
+  const session = await establishAdminSession(password);
   if (!session.ok) {
     return { error: session.error };
   }

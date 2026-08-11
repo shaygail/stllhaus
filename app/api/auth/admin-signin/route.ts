@@ -1,4 +1,4 @@
-import { verifyAdminAccountCredentials, isAdminAccountConfigured } from "@/lib/admin-account";
+import { verifyAdminEmail, isAdminAccountConfigured } from "@/lib/admin-account";
 import { establishAdminSession, sanitizeAdminNextPath } from "@/lib/admin-sign-in";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -32,11 +32,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "missing_credentials" }, { status: 400 });
   }
 
-  if (!verifyAdminAccountCredentials(email, password)) {
+  if (!verifyAdminEmail(email)) {
     return NextResponse.json({ error: "invalid_credentials" }, { status: 401 });
   }
 
-  const session = await establishAdminSession();
+  const session = await establishAdminSession(password);
   if (!session.ok) {
     return NextResponse.json({ error: "sign_in_failed", detail: session.error }, { status: 500 });
   }

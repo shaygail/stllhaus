@@ -3,13 +3,25 @@ import { timingSafeEqual } from "crypto";
 
 /** Fixed staff admin email (e.g. admin@stllhaus.co). Also receives admin access when signed in. */
 export function getAdminAccountEmail(): string | null {
-  const email = process.env.ADMIN_ACCOUNT_EMAIL?.trim().toLowerCase();
+  const email = stripEnvQuotes(process.env.ADMIN_ACCOUNT_EMAIL)?.trim().toLowerCase();
   return email || null;
 }
 
 export function getAdminAccountPassword(): string | null {
-  const password = process.env.ADMIN_ACCOUNT_PASSWORD?.trim();
+  const password = stripEnvQuotes(process.env.ADMIN_ACCOUNT_PASSWORD)?.trim();
   return password || null;
+}
+
+function stripEnvQuotes(value: string | undefined): string | undefined {
+  if (!value) return value;
+  const trimmed = value.trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
 }
 
 export function isAdminAccountConfigured(): boolean {
@@ -23,15 +35,18 @@ function safeSecretEqual(provided: string, expected: string): boolean {
   return timingSafeEqual(a, b);
 }
 
-export function verifyAdminAccountCredentials(email: string, password: string): boolean {
+export function verifyAdminEmail(email: string): boolean {
   if (!isAdminAccountConfigured()) return false;
+  return email.trim().toLowerCase() === getAdminAccountEmail();
+}
 
-  const expectedEmail = getAdminAccountEmail()!;
+/** @deprecated Prefer verifyAdminEmail + Supabase sign-in */
+export function verifyAdminAccountCredentials(email: string, password: string): boolean {
+  if (!verifyAdminEmail(email)) return false;
   const expectedPassword = getAdminAccountPassword()!;
-
-  const normalizedEmail = email.trim().toLowerCase();
-  if (!safeSecretEqual(normalizedEmail, expectedEmail)) return false;
-  return safeSecretEqual(password.trim(), expectedPassword);
+  const provided = password.trim();
+  if (provided.length !== expectedPassword.length) return false;
+  return safeSecretEqual(provided, expectedPassword);
 }
 
 async function findUserIdByEmail(email: string): Promise<string | null> {

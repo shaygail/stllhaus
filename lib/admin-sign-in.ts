@@ -11,31 +11,51 @@ export function sanitizeAdminNextPath(raw: string | undefined): string {
   return next;
 }
 
+function isInvalidCredentials(message: string): boolean {
+  const lower = message.toLowerCase();
+  return lower.includes("invalid login credentials") || lower.includes("invalid credentials");
+}
+
 /** Sync admin user in Supabase Auth and create a browser session cookie. */
-export async function establishAdminSession(): Promise<{ ok: true } | { ok: false; error: string }> {
-  const sync = await syncAdminSupabaseUser();
-  if (!sync.ok) {
-    return {
-      ok: false,
-      error:
-        sync.error === "missing_supabase_config"
-          ? "Supabase service role key is required for team sign-in."
-          : sync.error === "not_configured"
-            ? "Team sign-in is not configured on the server."
-            : "Could not sync the admin account. Try again.",
-    };
+export async function establishAdminSession(
+  passwordFromForm: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const email = getAdminAccountEmail();
+  const envPassword = getAdminAccountPassword();
+  if (!email || !envPassword) {
+    return { ok: false, error: "Team sign-in is not configured on the server." };
   }
 
+  const password = passwordFromForm.trim();
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
-    email: getAdminAccountEmail()!,
-    password: getAdminAccountPassword()!,
-  });
+
+  let { error } = await supabase.auth.signInWithPassword({ email, password });
+
+  // If the typed password fails, sync Supabase to the server env password and retry once.
+  if (error && isInvalidCredentials(error.message)) {
+    const sync = await syncAdminSupabaseUser();
+    if (!sync.ok) {
+      return {
+        ok: false,
+        error:
+          sync.error === "missing_supabase_config"
+            ? "Supabase service role key is required for team sign-in."
+            : "Could not sync the admin account. Try again.",
+      };
+    }
+
+    if (password !== envPassword) {
+      const retry = await supabase.auth.signInWithPassword({ email, password: envPassword });
+      error = retry.error;
+    }
+  }
 
   if (error) {
     return {
       ok: false,
-      error: error.message || "Could not sign in. Check Supabase Auth email/password settings.",
+      error: isInvalidCredentials(error.message)
+        ? "Incorrect team email or password."
+        : error.message || "Could not sign in. Check Supabase Auth email/password settings.",
     };
   }
 

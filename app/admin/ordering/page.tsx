@@ -122,6 +122,10 @@ export default function AdminOrderingPage() {
         <Link href="/admin/loyalty" className="underline underline-offset-2 hover:text-stll-charcoal">
           Loyalty members
         </Link>
+        {" · "}
+        <Link href="/account/events" className="underline underline-offset-2 hover:text-stll-charcoal">
+          Manage events
+        </Link>
       </p>
 
       <form onSubmit={(e) => void loadSettings(e)} className="flex flex-col gap-4 mb-10">

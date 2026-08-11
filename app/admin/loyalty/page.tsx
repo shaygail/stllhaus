@@ -91,6 +91,10 @@ export default function AdminLoyaltyPage() {
         <Link href="/admin/ordering" className="underline underline-offset-2 hover:text-stll-charcoal">
           Menu ordering
         </Link>
+        {" · "}
+        <Link href="/account/events" className="underline underline-offset-2 hover:text-stll-charcoal">
+          Manage events
+        </Link>
       </p>
 
       <form onSubmit={(e) => void fetchLoyalty(e)} className="flex flex-col gap-4 mb-8 max-w-md">

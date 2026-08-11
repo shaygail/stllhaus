@@ -1,97 +1,62 @@
 "use client";
 
-import { POINTS_PER_DOLLAR } from "@/lib/loyalty";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-export function LoginClient() {
+type LoginClientProps = {
+  adminSignInEnabled: boolean;
+};
+
+export function LoginClient({ adminSignInEnabled }: LoginClientProps) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/account";
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState<"idle" | "signin" | "signup">("idle");
-  const [email, setEmail] = useState("");
-  const [emailSent, setEmailSent] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
 
-  async function sendSignInLink() {
+  async function signInAsAdmin(e: React.FormEvent) {
+    e.preventDefault();
     setError(null);
-    setEmailSent(false);
-    const trimmed = email.trim();
-    if (!trimmed) {
-      setError("Enter your email address.");
-      return;
-    }
-    setPending("signin");
+    setPending(true);
     try {
-      const res = await fetch("/api/auth/signin-link", {
+      const res = await fetch("/api/auth/admin-signin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: trimmed, next }),
+        body: JSON.stringify({
+          email: adminEmail.trim(),
+          password: adminPassword,
+          next,
+        }),
       });
-      const data = (await res.json()) as { success?: boolean; error?: string };
+      const data = (await res.json()) as {
+        success?: boolean;
+        redirect?: string;
+        error?: string;
+        detail?: string;
+      };
 
       if (res.status === 503) {
-        setError(
-          "Sign-in link email is not fully configured on the server. Please contact Stll Haus."
-        );
+        setError(data.detail ?? "Team sign-in is not configured yet.");
         return;
       }
-      if (res.status === 404 || data.error === "not_registered") {
-        setError(
-          "No account exists for this email yet. Use “Create account” below, or check the address for typos."
-        );
+      if (res.status === 401) {
+        setError("Incorrect team email or password.");
         return;
       }
       if (!res.ok) {
-        setError(data.error === "invalid_email" ? "Enter a valid email address." : "Could not send the link. Try again.");
+        setError(data.detail ?? "Could not sign in. Try again.");
         return;
       }
-      setEmailSent(true);
-    } catch {
-      setError("Could not send the link. Try again.");
-    } finally {
-      setPending("idle");
-    }
-  }
 
-  async function sendSignUpLink() {
-    setError(null);
-    setEmailSent(false);
-    const trimmed = email.trim();
-    if (!trimmed) {
-      setError("Enter your email address.");
-      return;
-    }
-    setPending("signup");
-    try {
-      const res = await fetch("/api/auth/signup-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: trimmed, next }),
-      });
-      const data = (await res.json()) as { success?: boolean; error?: string };
-
-      if (res.status === 503) {
-        setError(
-          "New account registration is not fully configured on the server. Please contact Stll Haus or try “Email me a sign-in link” if you already have an account."
-        );
-        return;
-      }
-      if (res.status === 409 || data.error === "already_registered") {
-        setError(
-          "This email is already registered. Use “Email me a sign-in link” above instead of creating another account."
-        );
-        return;
-      }
-      if (!res.ok) {
-        setError(data.error === "invalid_email" ? "Enter a valid email address." : "Could not send the link. Try again.");
-        return;
-      }
-      setEmailSent(true);
+      router.push(data.redirect ?? "/account");
+      router.refresh();
     } catch {
-      setError("Could not send the link. Try again.");
+      setError("Could not sign in. Try again.");
     } finally {
-      setPending("idle");
+      setPending(false);
     }
   }
 
@@ -99,62 +64,56 @@ export function LoginClient() {
     <div className="min-h-[70vh] flex flex-col items-center justify-center px-6 py-24">
       <p className="text-[10px] tracking-[0.35em] uppercase text-stll-muted mb-4">Stll Haus</p>
       <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-stll-charcoal mb-2 text-center">
-        Sign in
+        Team sign in
       </h1>
       <p className="text-sm text-stll-muted text-center max-w-md mb-10">
-        One email per account. Sign in if you already ordered with us, or create an account if you&apos;re new.
+        Staff only — sign in to manage events, ordering hours, and admin tools.
       </p>
 
-      <section className="w-full max-w-sm border border-stll-charcoal/15 bg-white/60 p-4 mb-6">
-        <p className="text-[10px] tracking-[0.2em] uppercase text-stll-muted mb-2">Loyalty points</p>
-        <p className="text-sm text-stll-charcoal mb-2">
-          Earn <span className="font-semibold">{POINTS_PER_DOLLAR} points per $1</span> spent.
-        </p>
-        <p className="text-xs text-stll-muted leading-relaxed mb-3">
-          Bronze: 0+ points · Silver: 250+ points · Gold: 500+ points
-        </p>
-        <p className="text-xs text-stll-charcoal leading-relaxed">
-          Rewards milestones: <span className="font-semibold">10% off on the 5th order</span> and{" "}
-          <span className="font-semibold">a free drink on the 10th order</span>.
-        </p>
-      </section>
-
-      <div className="w-full max-w-sm flex flex-col gap-3">
-        <label htmlFor="login-email" className="sr-only">
-          Email
-        </label>
-        <input
-          id="login-email"
-          type="email"
-          name="email"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          className="w-full px-4 py-3 text-sm border border-stll-charcoal/20 bg-white text-stll-charcoal placeholder:text-stll-muted/60 focus:outline-none focus:border-stll-charcoal/40"
-        />
-        <button
-          type="button"
-          onClick={() => void sendSignInLink()}
-          disabled={pending !== "idle"}
-          className="w-full px-8 py-3.5 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal bg-stll-charcoal text-white hover:bg-stll-charcoal/90 transition-colors disabled:opacity-50"
-        >
-          {pending === "signin" ? "Sending…" : "Email me a sign-in link"}
-        </button>
-        <button
-          type="button"
-          onClick={() => void sendSignUpLink()}
-          disabled={pending !== "idle"}
-          className="w-full px-8 py-3.5 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal/25 text-stll-charcoal hover:bg-stll-charcoal/5 transition-colors disabled:opacity-50"
-        >
-          {pending === "signup" ? "Sending…" : "Create account"}
-        </button>
-      </div>
-      {emailSent && (
-        <p className="mt-4 text-sm text-stll-charcoal text-center max-w-md">
-          Check your inbox for a link to continue. It may take a minute to arrive.
+      {adminSignInEnabled ? (
+        <form onSubmit={(e) => void signInAsAdmin(e)} className="w-full max-w-sm flex flex-col gap-3">
+          <label htmlFor="admin-email" className="sr-only">
+            Team email
+          </label>
+          <input
+            id="admin-email"
+            type="email"
+            name="email"
+            autoComplete="username"
+            value={adminEmail}
+            onChange={(e) => setAdminEmail(e.target.value)}
+            placeholder="Team email"
+            required
+            className="w-full px-4 py-3 text-sm border border-stll-charcoal/20 bg-white text-stll-charcoal placeholder:text-stll-muted/60 focus:outline-none focus:border-stll-charcoal/40"
+          />
+          <label htmlFor="admin-password" className="sr-only">
+            Team password
+          </label>
+          <input
+            id="admin-password"
+            type="password"
+            name="password"
+            autoComplete="current-password"
+            value={adminPassword}
+            onChange={(e) => setAdminPassword(e.target.value)}
+            placeholder="Team password"
+            required
+            className="w-full px-4 py-3 text-sm border border-stll-charcoal/20 bg-white text-stll-charcoal placeholder:text-stll-muted/60 focus:outline-none focus:border-stll-charcoal/40"
+          />
+          <button
+            type="submit"
+            disabled={pending}
+            className="w-full px-8 py-3.5 text-[11px] tracking-[0.2em] uppercase border border-stll-charcoal bg-stll-charcoal text-white hover:bg-stll-charcoal/90 transition-colors disabled:opacity-50"
+          >
+            {pending ? "Signing in…" : "Sign in"}
+          </button>
+        </form>
+      ) : (
+        <p className="text-sm text-stll-muted text-center max-w-md">
+          Team sign-in is not configured yet. Contact your site administrator.
         </p>
       )}
+
       {error && <p className="mt-4 text-sm text-red-700 text-center max-w-md">{error}</p>}
       <Link href="/" className="mt-10 text-[11px] tracking-[0.2em] uppercase text-stll-muted hover:text-stll-charcoal">
         ← Back to home

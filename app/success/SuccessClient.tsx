@@ -1,14 +1,5 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
-import { mergeOrderHistory, parseOrderHistory, type OrderHistoryEntry } from "@/lib/order-history";
-import {
-  markRewardsRedeemed,
-  mergeRewardHistory,
-  parseRewardHistory,
-  type RewardHistoryEntry,
-} from "@/lib/reward-history";
-import { POINTS_PER_DOLLAR, getLoyaltyTier } from "@/lib/loyalty";
 import type { DeliveryTier } from "@/lib/delivery";
 import { isPickupLocationId, pickupLocationForEmail } from "@/lib/pickup-locations";
 import Link from "next/link";
@@ -38,18 +29,12 @@ type LastOrder = {
   paymentMethod: string;
   orderId?: string;
   notes?: string;
-  loyaltyRedemptions?: {
-    tenPercentRewardId?: string;
-    freeDrinkRewardId?: string;
-  };
 };
 
 export default function SuccessClient() {
   const searchParams = useSearchParams();
   const method = searchParams.get("method");
   const [lastOrder, setLastOrder] = useState<LastOrder | null>(null);
-  const [awardedPoints, setAwardedPoints] = useState<number | null>(null);
-  const [awardedRewards, setAwardedRewards] = useState<RewardHistoryEntry[]>([]);
   const [receiptEmail, setReceiptEmail] = useState("");
   const [receiptStatus, setReceiptStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
   const [receiptError, setReceiptError] = useState("");
@@ -68,139 +53,6 @@ export default function SuccessClient() {
       /* ignore */
     }
   }, []);
-
-  useEffect(() => {
-    if (!lastOrder) return;
-
-    const awardLoyaltyPoints = async () => {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) return;
-
-      const orderFingerprint =
-        lastOrder.orderId ??
-        `${lastOrder.total}-${lastOrder.pickupTime}-${lastOrder.pickupLocationId ?? ""}-${lastOrder.fulfillment ?? "pickup"}-${lastOrder.deliveryAddress ?? ""}-${lastOrder.items
-          .map((item) => `${item.name}:${item.quantity}`)
-          .join("|")}`;
-      const sessionKey = `stll-loyalty-awarded:${orderFingerprint}`;
-
-      if (sessionStorage.getItem(sessionKey) === "1") return;
-
-      const pointsEarned = Math.max(0, Math.floor(lastOrder.total * POINTS_PER_DOLLAR));
-
-      const metadata = user.user_metadata ?? {};
-      const currentPoints = Number(metadata.loyalty_points ?? 0) || 0;
-      const currentPurchases = Number(metadata.loyalty_total_purchases ?? 0) || 0;
-      const currentSpent = Number(metadata.loyalty_total_spent ?? 0) || 0;
-
-      const nextPoints = currentPoints + pointsEarned;
-      const nextSpent = currentSpent + lastOrder.total;
-      const nextPurchases = currentPurchases + 1;
-      const nextTier = getLoyaltyTier(nextPoints);
-
-      const prevName = String(metadata.full_name ?? "").trim();
-      const checkoutName = String(lastOrder.customerName ?? "").trim();
-      const fullName = prevName || checkoutName;
-
-      const summary = lastOrder.items
-        .map((item) => `${item.quantity}× ${item.name}`)
-        .slice(0, 5)
-        .join(", ");
-
-      const loc =
-        lastOrder.fulfillment === "delivery"
-          ? { title: "Delivery", detail: lastOrder.deliveryAddress }
-          : lastOrder.pickupLocationId && isPickupLocationId(lastOrder.pickupLocationId)
-            ? pickupLocationForEmail(lastOrder.pickupLocationId)
-            : null;
-      const entry: OrderHistoryEntry = {
-        id: orderFingerprint,
-        placedAt: new Date().toISOString(),
-        total: lastOrder.total,
-        summary,
-        pickupTime: lastOrder.pickupTime,
-        pickupLocationLabel: loc?.title,
-        paymentMethod: lastOrder.paymentMethod,
-      };
-
-      const nextHistory = mergeOrderHistory(parseOrderHistory(metadata.order_history), entry);
-      let existingRewardHistory = parseRewardHistory(metadata.reward_history);
-      const rewardsAwardedNow: RewardHistoryEntry[] = [];
-      const nowIso = new Date().toISOString();
-
-      const redeemIds = [
-        lastOrder.loyaltyRedemptions?.tenPercentRewardId,
-        lastOrder.loyaltyRedemptions?.freeDrinkRewardId,
-      ].filter((id): id is string => typeof id === "string" && id.length > 0);
-      if (redeemIds.length > 0) {
-        existingRewardHistory = markRewardsRedeemed(
-          existingRewardHistory,
-          redeemIds,
-          nowIso,
-          orderFingerprint
-        );
-      }
-
-      if (nextPurchases % 5 === 0) {
-        rewardsAwardedNow.push({
-          id: `${orderFingerprint}:milestone-5`,
-          rewardType: "ten_percent_off",
-          status: "earned",
-          source: "milestone",
-          orderId: orderFingerprint,
-          orderCountAtAward: nextPurchases,
-          pointsAtAward: nextPoints,
-          awardedAt: nowIso,
-          note: "5th order reward",
-        });
-      }
-
-      if (nextPurchases % 10 === 0) {
-        rewardsAwardedNow.push({
-          id: `${orderFingerprint}:milestone-10`,
-          rewardType: "free_drink",
-          status: "earned",
-          source: "milestone",
-          orderId: orderFingerprint,
-          orderCountAtAward: nextPurchases,
-          pointsAtAward: nextPoints,
-          awardedAt: nowIso,
-          note: "10th order reward",
-        });
-      }
-
-      const nextData: Record<string, unknown> = {
-        ...metadata,
-        full_name: fullName || metadata.full_name,
-        order_history: nextHistory,
-        reward_history: mergeRewardHistory(existingRewardHistory, rewardsAwardedNow),
-        loyalty_total_purchases: nextPurchases,
-        loyalty_total_spent: Number(nextSpent.toFixed(2)),
-      };
-
-      if (pointsEarned > 0) {
-        nextData.loyalty_points = nextPoints;
-        nextData.loyalty_tier = nextTier;
-        nextData.loyalty_last_awarded_order = orderFingerprint;
-        nextData.loyalty_last_awarded_at = new Date().toISOString();
-      }
-
-      const { error } = await supabase.auth.updateUser({
-        data: nextData,
-      });
-
-      if (!error) {
-        sessionStorage.setItem(sessionKey, "1");
-        if (pointsEarned > 0) setAwardedPoints(pointsEarned);
-        if (rewardsAwardedNow.length > 0) setAwardedRewards(rewardsAwardedNow);
-      }
-    };
-
-    void awardLoyaltyPoints();
-  }, [lastOrder]);
 
   const handleResendReceipt = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -303,24 +155,6 @@ export default function SuccessClient() {
             <p className="text-sm text-stll-muted mb-12 leading-relaxed">
               Check your email for the order confirmation. We&apos;ll notify you when it&apos;s ready.
             </p>
-            {awardedPoints !== null && (
-              <p className="text-sm text-stll-charcoal mb-8 leading-relaxed">
-                Loyalty updated: <span className="font-semibold">+{awardedPoints} points</span> added to your account.
-              </p>
-            )}
-            {awardedRewards.length > 0 && (
-              <div className="mb-8">
-                {awardedRewards.map((reward) => (
-                  <p key={reward.id} className="text-sm text-stll-charcoal leading-relaxed">
-                    Reward earned:{" "}
-                    <span className="font-semibold">
-                      {reward.rewardType === "free_drink" ? "Free drink" : "10% off"}
-                    </span>{" "}
-                    added to your account history.
-                  </p>
-                ))}
-              </div>
-            )}
 
             {lastOrder && (
               <section className="mb-12 border border-stll-charcoal/10 p-6 sm:p-8">

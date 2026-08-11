@@ -1,7 +1,10 @@
 import { Suspense } from "react";
 import { LoginClient } from "./LoginClient";
+import { isAdminAccountConfigured } from "@/lib/admin-account";
 
 export default function LoginPage() {
+  const adminSignInEnabled = isAdminAccountConfigured();
+
   return (
     <Suspense
       fallback={
@@ -10,7 +13,7 @@ export default function LoginPage() {
         </div>
       }
     >
-      <LoginClient />
+      <LoginClient adminSignInEnabled={adminSignInEnabled} />
     </Suspense>
   );
 }

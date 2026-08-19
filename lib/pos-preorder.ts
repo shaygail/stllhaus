@@ -37,24 +37,24 @@ export async function pushCheckoutToPosPreorder(input: {
     const mods = item.description?.trim();
     return `- ${item.quantity}× ${item.name}${mods ? ` — ${mods}` : ""}`;
   });
-  const notes = [
+  const notesLines: string[] = [
     "Source: stllhaus.co",
     `Website order: ${input.orderId}`,
     `Fulfillment: ${input.fulfillmentLabel}`,
     `Payment: ${input.paymentMethod}`,
-    input.contactEmail?.trim() && `Email: ${input.contactEmail.trim()}`,
-    input.contactPhone?.trim() && `Phone: ${input.contactPhone.trim()}`,
-    input.contactInstagram?.trim() && `Instagram: ${input.contactInstagram.trim()}`,
-    "",
-    "Items:",
-    ...itemLines,
-    input.customerNotes?.trim() && "",
-    input.customerNotes?.trim() && "Customer notes:",
-    input.customerNotes?.trim(),
-  ]
-    .filter((line) => line !== false && line !== undefined)
-    .join("\n")
-    .trim();
+  ];
+  const email = input.contactEmail?.trim();
+  const phone = input.contactPhone?.trim();
+  const instagram = input.contactInstagram?.trim();
+  if (email) notesLines.push(`Email: ${email}`);
+  if (phone) notesLines.push(`Phone: ${phone}`);
+  if (instagram) notesLines.push(`Instagram: ${instagram}`);
+  notesLines.push("", "Items:", ...itemLines);
+  const customerNotes = input.customerNotes?.trim();
+  if (customerNotes) {
+    notesLines.push("", "Customer notes:", customerNotes);
+  }
+  const notes = notesLines.join("\n").trim();
 
   const body = {
     customer_name: input.customerName.trim() || "Website order",

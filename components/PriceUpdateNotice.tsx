@@ -22,12 +22,14 @@ export function PriceUpdateNotice({ enabled }: PriceUpdateNoticeProps) {
 
   useEffect(() => {
     if (!enabled) return;
+    let show = true;
     try {
-      if (localStorage.getItem(STORAGE_KEY) === "dismissed") return;
-      setOpen(true);
+      show = localStorage.getItem(STORAGE_KEY) !== "dismissed";
     } catch {
-      setOpen(true);
+      show = true;
     }
+    const timer = window.setTimeout(() => setOpen(show), 0);
+    return () => window.clearTimeout(timer);
   }, [enabled]);
 
   useEffect(() => {

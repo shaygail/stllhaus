@@ -10,6 +10,7 @@ import {
 } from "@/lib/pickup-locations";
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { pushCheckoutToPosPreorder } from "@/lib/pos-preorder";
 
 export async function POST(request: NextRequest) {
   try {
@@ -155,6 +156,25 @@ export async function POST(request: NextRequest) {
 
       // Step 1: Generate a unique orderId for tracking
       const orderId = randomUUID();
+
+      try {
+        await pushCheckoutToPosPreorder({
+          customerName: customerName || "Unknown",
+          pickupTime,
+          items,
+          fulfillmentLabel: pickupLocationDetail
+            ? `${pickupLocationTitle} — ${pickupLocationDetail}`
+            : pickupLocationTitle,
+          paymentMethod: paymentMethod || "unknown",
+          contactEmail: contactEmail?.trim() || undefined,
+          contactPhone: contactPhone?.trim() || undefined,
+          contactInstagram: contactInstagram?.trim() || undefined,
+          customerNotes: typeof notes === "string" ? notes : undefined,
+          orderId,
+        });
+      } catch (posError) {
+        console.error("POS preorder push failed:", posError);
+      }
 
       await sendOrderNotification({
         customerName: customerName || "Unknown",

@@ -986,6 +986,133 @@ function AccordionChevron() {
   );
 }
 
+const SWEET_BITES: { id: string; name: string; price: number; description: string }[] = [
+  {
+    id: "classic-tiramisu",
+    name: "Classic Tiramisu",
+    price: 10,
+    description: "1 slice",
+  },
+  {
+    id: "biscoff-tiramisu",
+    name: "Biscoff Tiramisu",
+    price: 12,
+    description: "1 slice",
+  },
+];
+
+function SimpleSnackRow({
+  name,
+  price,
+  description,
+  cartId,
+  onItemAdded,
+  canAddToCart = true,
+  addBlockedMessage,
+  isPreOrderOnly = false,
+}: {
+  name: string;
+  price: number;
+  description?: string;
+  cartId: string;
+  onItemAdded?: (itemSummary: string) => void;
+  canAddToCart?: boolean;
+  addBlockedMessage?: string;
+  isPreOrderOnly?: boolean;
+}) {
+  const { addItem } = useCart();
+  const priceLabel = `$${price.toFixed(2)}`;
+
+  const handleAddToCart = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canAddToCart) return;
+    addItem({
+      id: cartId,
+      name,
+      description: description ?? "",
+      price,
+    });
+    onItemAdded?.(name);
+  };
+
+  return (
+    <details className="group border-b border-stll-charcoal/10">
+      <summary className="flex items-start justify-between py-5 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+        <div className="flex-1 min-w-0">
+          <span className="block text-sm sm:text-base font-semibold text-stll-charcoal tracking-wide uppercase leading-snug">
+            {name}
+          </span>
+          <span className="block mt-1 text-[11px] text-stll-muted/80 tracking-widest">
+            {description ? `${description} · ${priceLabel}` : priceLabel}
+          </span>
+        </div>
+        <AccordionChevron />
+      </summary>
+      <form onSubmit={handleAddToCart}>
+        <div className="pb-6 flex flex-col gap-5">
+          {!canAddToCart && addBlockedMessage && (
+            <p className="text-xs text-stll-muted leading-relaxed">{addBlockedMessage}</p>
+          )}
+          <button
+            type="submit"
+            disabled={!canAddToCart}
+            className="w-full sm:w-auto px-8 py-3 text-[11px] tracking-[0.3em] uppercase border bg-stll-charcoal border-stll-charcoal text-white text-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {canAddToCart
+              ? isPreOrderOnly
+                ? "Pre-order"
+                : `Add to Order — ${priceLabel}`
+              : "Ordering closed"}
+          </button>
+        </div>
+      </form>
+    </details>
+  );
+}
+
+function SweetBitesSection({
+  onItemAdded,
+  canAddToCart = true,
+  addBlockedMessage,
+  isPreOrderOnly = false,
+}: {
+  onItemAdded?: (itemSummary: string) => void;
+  canAddToCart?: boolean;
+  addBlockedMessage?: string;
+  isPreOrderOnly?: boolean;
+}) {
+  return (
+    <section className="mb-20">
+      <div className="flex items-baseline gap-4 mb-1">
+        <h2 className="text-[2.5rem] sm:text-[3.5rem] font-black uppercase tracking-tight text-stll-charcoal leading-none">
+          Sweet Bites
+        </h2>
+      </div>
+      <p className="text-[10px] tracking-[0.3em] uppercase text-stll-muted mb-2">
+        House desserts
+      </p>
+      <p className="text-xs text-stll-muted mb-6 uppercase tracking-[0.15em]">
+        Priced per slice
+      </p>
+      <div className="flex flex-col divide-y divide-stll-charcoal/10">
+        {SWEET_BITES.map((item) => (
+          <SimpleSnackRow
+            key={item.id}
+            name={item.name}
+            price={item.price}
+            description={item.description}
+            cartId={item.id}
+            onItemAdded={onItemAdded}
+            canAddToCart={canAddToCart}
+            addBlockedMessage={addBlockedMessage}
+            isPreOrderOnly={isPreOrderOnly}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function SiomaiSnackRow({
   name,
   price,
@@ -1597,6 +1724,12 @@ export default function GalleryPage() {
           coffeeItems={[...menuState.classicCoffeeItems, ...menuState.specialtyCoffeeItems]}
           cloudItems={menuState.cloudItems}
           milkOptions={["Oat", "Whole", "Almond", "Soy"]}
+          onItemAdded={openCartPrompt}
+          canAddToCart={canAddToCart}
+          addBlockedMessage={addBlockedMessage}
+          isPreOrderOnly={isPreOrderOnly}
+        />
+        <SweetBitesSection
           onItemAdded={openCartPrompt}
           canAddToCart={canAddToCart}
           addBlockedMessage={addBlockedMessage}

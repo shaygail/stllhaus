@@ -339,7 +339,15 @@ export default function CheckoutForm() {
           setIsLoading(false);
           return;
         }
-        if (res.status === 403 && errBody.error === "ordering_closed") {
+        if (res.status === 409 && errBody.error === "sold_out") {
+          setError(
+            typeof errBody.detail === "string" && errBody.detail.trim()
+              ? errBody.detail.trim()
+              : "An item in your cart is sold out. Remove it and try again."
+          );
+          setIsLoading(false);
+          return;
+        }
           setError(
             typeof errBody.detail === "string" && errBody.detail.trim()
               ? errBody.detail.trim()

@@ -8,6 +8,8 @@ import {
 } from "@/lib/menu-catalog";
 import { OrderingStatusBanner } from "@/components/OrderingStatusBanner";
 import { useOrderingStatus } from "@/hooks/useOrderingStatus";
+import { useSoldOutAvailability } from "@/hooks/useSoldOutAvailability";
+import { itemIsSoldOut } from "@/lib/menu-availability";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -576,6 +578,7 @@ function MenuItemRow({
   canAddToCart = true,
   addBlockedMessage,
   isPreOrderOnly = false,
+  isSoldOut = false,
 }: {
   item: MenuItemData;
   milkOptions?: string[];
@@ -585,6 +588,7 @@ function MenuItemRow({
   canAddToCart?: boolean;
   addBlockedMessage?: string;
   isPreOrderOnly?: boolean;
+  isSoldOut?: boolean;
 }) {
   const showMatchaStrength = item.showMatchaStrength ?? item.name.toLowerCase().includes("matcha");
   const dairyCreamNote = getDairyCreamBaseNote(item.name);
@@ -636,7 +640,7 @@ function MenuItemRow({
 
   const handleAddToCart = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canAddToCart) return;
+    if (!canAddToCart || isSoldOut) return;
     const sizeLabel = selectedSize;
     const sizeName = SIZE_LABELS[sizeLabel] ?? sizeLabel;
     const sortedSyrups = rowShowSyrups ? [...selectedSyrups].sort() : [];
@@ -707,7 +711,9 @@ function MenuItemRow({
             {item.name}
           </span>
           <span className="block mt-1 text-[11px] text-stll-muted/80 tracking-widest">
-            {validSizes.map((s) => `${SIZE_LABELS[s.label] ?? s.label} ${s.price}`).join("  ·  ")}
+            {isSoldOut
+              ? "Sold out"
+              : validSizes.map((s) => `${SIZE_LABELS[s.label] ?? s.label} ${s.price}`).join("  ·  ")}
           </span>
         </div>
         <span className="text-xs text-stll-muted/60 tracking-widest shrink-0 mt-1 group-open:hidden">+</span>
@@ -904,12 +910,21 @@ function MenuItemRow({
           {!canAddToCart && addBlockedMessage && (
             <p className="text-xs text-stll-muted leading-relaxed">{addBlockedMessage}</p>
           )}
+          {isSoldOut && (
+            <p className="text-xs text-stll-muted leading-relaxed">This item is sold out today.</p>
+          )}
           <button
             type="submit"
-            disabled={!canAddToCart}
+            disabled={!canAddToCart || isSoldOut}
             className="w-full sm:w-auto px-8 py-3 text-[11px] tracking-[0.3em] uppercase border bg-stll-charcoal border-stll-charcoal text-white text-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {canAddToCart ? (isPreOrderOnly ? "Pre-order" : "Add to Order") : "Ordering closed"}
+            {isSoldOut
+              ? "Sold out"
+              : canAddToCart
+                ? isPreOrderOnly
+                  ? "Pre-order"
+                  : "Add to Order"
+                : "Ordering closed"}
           </button>
         </div>
       </form>
@@ -986,6 +1001,143 @@ function AccordionChevron() {
   );
 }
 
+const SWEET_BITES: { id: string; name: string; price: number; description: string }[] = [
+  {
+    id: "classic-tiramisu",
+    name: "Classic Tiramisu",
+    price: 10,
+    description: "1 slice",
+  },
+  {
+    id: "biscoff-tiramisu",
+    name: "Biscoff Tiramisu",
+    price: 12,
+    description: "1 slice",
+  },
+];
+
+function SimpleSnackRow({
+  name,
+  price,
+  description,
+  cartId,
+  onItemAdded,
+  canAddToCart = true,
+  addBlockedMessage,
+  isPreOrderOnly = false,
+  isSoldOut = false,
+}: {
+  name: string;
+  price: number;
+  description?: string;
+  cartId: string;
+  onItemAdded?: (itemSummary: string) => void;
+  canAddToCart?: boolean;
+  addBlockedMessage?: string;
+  isPreOrderOnly?: boolean;
+  isSoldOut?: boolean;
+}) {
+  const { addItem } = useCart();
+  const priceLabel = `$${price.toFixed(2)}`;
+
+  const handleAddToCart = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canAddToCart || isSoldOut) return;
+    addItem({
+      id: cartId,
+      name,
+      description: description ?? "",
+      price,
+    });
+    onItemAdded?.(name);
+  };
+
+  return (
+    <details className="group border-b border-stll-charcoal/10">
+      <summary className="flex items-start justify-between py-5 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+        <div className="flex-1 min-w-0">
+          <span className="block text-sm sm:text-base font-semibold text-stll-charcoal tracking-wide uppercase leading-snug">
+            {name}
+          </span>
+          <span className="block mt-1 text-[11px] text-stll-muted/80 tracking-widest">
+            {isSoldOut ? "Sold out" : description ? `${description} · ${priceLabel}` : priceLabel}
+          </span>
+        </div>
+        <AccordionChevron />
+      </summary>
+      <form onSubmit={handleAddToCart}>
+        <div className="pb-6 flex flex-col gap-5">
+          {!canAddToCart && addBlockedMessage && (
+            <p className="text-xs text-stll-muted leading-relaxed">{addBlockedMessage}</p>
+          )}
+          {isSoldOut && (
+            <p className="text-xs text-stll-muted leading-relaxed">This item is sold out today.</p>
+          )}
+          <button
+            type="submit"
+            disabled={!canAddToCart || isSoldOut}
+            className="w-full sm:w-auto px-8 py-3 text-[11px] tracking-[0.3em] uppercase border bg-stll-charcoal border-stll-charcoal text-white text-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {isSoldOut
+              ? "Sold out"
+              : canAddToCart
+                ? isPreOrderOnly
+                  ? "Pre-order"
+                  : `Add to Order — ${priceLabel}`
+                : "Ordering closed"}
+          </button>
+        </div>
+      </form>
+    </details>
+  );
+}
+
+function SweetBitesSection({
+  onItemAdded,
+  canAddToCart = true,
+  addBlockedMessage,
+  isPreOrderOnly = false,
+  isItemSoldOut,
+}: {
+  onItemAdded?: (itemSummary: string) => void;
+  canAddToCart?: boolean;
+  addBlockedMessage?: string;
+  isPreOrderOnly?: boolean;
+  isItemSoldOut?: (name: string) => boolean;
+}) {
+  return (
+    <section className="mb-20">
+      <div className="flex items-baseline gap-4 mb-1">
+        <h2 className="text-[2.5rem] sm:text-[3.5rem] font-black uppercase tracking-tight text-stll-charcoal leading-none">
+          Sweet Bites
+        </h2>
+      </div>
+      <p className="text-[10px] tracking-[0.3em] uppercase text-stll-muted mb-2">
+        House desserts
+      </p>
+      <p className="text-xs text-stll-muted mb-6 uppercase tracking-[0.15em]">
+        Priced per slice
+      </p>
+      <div className="flex flex-col divide-y divide-stll-charcoal/10">
+        {SWEET_BITES.map((item) => (
+          <SimpleSnackRow
+            key={item.id}
+            name={item.name}
+            price={item.price}
+            description={item.description}
+            cartId={item.id}
+            onItemAdded={onItemAdded}
+            canAddToCart={canAddToCart}
+            addBlockedMessage={addBlockedMessage}
+            isPreOrderOnly={isPreOrderOnly}
+            isSoldOut={isItemSoldOut?.(item.name) ?? false}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function SiomaiSnackRow({
   name,
   price,
@@ -994,6 +1146,7 @@ function SiomaiSnackRow({
   canAddToCart = true,
   addBlockedMessage,
   isPreOrderOnly = false,
+  isSoldOut = false,
 }: {
   name: string;
   price: number;
@@ -1002,6 +1155,7 @@ function SiomaiSnackRow({
   canAddToCart?: boolean;
   addBlockedMessage?: string;
   isPreOrderOnly?: boolean;
+  isSoldOut?: boolean;
 }) {
   const { addItem } = useCart();
   const [dipping, setDipping] = useState<SipBiteDippingId>("mixed");
@@ -1009,7 +1163,7 @@ function SiomaiSnackRow({
 
   const handleAddToCart = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canAddToCart) return;
+    if (!canAddToCart || isSoldOut) return;
     const dippingLabel = SIOMAI_DIPPING.find((d) => d.id === dipping)?.label ?? dipping;
     addItem({
       id: `${cartId}-${dipping}`,
@@ -1027,26 +1181,35 @@ function SiomaiSnackRow({
           <span className="block text-sm sm:text-base font-semibold text-stll-charcoal tracking-wide uppercase leading-snug">
             {name}
           </span>
-          <span className="block mt-1 text-[11px] text-stll-muted/80 tracking-widest">{priceLabel}</span>
+          <span className="block mt-1 text-[11px] text-stll-muted/80 tracking-widest">
+            {isSoldOut ? "Sold out" : priceLabel}
+          </span>
         </div>
         <AccordionChevron />
       </summary>
       <form onSubmit={handleAddToCart}>
         <div className="pb-6 flex flex-col gap-5">
-          <SiomaiDippingFields groupName={`${cartId}-dipping`} value={dipping} onChange={setDipping} />
+          {!isSoldOut && (
+            <SiomaiDippingFields groupName={`${cartId}-dipping`} value={dipping} onChange={setDipping} />
+          )}
           {!canAddToCart && addBlockedMessage && (
             <p className="text-xs text-stll-muted leading-relaxed">{addBlockedMessage}</p>
           )}
+          {isSoldOut && (
+            <p className="text-xs text-stll-muted leading-relaxed">This item is sold out today.</p>
+          )}
           <button
             type="submit"
-            disabled={!canAddToCart}
+            disabled={!canAddToCart || isSoldOut}
             className="w-full sm:w-auto px-8 py-3 text-[11px] tracking-[0.3em] uppercase border bg-stll-charcoal border-stll-charcoal text-white text-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {canAddToCart
-              ? isPreOrderOnly
-                ? "Pre-order"
-                : `Add to Order — ${priceLabel}`
-              : "Ordering closed"}
+            {isSoldOut
+              ? "Sold out"
+              : canAddToCart
+                ? isPreOrderOnly
+                  ? "Pre-order"
+                  : `Add to Order — ${priceLabel}`
+                : "Ordering closed"}
           </button>
         </div>
       </form>
@@ -1063,6 +1226,7 @@ function SnacksSection({
   canAddToCart = true,
   addBlockedMessage,
   isPreOrderOnly = false,
+  isItemSoldOut,
 }: {
   coldBrewItems: MenuItemData[];
   coffeeItems: MenuItemData[];
@@ -1072,13 +1236,18 @@ function SnacksSection({
   canAddToCart?: boolean;
   addBlockedMessage?: string;
   isPreOrderOnly?: boolean;
+  isItemSoldOut?: (name: string) => boolean;
 }) {
   const { addItem } = useCart();
   const [series, setSeries] = useState<SipBiteSeriesId>("coldbrew");
+  const comboSoldOut = isItemSoldOut?.("Sip & Bite") ?? false;
   const drinksForSeries = useMemo(
-    () =>
-      series === "coldbrew" ? coldBrewItems : series === "coffee" ? coffeeItems : cloudItems,
-    [series, coldBrewItems, coffeeItems, cloudItems]
+    () => {
+      const all =
+        series === "coldbrew" ? coldBrewItems : series === "coffee" ? coffeeItems : cloudItems;
+      return all.filter((drink) => !(isItemSoldOut?.(drink.name) ?? false));
+    },
+    [series, coldBrewItems, coffeeItems, cloudItems, isItemSoldOut]
   );
 
   const [selectedDrinkName, setSelectedDrinkName] = useState("");
@@ -1108,7 +1277,7 @@ function SnacksSection({
 
   const handleAddToCart = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canAddToCart || !item) return;
+    if (!canAddToCart || !item || comboSoldOut) return;
 
     const tempSuffix = effectiveTemperature ? `, ${effectiveTemperature}` : "";
     const displayName = `SIP & BITE — ${item.name} (Regular${tempSuffix})`;
@@ -1170,7 +1339,9 @@ function SnacksSection({
               Sip &amp; Bite Combo
             </span>
             <span className="block mt-1 text-[11px] text-stll-muted/80 tracking-widest">
-              From $16.50 · Includes 6pc siomai · Clover Cloud +$2
+              {comboSoldOut
+                ? "Sold out"
+                : "From $16.50 · Includes 6pc siomai · Clover Cloud +$2"}
             </span>
           </div>
           <AccordionChevron />
@@ -1335,18 +1506,23 @@ function SnacksSection({
             {!canAddToCart && addBlockedMessage && (
               <p className="text-xs text-stll-muted leading-relaxed">{addBlockedMessage}</p>
             )}
+            {comboSoldOut && (
+              <p className="text-xs text-stll-muted leading-relaxed">Sip & Bite is sold out today.</p>
+            )}
             <button
               type="submit"
-              disabled={!canAddToCart || !item}
+              disabled={!canAddToCart || !item || comboSoldOut}
               className="w-full sm:w-auto px-8 py-3 text-[11px] tracking-[0.3em] uppercase border bg-stll-charcoal border-stll-charcoal text-white text-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {canAddToCart
-                ? isPreOrderOnly
-                  ? "Pre-order Sip & Bite"
-                  : item?.name === SIP_BITE_CLOVER_CLOUD_DRINK
-                    ? "Add Sip & Bite — $18.50"
-                    : "Add Sip & Bite — $16.50"
-                : "Ordering closed"}
+              {comboSoldOut
+                ? "Sold out"
+                : canAddToCart
+                  ? isPreOrderOnly
+                    ? "Pre-order Sip & Bite"
+                    : item?.name === SIP_BITE_CLOVER_CLOUD_DRINK
+                      ? "Add Sip & Bite — $18.50"
+                      : "Add Sip & Bite — $16.50"
+                  : "Ordering closed"}
             </button>
           </div>
           </form>
@@ -1360,6 +1536,7 @@ function SnacksSection({
           canAddToCart={canAddToCart}
           addBlockedMessage={addBlockedMessage}
           isPreOrderOnly={isPreOrderOnly}
+          isSoldOut={isItemSoldOut?.(SIOMAI_SNACK_6_NAME) ?? false}
         />
         <SiomaiSnackRow
           name={SIOMAI_SNACK_12_NAME}
@@ -1369,6 +1546,7 @@ function SnacksSection({
           canAddToCart={canAddToCart}
           addBlockedMessage={addBlockedMessage}
           isPreOrderOnly={isPreOrderOnly}
+          isSoldOut={isItemSoldOut?.(SIOMAI_SNACK_12_NAME) ?? false}
         />
       </div>
     </section>
@@ -1388,6 +1566,7 @@ function MenuSection({
   canAddToCart = true,
   addBlockedMessage,
   isPreOrderOnly = false,
+  isItemSoldOut,
 }: {
   title: string;
   subtitle: string;
@@ -1401,6 +1580,7 @@ function MenuSection({
   canAddToCart?: boolean;
   addBlockedMessage?: string;
   isPreOrderOnly?: boolean;
+  isItemSoldOut?: (name: string) => boolean;
 }) {
   return (
     <section className="mb-20">
@@ -1428,6 +1608,7 @@ function MenuSection({
             canAddToCart={canAddToCart}
             addBlockedMessage={addBlockedMessage}
             isPreOrderOnly={isPreOrderOnly}
+            isSoldOut={isItemSoldOut?.(item.name) ?? false}
           />
         ))}
       </div>
@@ -1437,6 +1618,11 @@ function MenuSection({
 
 export default function GalleryPage() {
   const { data: orderingStatus } = useOrderingStatus();
+  const { soldOutKeys } = useSoldOutAvailability();
+  const isItemSoldOut = useCallback(
+    (name: string) => itemIsSoldOut(name, soldOutKeys),
+    [soldOutKeys]
+  );
   const canAddToCart = orderingStatus?.canAddToCart ?? true;
   const isPreOrderOnly = orderingStatus?.isPreOrderOnly ?? false;
   const addBlockedMessage = orderingStatus?.canAddToCart === false ? orderingStatus.message : undefined;
@@ -1517,6 +1703,7 @@ export default function GalleryPage() {
           canAddToCart={canAddToCart}
           addBlockedMessage={addBlockedMessage}
           isPreOrderOnly={isPreOrderOnly}
+          isItemSoldOut={isItemSoldOut}
         />
         <MenuSection
           title="Hojicha Series"
@@ -1530,6 +1717,7 @@ export default function GalleryPage() {
           canAddToCart={canAddToCart}
           addBlockedMessage={addBlockedMessage}
           isPreOrderOnly={isPreOrderOnly}
+          isItemSoldOut={isItemSoldOut}
         />
         <MenuSection
           title="Cold Brew Coffees"
@@ -1542,6 +1730,7 @@ export default function GalleryPage() {
           canAddToCart={canAddToCart}
           addBlockedMessage={addBlockedMessage}
           isPreOrderOnly={isPreOrderOnly}
+          isItemSoldOut={isItemSoldOut}
         />
         <MenuSection
           title="Classic Coffee"
@@ -1554,6 +1743,7 @@ export default function GalleryPage() {
           canAddToCart={canAddToCart}
           addBlockedMessage={addBlockedMessage}
           isPreOrderOnly={isPreOrderOnly}
+          isItemSoldOut={isItemSoldOut}
         />
         <MenuSection
           title="Specialty Coffee Series"
@@ -1566,6 +1756,7 @@ export default function GalleryPage() {
           canAddToCart={canAddToCart}
           addBlockedMessage={addBlockedMessage}
           isPreOrderOnly={isPreOrderOnly}
+          isItemSoldOut={isItemSoldOut}
         />
         <MenuSection
           title="Non Coffee Series"
@@ -1579,6 +1770,7 @@ export default function GalleryPage() {
           canAddToCart={canAddToCart}
           addBlockedMessage={addBlockedMessage}
           isPreOrderOnly={isPreOrderOnly}
+          isItemSoldOut={isItemSoldOut}
         />
         <MenuSection
           title="Coconut Cloud Drinks"
@@ -1591,6 +1783,7 @@ export default function GalleryPage() {
           canAddToCart={canAddToCart}
           addBlockedMessage={addBlockedMessage}
           isPreOrderOnly={isPreOrderOnly}
+          isItemSoldOut={isItemSoldOut}
         />
         <SnacksSection
           coldBrewItems={menuState.coldBrewItems}
@@ -1601,6 +1794,14 @@ export default function GalleryPage() {
           canAddToCart={canAddToCart}
           addBlockedMessage={addBlockedMessage}
           isPreOrderOnly={isPreOrderOnly}
+          isItemSoldOut={isItemSoldOut}
+        />
+        <SweetBitesSection
+          onItemAdded={openCartPrompt}
+          canAddToCart={canAddToCart}
+          addBlockedMessage={addBlockedMessage}
+          isPreOrderOnly={isPreOrderOnly}
+          isItemSoldOut={isItemSoldOut}
         />
       </div>
     </div>

@@ -11,6 +11,7 @@ import {
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { pushCheckoutToPosPreorder } from "@/lib/pos-preorder";
+import { checkoutLineIsSoldOut, fetchSoldOutFromPos, soldOutKeySet } from "@/lib/menu-availability";
 
 export async function POST(request: NextRequest) {
   try {
@@ -82,6 +83,24 @@ export async function POST(request: NextRequest) {
         : [];
       if (items.length === 0) {
         return NextResponse.json({ error: "empty_cart" }, { status: 400 });
+      }
+
+      try {
+        const soldOut = await fetchSoldOutFromPos();
+        const soldOutKeys = soldOutKeySet(soldOut.keys, soldOut.names);
+        const unavailable = items.filter((item) => checkoutLineIsSoldOut(item.name, soldOutKeys));
+        if (unavailable.length > 0) {
+          const names = unavailable.map((item) => item.name).join(", ");
+          return NextResponse.json(
+            {
+              error: "sold_out",
+              detail: `These items are sold out: ${names}. Remove them from your cart and try again.`,
+            },
+            { status: 409 }
+          );
+        }
+      } catch {
+        // If Railway is down, still accept the order — staff can decline on the POS.
       }
 
       let pickupLocationTitle: string;

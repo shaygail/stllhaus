@@ -45,8 +45,6 @@ const SIZE_LABELS: Record<string, string> = { G: "Regular", V: "Large" };
 const MILK_SURCHARGE = 1;
 const PREMIUM_MILKS = new Set(["Almond", "Soy"]);
 const LARGE_SIZE_UPCHARGE = 2;
-/** Espresso coffee series: regular/large gap is $1 (matcha, cold brew, etc. use {@link LARGE_SIZE_UPCHARGE}). */
-const COFFEE_LARGE_UPCHARGE = 1;
 const ENABLE_BACKEND_MENU_SYNC = process.env.NEXT_PUBLIC_ENABLE_MENU_PRICE_SYNC === "true";
 
 const SYRUPS = [
@@ -131,9 +129,9 @@ function getDairyCreamBaseNote(itemName: string): string | null {
   if (name.includes("strawberry cream") && !name.includes("coconut")) {
     return "Strawberry cream top. Contains dairy.";
   }
-  if (name.includes("ube cream batirol")) {
-    return "Ube and batirol cream top. Contains dairy.";
-  }
+ if (name.includes("ube cream batirol") || name.includes("ube batirol cream")) {
+ return "Ube and batirol cream top. Contains dairy.";
+ }
   if (name.includes("strawberry cloud") && !name.includes("coconut") && !name.includes("matcha")) {
     return "Strawberry cloud foam top. Contains dairy.";
   }
@@ -192,6 +190,18 @@ const matchaItems: MenuItemData[] = [
     image: "",
     sizes: drinkSizes(MENU_DRINKS.matcha.mangoSeaSaltMatcha),
   },
+  {
+    name: "Biscoff Matcha",
+    description: "Biscoff and matcha.",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.matcha.biscoffMatcha),
+  },
+  {
+    name: "Seasalt Cream Matcha",
+    description: "Matcha topped with sea salt cream.",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.matcha.seasaltCreamMatcha),
+  },
 ];
 
 const hojichaItems: MenuItemData[] = [
@@ -204,7 +214,7 @@ const hojichaItems: MenuItemData[] = [
     showMatchaStrength: false,
   },
   {
-    name: "Hojicha Strawberry Latte",
+    name: "Strawberry Hojicha",
     description: "Strawberry and roasted hojicha latte.",
     image: "",
     sizes: drinkSizes(MENU_DRINKS.hojicha.strawberryLatte),
@@ -252,6 +262,14 @@ const coldBrewItems: MenuItemData[] = [
 
 const classicCoffeeItems: MenuItemData[] = [
   {
+    name: "Mocha",
+    description: "",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.coffee.mocha),
+    temperatureOptionsOverride: ["Hot", "Iced"],
+    coffeeShots: true,
+  },
+  {
     name: "Flat White",
     description: "",
     image: "",
@@ -260,11 +278,11 @@ const classicCoffeeItems: MenuItemData[] = [
     coffeeShots: true,
   },
   {
-    name: "Iced Latte",
+    name: "Latte",
     description: "",
     image: "",
-    sizes: drinkSizes(MENU_DRINKS.coffee.icedLatte),
-    temperatureOptionsOverride: ["Iced"],
+    sizes: drinkSizes(MENU_DRINKS.coffee.latte),
+    temperatureOptionsOverride: ["Hot", "Iced"],
     coffeeShots: true,
   },
   {
@@ -329,6 +347,14 @@ const specialtyCoffeeItems: MenuItemData[] = [
     coffeeShots: true,
   },
   {
+    name: "White Mocha",
+    description: "",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.coffee.whiteMocha),
+    temperatureOptionsOverride: ["Hot", "Iced"],
+    coffeeShots: true,
+  },
+  {
     name: "Batirol Latte",
     description: "",
     image: "",
@@ -341,6 +367,14 @@ const specialtyCoffeeItems: MenuItemData[] = [
     description: "",
     image: "",
     sizes: drinkSizes(MENU_DRINKS.coffee.blackPearlLatte),
+    temperatureOptionsOverride: ["Hot", "Iced"],
+    coffeeShots: true,
+  },
+  {
+    name: "Jasmine Latte",
+    description: "",
+    image: "",
+    sizes: drinkSizes(MENU_DRINKS.coffee.jasmineLatte),
     temperatureOptionsOverride: ["Hot", "Iced"],
     coffeeShots: true,
   },
@@ -361,20 +395,8 @@ const specialtyCoffeeItems: MenuItemData[] = [
 
 const coffeeItems: MenuItemData[] = [...classicCoffeeItems, ...specialtyCoffeeItems];
 
-const COFFEE_MENU_ITEM_NAMES = new Set(coffeeItems.map((item) => item.name));
-
-/** Coffee drinks outside the $6 / $7 tier — large uses +$2 when syncing base price from backend. */
-const COFFEE_TWO_DOLLAR_LARGE_UPCHARGE_NAMES = new Set([
-  "Ube Espresso Latte",
-  "Spanish Latte",
-  "Ube Spanish Latte",
-  "Batirol Latte",
-  "Sea Salt Americano",
-]);
-
-function largeSizeUpchargeForMenuItem(itemName: string): number {
-  if (COFFEE_TWO_DOLLAR_LARGE_UPCHARGE_NAMES.has(itemName)) return LARGE_SIZE_UPCHARGE;
-  return COFFEE_MENU_ITEM_NAMES.has(itemName) ? COFFEE_LARGE_UPCHARGE : LARGE_SIZE_UPCHARGE;
+function largeSizeUpchargeForMenuItem(_itemName: string): number {
+  return LARGE_SIZE_UPCHARGE;
 }
 
 const nonCoffeeItems: MenuItemData[] = [
@@ -405,11 +427,11 @@ const nonCoffeeItems: MenuItemData[] = [
     hideAddOns: true,
   },
   {
-    name: "Ube Cream Batirol",
+    name: "Ube Batirol Cream",
     description:
       "Ube and batirol cream top with your choice of milk. Oat or whole at menu price; almond or soy +$1. Optional cold foam add-ons below.",
     image: "",
-    sizes: drinkSizes(MENU_DRINKS.cream.ubeCreamBatirol),
+    sizes: drinkSizes(MENU_DRINKS.cream.ubeBatirolCream),
     temperatureOptionsOverride: ["Hot", "Iced"],
     hideAddOns: true,
     coldFoamsAddOnOnly: true,
@@ -436,13 +458,6 @@ const cloudItems: MenuItemData[] = [
     description: "Refreshing coconut water and homemade ube cloud foam.",
     image: "",
     sizes: drinkSizes(MENU_DRINKS.cloud.twilightCoconut),
-    milkOptionsOverride: [],
-  },
-  {
-    name: "Batirol Cloud",
-    description: "Refreshing coconut water with batirol chocolate cream cloud foam.",
-    image: "",
-    sizes: drinkSizes(MENU_DRINKS.cloud.batirolCloud),
     milkOptionsOverride: [],
   },
 ];
@@ -1002,6 +1017,12 @@ function AccordionChevron() {
 }
 
 const SWEET_BITES: { id: string; name: string; price: number; description: string }[] = [
+  {
+    id: "ube-graham",
+    name: "Ube Graham",
+    price: 8,
+    description: "1 slice",
+  },
   {
     id: "classic-tiramisu",
     name: "Classic Tiramisu",
@@ -1760,7 +1781,7 @@ export default function GalleryPage() {
         />
         <MenuSection
           title="Non Coffee Series"
-          subtitle="Cream-topped drinks — syrup add-ons not included; Ube Cream Batirol has optional cold foam add-ons"
+          subtitle="Cream-topped drinks — syrup add-ons not included; Ube Batirol Cream has optional cold foam add-ons"
           items={menuState.nonCoffeeItems}
           milkOptions={["Oat", "Whole", "Almond", "Soy"]}
           milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."

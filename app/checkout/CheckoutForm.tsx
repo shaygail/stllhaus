@@ -800,7 +800,7 @@ export default function CheckoutForm() {
                 </legend>
                 <p className="text-[10px] text-stll-muted/80 mb-3 leading-relaxed">
                   Choose the option that matches your address. Delivery is free around Bell Block; $4 for Waitara and
-                  through to the New Plymouth CBD; $6 further from the CBD (for example Westown or Taranaki Base
+                  through to the New Plymouth CBD; $7 further from the CBD (for example Westown or Taranaki Base
                   Hospital).
                 </p>
                 <div className="flex flex-col gap-3">
@@ -838,7 +838,7 @@ export default function CheckoutForm() {
                     />
                     <span className="block border border-stll-charcoal/25 px-4 py-3 text-[11px] tracking-[0.08em] text-stll-charcoal peer-checked:bg-stll-charcoal peer-checked:text-white peer-checked:border-stll-charcoal">
                       Further from the CBD (e.g. Westown, Taranaki Base) -{" "}
-                      <span className="font-semibold">$6.00</span> delivery
+                      <span className="font-semibold">$7.00</span> delivery
                     </span>
                   </label>
                 </div>

@@ -8,6 +8,7 @@ const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const defaultForm: OrderingSettings = {
   orderingEnabled: true,
+  drinksOrderingEnabled: true,
   blockOrdersWhenClosed: true,
   preOrderWhenClosed: true,
   forceClosed: false,
@@ -137,6 +138,12 @@ export default function AdminOrderingPage() {
             hint="Turn off to pause all menu orders."
             checked={form.orderingEnabled}
             onChange={(v) => setForm((p) => ({ ...p, orderingEnabled: v }))}
+          />
+          <Toggle
+            label="Drinks ordering enabled"
+            hint="Turn off to pause drinks (and Sip & Bite combos) while still allowing snacks like siomai."
+            checked={form.drinksOrderingEnabled}
+            onChange={(v) => setForm((p) => ({ ...p, drinksOrderingEnabled: v }))}
           />
           <Toggle
             label="Block cart when closed"

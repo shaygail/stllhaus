@@ -32,7 +32,7 @@ export async function pushCheckoutToPosPreorder(input: {
   contactInstagram?: string;
   customerNotes?: string;
   orderId: string;
-}): Promise<void> {
+}): Promise<number | null> {
   const itemLines = input.items.map((item) => {
     const mods = item.description?.trim();
     return `- ${item.quantity}× ${item.name}${mods ? ` — ${mods}` : ""}`;
@@ -77,5 +77,43 @@ export async function pushCheckoutToPosPreorder(input: {
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
     throw new Error(`POS preorder ${res.status}${detail ? `: ${detail.slice(0, 240)}` : ""}`);
+  }
+
+  try {
+    const data = (await res.json()) as { id?: unknown };
+    return typeof data.id === "number" ? data.id : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchPreorderStatus(preorderId: number): Promise<{
+  status: string;
+  pickupTime?: string;
+} | null> {
+  try {
+    const res = await fetch(`${posApiBase()}/preorder/${preorderId}`, {
+      method: "GET",
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const data = (await res.json()) as { status?: string; pickup_time?: string };
+      if (typeof data.status === "string") {
+        return { status: data.status, pickupTime: data.pickup_time };
+      }
+    }
+    const listRes = await fetch(`${posApiBase()}/preorders`, { cache: "no-store" });
+    if (!listRes.ok) return null;
+    const list = (await listRes.json()) as Array<{
+      id?: number;
+      status?: string;
+      pickup_time?: string;
+    }>;
+    const row = list.find((entry) => entry.id === preorderId);
+    if (!row || typeof row.status !== "string") return null;
+    return { status: row.status, pickupTime: row.pickup_time };
+  } catch (err) {
+    console.error("POS preorder status fetch failed", err);
+    return null;
   }
 }

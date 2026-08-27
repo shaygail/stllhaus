@@ -909,7 +909,7 @@ function MenuItemRow({
             disabled={!canAddToCart}
             className="w-full sm:w-auto px-8 py-3 text-[11px] tracking-[0.3em] uppercase border bg-stll-charcoal border-stll-charcoal text-white text-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {canAddToCart ? (isPreOrderOnly ? "Pre-order" : "Add to Order") : "Ordering closed"}
+            {canAddToCart ? (isPreOrderOnly ? "Pre-order" : "Add to Order") : addBlockedMessage?.toLowerCase().includes("drink") ? "Drinks unavailable" : "Ordering closed"}
           </button>
         </div>
       </form>
@@ -1060,8 +1060,10 @@ function SnacksSection({
   cloudItems,
   milkOptions = ["Oat", "Whole", "Almond", "Soy"],
   onItemAdded,
-  canAddToCart = true,
-  addBlockedMessage,
+  canAddDrinks = true,
+  canAddSnacks = true,
+  drinksBlockedMessage,
+  snacksBlockedMessage,
   isPreOrderOnly = false,
 }: {
   coldBrewItems: MenuItemData[];
@@ -1069,8 +1071,10 @@ function SnacksSection({
   cloudItems: MenuItemData[];
   milkOptions?: string[];
   onItemAdded?: (itemSummary: string) => void;
-  canAddToCart?: boolean;
-  addBlockedMessage?: string;
+  canAddDrinks?: boolean;
+  canAddSnacks?: boolean;
+  drinksBlockedMessage?: string;
+  snacksBlockedMessage?: string;
   isPreOrderOnly?: boolean;
 }) {
   const { addItem } = useCart();
@@ -1108,7 +1112,7 @@ function SnacksSection({
 
   const handleAddToCart = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canAddToCart || !item) return;
+    if (!canAddDrinks || !item) return;
 
     const tempSuffix = effectiveTemperature ? `, ${effectiveTemperature}` : "";
     const displayName = `SIP & BITE — ${item.name} (Regular${tempSuffix})`;
@@ -1332,21 +1336,21 @@ function SnacksSection({
               </div>
             )}
 
-            {!canAddToCart && addBlockedMessage && (
-              <p className="text-xs text-stll-muted leading-relaxed">{addBlockedMessage}</p>
+            {!canAddDrinks && drinksBlockedMessage && (
+              <p className="text-xs text-stll-muted leading-relaxed">{drinksBlockedMessage}</p>
             )}
             <button
               type="submit"
-              disabled={!canAddToCart || !item}
+              disabled={!canAddDrinks || !item}
               className="w-full sm:w-auto px-8 py-3 text-[11px] tracking-[0.3em] uppercase border bg-stll-charcoal border-stll-charcoal text-white text-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {canAddToCart
+              {canAddDrinks
                 ? isPreOrderOnly
                   ? "Pre-order Sip & Bite"
                   : item?.name === SIP_BITE_CLOVER_CLOUD_DRINK
                     ? "Add Sip & Bite — $18.50"
                     : "Add Sip & Bite — $16.50"
-                : "Ordering closed"}
+                : "Drinks unavailable"}
             </button>
           </div>
           </form>
@@ -1357,8 +1361,8 @@ function SnacksSection({
           price={SIOMAI_SNACK_6_PRICE}
           cartId="siomai-6pc"
           onItemAdded={onItemAdded}
-          canAddToCart={canAddToCart}
-          addBlockedMessage={addBlockedMessage}
+          canAddToCart={canAddSnacks}
+          addBlockedMessage={snacksBlockedMessage}
           isPreOrderOnly={isPreOrderOnly}
         />
         <SiomaiSnackRow
@@ -1366,8 +1370,8 @@ function SnacksSection({
           price={SIOMAI_SNACK_12_PRICE}
           cartId="siomai-12pc"
           onItemAdded={onItemAdded}
-          canAddToCart={canAddToCart}
-          addBlockedMessage={addBlockedMessage}
+          canAddToCart={canAddSnacks}
+          addBlockedMessage={snacksBlockedMessage}
           isPreOrderOnly={isPreOrderOnly}
         />
       </div>
@@ -1438,8 +1442,17 @@ function MenuSection({
 export default function GalleryPage() {
   const { data: orderingStatus } = useOrderingStatus();
   const canAddToCart = orderingStatus?.canAddToCart ?? true;
+  const canAddDrinks = orderingStatus?.canAddDrinks ?? canAddToCart;
+  const canAddSnacks = orderingStatus?.canAddSnacks ?? canAddToCart;
   const isPreOrderOnly = orderingStatus?.isPreOrderOnly ?? false;
-  const addBlockedMessage = orderingStatus?.canAddToCart === false ? orderingStatus.message : undefined;
+  const drinksBlockedMessage =
+    orderingStatus && !canAddDrinks
+      ? orderingStatus.drinksPaused
+        ? "Drinks are paused right now — snacks are still available below."
+        : orderingStatus.message
+      : undefined;
+  const snacksBlockedMessage =
+    orderingStatus && !canAddSnacks ? orderingStatus.message : undefined;
   const [cartPrompt, setCartPrompt] = useState<{ open: boolean; name: string }>({ open: false, name: "" });
   const closeCartPrompt = useCallback(() => setCartPrompt({ open: false, name: "" }), []);
   const openCartPrompt = useCallback((name: string) => setCartPrompt({ open: true, name }), []);
@@ -1514,8 +1527,8 @@ export default function GalleryPage() {
           milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
           showColdFoams
           onItemAdded={openCartPrompt}
-          canAddToCart={canAddToCart}
-          addBlockedMessage={addBlockedMessage}
+          canAddToCart={canAddDrinks}
+          addBlockedMessage={drinksBlockedMessage}
           isPreOrderOnly={isPreOrderOnly}
         />
         <MenuSection
@@ -1527,8 +1540,8 @@ export default function GalleryPage() {
           sectionNote="We use 3g of hojicha per serving."
           showColdFoams
           onItemAdded={openCartPrompt}
-          canAddToCart={canAddToCart}
-          addBlockedMessage={addBlockedMessage}
+          canAddToCart={canAddDrinks}
+          addBlockedMessage={drinksBlockedMessage}
           isPreOrderOnly={isPreOrderOnly}
         />
         <MenuSection
@@ -1539,8 +1552,8 @@ export default function GalleryPage() {
           milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
           showColdFoams
           onItemAdded={openCartPrompt}
-          canAddToCart={canAddToCart}
-          addBlockedMessage={addBlockedMessage}
+          canAddToCart={canAddDrinks}
+          addBlockedMessage={drinksBlockedMessage}
           isPreOrderOnly={isPreOrderOnly}
         />
         <MenuSection
@@ -1551,8 +1564,8 @@ export default function GalleryPage() {
           milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
           showColdFoams
           onItemAdded={openCartPrompt}
-          canAddToCart={canAddToCart}
-          addBlockedMessage={addBlockedMessage}
+          canAddToCart={canAddDrinks}
+          addBlockedMessage={drinksBlockedMessage}
           isPreOrderOnly={isPreOrderOnly}
         />
         <MenuSection
@@ -1563,8 +1576,8 @@ export default function GalleryPage() {
           milkNote="OAT OR WHOLE AT MENU PRICE. ALMOND OR SOY +$1."
           showColdFoams
           onItemAdded={openCartPrompt}
-          canAddToCart={canAddToCart}
-          addBlockedMessage={addBlockedMessage}
+          canAddToCart={canAddDrinks}
+          addBlockedMessage={drinksBlockedMessage}
           isPreOrderOnly={isPreOrderOnly}
         />
         <MenuSection
@@ -1576,8 +1589,8 @@ export default function GalleryPage() {
           showSyrups={false}
           showColdFoams={false}
           onItemAdded={openCartPrompt}
-          canAddToCart={canAddToCart}
-          addBlockedMessage={addBlockedMessage}
+          canAddToCart={canAddDrinks}
+          addBlockedMessage={drinksBlockedMessage}
           isPreOrderOnly={isPreOrderOnly}
         />
         <MenuSection
@@ -1588,8 +1601,8 @@ export default function GalleryPage() {
           showSyrups={false}
           showColdFoams
           onItemAdded={openCartPrompt}
-          canAddToCart={canAddToCart}
-          addBlockedMessage={addBlockedMessage}
+          canAddToCart={canAddDrinks}
+          addBlockedMessage={drinksBlockedMessage}
           isPreOrderOnly={isPreOrderOnly}
         />
         <SnacksSection
@@ -1598,8 +1611,10 @@ export default function GalleryPage() {
           cloudItems={menuState.cloudItems}
           milkOptions={["Oat", "Whole", "Almond", "Soy"]}
           onItemAdded={openCartPrompt}
-          canAddToCart={canAddToCart}
-          addBlockedMessage={addBlockedMessage}
+          canAddDrinks={canAddDrinks}
+          canAddSnacks={canAddSnacks}
+          drinksBlockedMessage={drinksBlockedMessage}
+          snacksBlockedMessage={snacksBlockedMessage}
           isPreOrderOnly={isPreOrderOnly}
         />
       </div>

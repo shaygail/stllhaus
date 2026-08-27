@@ -392,7 +392,7 @@ export async function sendOrderNotification({
         <input type="hidden" name="orderId" value="${escapeHtml(orderId || "")}" />
         <button type="submit" style="background: #222; color: #fff; border: none; padding: 12px 24px; font-size: 14px; border-radius: 4px; cursor: pointer;">Order is ready for pickup — email customer</button>
       </form>
-      <p style="font-size: 11px; color: #888; margin: 10px 0 0;">Tap when the order is ready. We only email the customer after you press this button (not when they first order).</p>
+      <p style="font-size: 11px; color: #888; margin: 10px 0 0;">The iPad also emails the customer automatically when staff tap Complete. Use this button only if that did not send.</p>
       <p style="font-size: 11px; color: #bbb; margin: 0; margin-top: 16px;">STLL HAUS · Order Notification</p>
     </div>
   `;

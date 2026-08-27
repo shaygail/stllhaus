@@ -1,5 +1,6 @@
 import { isValidCustomerEmail, sendOrderConfirmationEmail, sendOrderNotification } from "@/lib/email";
-import { isPickupSlotAllowed } from "@/lib/ordering-settings";
+import { pushCheckoutToPosPreorder } from "@/lib/pos-preorder";
+import { cartContainsNonSnackItems, isPickupSlotAllowed } from "@/lib/ordering-settings";
 import { loadOrderingSettings } from "@/lib/ordering-settings-store";
 import { cartUnitsEligibleForDelivery, deliveryLineItemName } from "@/lib/delivery";
 import { formatDeliveryEmailDetail, resolveDeliveryPricing } from "@/lib/server-delivery-pricing";
@@ -10,7 +11,6 @@ import {
 } from "@/lib/pickup-locations";
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { pushCheckoutToPosPreorder } from "@/lib/pos-preorder";
 
 export async function POST(request: NextRequest) {
   try {
@@ -84,6 +84,20 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "empty_cart" }, { status: 400 });
       }
 
+      if (
+        orderingSettings.drinksOrderingEnabled === false &&
+        cartContainsNonSnackItems(items)
+      ) {
+        return NextResponse.json(
+          {
+            error: "drinks_paused",
+            detail:
+              "Drinks are paused right now. Remove drinks (and Sip & Bite) from your cart — snacks like siomai are still available.",
+          },
+          { status: 403 }
+        );
+      }
+
       let pickupLocationTitle: string;
       let pickupLocationDetail: string | undefined;
       let subjectLocationSuffix: string;
@@ -138,7 +152,6 @@ export async function POST(request: NextRequest) {
         };
       }
 
-      // Get contact info from form
       const contactPhone = formData.get("contactPhone") as string;
       const contactInstagram = formData.get("contactInstagram") as string;
       const contactEmail = formData.get("contactEmail") as string;
@@ -154,11 +167,11 @@ export async function POST(request: NextRequest) {
         .filter(Boolean)
         .join(" | ");
 
-      // Step 1: Generate a unique orderId for tracking
       const orderId = randomUUID();
 
+      let preorderId: number | null = null;
       try {
-        await pushCheckoutToPosPreorder({
+        preorderId = await pushCheckoutToPosPreorder({
           customerName: customerName || "Unknown",
           pickupTime,
           items,
@@ -212,7 +225,7 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      return NextResponse.json({ success: true, orderId });
+      return NextResponse.json({ success: true, orderId, preorderId });
     } else {
       return NextResponse.json({ error: "Invalid content type" }, { status: 400 });
     }

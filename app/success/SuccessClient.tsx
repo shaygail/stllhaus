@@ -28,6 +28,7 @@ type LastOrder = {
   deliveryTier?: DeliveryTier;
   paymentMethod: string;
   orderId?: string;
+  preorderId?: number;
   notes?: string;
 };
 
@@ -38,21 +39,79 @@ export default function SuccessClient() {
   const [receiptEmail, setReceiptEmail] = useState("");
   const [receiptStatus, setReceiptStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
   const [receiptError, setReceiptError] = useState("");
+  const [kitchenStatus, setKitchenStatus] = useState<"pending" | "ready" | "done" | null>(null);
+  const [notifyPermission, setNotifyPermission] = useState<NotificationPermission | "unsupported">("default");
+  const [hasAlertedReady, setHasAlertedReady] = useState(false);
 
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem("stll-last-order");
       if (raw) {
         const parsed = JSON.parse(raw) as LastOrder;
-        if (parsed?.customerEmail) {
+        if (parsed?.customerEmail || parsed?.preorderId) {
           setLastOrder(parsed);
-          setReceiptEmail(parsed.customerEmail);
+          if (parsed.customerEmail) setReceiptEmail(parsed.customerEmail);
         }
       }
     } catch {
       /* ignore */
     }
+    if (typeof Notification === "undefined") {
+      setNotifyPermission("unsupported");
+    } else {
+      setNotifyPermission(Notification.permission);
+    }
   }, []);
+
+  useEffect(() => {
+    const preorderId = lastOrder?.preorderId;
+    if (!preorderId || kitchenStatus === "done") return;
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/order-status?preorderId=${preorderId}`, { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as { status?: string };
+        if (cancelled) return;
+        if (data.status === "ready" || data.status === "done" || data.status === "pending") {
+          setKitchenStatus(data.status);
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+
+    void poll();
+    const timer = window.setInterval(poll, 5000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [lastOrder?.preorderId, kitchenStatus]);
+
+  useEffect(() => {
+    if (kitchenStatus !== "done" || hasAlertedReady) return;
+    setHasAlertedReady(true);
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+      try {
+        new Notification("STLL HAUS", {
+          body:
+            lastOrder?.fulfillment === "delivery"
+              ? "Your order is ready and heading out for delivery."
+              : "Your order is ready for pickup.",
+        });
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [kitchenStatus, hasAlertedReady, lastOrder?.fulfillment]);
+
+  const enableDeviceNotifications = async () => {
+    if (typeof Notification === "undefined") return;
+    const result = await Notification.requestPermission();
+    setNotifyPermission(result);
+  };
 
   const handleResendReceipt = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,12 +178,37 @@ export default function SuccessClient() {
 
       <div className="px-6 sm:px-12 lg:px-20 pt-16 pb-24 max-w-6xl mx-auto">
         <h2 className="text-2xl sm:text-3xl font-bold text-stll-charcoal tracking-tight mb-4">
-          Your order has been received
+          {kitchenStatus === "done"
+            ? lastOrder?.fulfillment === "delivery"
+              ? "Your order is on its way"
+              : "Your order is ready"
+            : kitchenStatus === "ready"
+              ? "We’re making your order"
+              : "Your order has been received"}
         </h2>
         <p className="text-sm text-stll-charcoal/90 leading-relaxed mb-6 max-w-xl">
-          A confirmation email with your order details was sent to your inbox. We&apos;ll email you again when your
-          order is ready for pickup or heading out for delivery.
+          {kitchenStatus === "done"
+            ? lastOrder?.fulfillment === "delivery"
+              ? "The kitchen marked this complete. We’ll bring it out shortly — a ready email is on its way too."
+              : "The kitchen marked this complete. Please come pick it up when you can — a ready email is on its way too."
+            : kitchenStatus === "ready"
+              ? "The cafe accepted your order and is making it now. We’ll email you (and update this page) when it’s ready."
+              : "A confirmation email with your order details was sent to your inbox. We’ll email you again, and update this page, when your order is ready for pickup or heading out for delivery."}
         </p>
+        {lastOrder?.preorderId && kitchenStatus !== "done" && notifyPermission !== "unsupported" && notifyPermission !== "granted" && (
+          <button
+            type="button"
+            onClick={() => void enableDeviceNotifications()}
+            className="mb-8 px-5 py-3 text-[11px] tracking-[0.25em] uppercase border border-stll-charcoal text-stll-charcoal hover:bg-stll-charcoal hover:text-white transition-colors"
+          >
+            Notify me on this device
+          </button>
+        )}
+        {notifyPermission === "granted" && kitchenStatus !== "done" && lastOrder?.preorderId && (
+          <p className="text-[11px] tracking-[0.2em] uppercase text-stll-muted mb-8">
+            Device notifications on — keep this tab open
+          </p>
+        )}
         {paymentLabel && (
           <p className="text-[11px] tracking-[0.2em] uppercase text-stll-muted mb-8">{paymentLabel}</p>
         )}
@@ -150,10 +234,18 @@ export default function SuccessClient() {
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-12 lg:gap-10 xl:gap-16">
           <div className="min-w-0 flex-1 lg:max-w-xl">
             <p className="text-sm text-stll-charcoal/90 mb-2 leading-relaxed">
-              We&apos;ll have it ready soon.
+              {kitchenStatus === "done"
+                ? lastOrder?.fulfillment === "delivery"
+                  ? "Your order is heading out."
+                  : "Your order is ready for pickup."
+                : kitchenStatus === "ready"
+                  ? "We’re making it now."
+                  : "We’ll have it ready soon."}
             </p>
             <p className="text-sm text-stll-muted mb-12 leading-relaxed">
-              Check your email for the order confirmation. We&apos;ll notify you when it&apos;s ready.
+              {kitchenStatus === "done"
+                ? "You can close this page. Check your email if you need the order details again."
+                : "Keep this page open for a live update, or wait for the ready email."}
             </p>
 
             {lastOrder && (

@@ -1,9 +1,9 @@
-"use client";
-
+import { HomeEventsSection } from "@/components/home/HomeEventsSection";
+import { HomeReviewsSection } from "@/components/home/HomeReviewsSection";
 import Image from "next/image";
 import Link from "next/link";
 
-export default function Home() {
+export default async function Home() {
   return (
     <div>
       {/* ─────────────────────────────────────────
@@ -86,6 +86,8 @@ export default function Home() {
         </div>
       </section>
 
+      <HomeEventsSection />
+
       {/* ─────────────────────────────────────────
           SECTION 3 · Split: bold headline + product image
       ───────────────────────────────────────── */}
@@ -95,10 +97,16 @@ export default function Home() {
           <p className="text-xs text-stll-muted/60 leading-relaxed max-w-xs tracking-wide">
             Thoughtfully crafted drinks, made to slow you down and bring you back to the moment.
           </p>
-          <div>
+          <div className="flex flex-col items-start">
             <h2 className="text-5xl sm:text-6xl lg:text-[5.5rem] font-black text-stll-charcoal uppercase leading-[0.88] tracking-tight">
               YOUR<br />MOMENT TO<br />SLOW DOWN
             </h2>
+            <Link
+              href="/menu"
+              className="mt-8 inline-block border border-stll-charcoal/25 text-stll-charcoal text-[11px] tracking-[0.3em] uppercase px-8 py-4 hover:bg-stll-charcoal hover:text-white transition-all duration-400"
+            >
+              View Menu
+            </Link>
             <p className="mt-8 text-[10px] tracking-[0.35em] text-stll-muted uppercase">
               stllhaus.co
             </p>
@@ -117,40 +125,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ─────────────────────────────────────────
-          SECTION 4 · Split: product image + dark text
-      ───────────────────────────────────────── */}
-      <section className="grid grid-cols-1 md:grid-cols-2 min-h-[70vh]">
-        {/* Left: product image */}
-        <div className="relative min-h-[70vw] md:min-h-0 overflow-hidden bg-stll-sage/20">
-          <Image
-            src="/ube.jpg"
-            alt="Ube drink – STLL HAUS"
-            fill
-            unoptimized
-            className="object-cover object-center"
-          />
-        </div>
-
-        {/* Right: dark bg + text + CTA */}
-        <div className="bg-stll-charcoal flex flex-col justify-center p-10 sm:p-16 lg:p-20">
-          <span className="text-[10px] text-white/35 tracking-[0.35em] uppercase mb-6">
-            The Stll Haus Experience
-          </span>
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white uppercase leading-[0.9] tracking-tight">
-            CRAFTED<br />FOR THE<br />STILL<br />MOMENT
-          </h2>
-          <p className="mt-6 text-sm text-white/45 leading-relaxed max-w-xs">
-            Built from a passion for craft, every drink is created with intention — for your everyday pause.
-          </p>
-          <Link
-            href="/menu"
-            className="mt-10 self-start inline-block border border-white/25 text-white text-[11px] tracking-[0.3em] uppercase px-8 py-4 hover:bg-white hover:text-stll-charcoal transition-all duration-400"
-          >
-            View Menu
-          </Link>
-        </div>
-      </section>
+      <HomeReviewsSection />
 
       {/* ─────────────────────────────────────────
           SECTION 5 · Cloud Collection + CTA
@@ -181,4 +156,3 @@ export default function Home() {
     </div>
   );
 }
-

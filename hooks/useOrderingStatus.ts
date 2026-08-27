@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 export type OrderingStatusResponse = OrderingStatus & {
   settings?: {
     orderingEnabled: boolean;
+    drinksOrderingEnabled: boolean;
     blockOrdersWhenClosed: boolean;
     preOrderWhenClosed: boolean;
     openTime: string;

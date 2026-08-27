@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useCart } from "@/components/CartContext";
 import { OrderingStatusBanner } from "@/components/OrderingStatusBanner";
 import { useOrderingStatus } from "@/hooks/useOrderingStatus";
+import { cartContainsNonSnackItems } from "@/lib/ordering-settings";
 import {
   cartUnitsEligibleForDelivery,
   DELIVERY_SERVICE_AREA_NOTE,
@@ -74,10 +75,13 @@ export default function CheckoutForm() {
   const router = useRouter();
   const { cart, updateQuantity, removeItem, clearCart, cartCount } = useCart();
   const { data: orderingStatus } = useOrderingStatus();
+  const drinksBlockedInCart =
+    Boolean(orderingStatus?.drinksPaused) && cartContainsNonSnackItems(cart);
   const canPlaceOrder =
-    !orderingStatus ||
-    orderingStatus.status === "open" ||
-    orderingStatus.isPreOrderOnly;
+    (!orderingStatus ||
+      orderingStatus.status === "open" ||
+      orderingStatus.isPreOrderOnly) &&
+    !drinksBlockedInCart;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [fulfillment, setFulfillment] = useState<"pickup" | "delivery">("pickup");
@@ -222,7 +226,11 @@ export default function CheckoutForm() {
       return;
     }
     if (orderingStatus && !canPlaceOrder) {
-      setError(orderingStatus.message);
+      setError(
+        drinksBlockedInCart
+          ? "Drinks are paused right now. Remove drinks (and Sip & Bite) from your cart — snacks like siomai are still available."
+          : orderingStatus.message
+      );
       setIsLoading(false);
       return;
     }
@@ -383,7 +391,7 @@ export default function CheckoutForm() {
         setIsLoading(false);
         return;
       }
-      const data = (await res.json()) as { orderId?: string };
+      const data = (await res.json()) as { orderId?: string; preorderId?: number | null };
       try {
         const snapshotItems = [...checkoutItems];
         if (fulfillment === "delivery" && deliveryEligible) {
@@ -416,6 +424,7 @@ export default function CheckoutForm() {
           deliveryTier: fulfillment === "delivery" ? deliveryTier : undefined,
           paymentMethod,
           orderId: data.orderId,
+          preorderId: typeof data.preorderId === "number" ? data.preorderId : undefined,
           notes: notesForOrder,
         };
         sessionStorage.setItem("stll-last-order", JSON.stringify(snapshot));

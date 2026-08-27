@@ -2,6 +2,7 @@ import { createBusinessLogsAdminClient } from "@/lib/business-logs";
 import { UPCOMING_EVENTS } from "@/data/events";
 import {
   inputToRowPayload,
+  isEventPast,
   isEventUpcoming,
   rowToMarketEvent,
   type MarketEvent,
@@ -9,7 +10,8 @@ import {
   type MarketEventRow,
 } from "@/lib/market-events";
 
-let cache: { events: MarketEvent[]; fetchedAt: number } | null = null;
+let upcomingCache: { events: MarketEvent[]; fetchedAt: number } | null = null;
+let pastCache: { events: MarketEvent[]; fetchedAt: number } | null = null;
 const CACHE_MS = 15_000;
 
 function mapRows(rows: MarketEventRow[]): MarketEvent[] {
@@ -30,26 +32,58 @@ export async function loadAllMarketEvents(): Promise<MarketEventRow[]> {
 }
 
 export async function loadPublishedUpcomingEvents(): Promise<MarketEvent[]> {
-  if (cache && Date.now() - cache.fetchedAt < CACHE_MS) {
-    return cache.events;
+  if (upcomingCache && Date.now() - upcomingCache.fetchedAt < CACHE_MS) {
+    return upcomingCache.events;
   }
 
   const supabase = createBusinessLogsAdminClient();
   if (!supabase) {
-    cache = { events: UPCOMING_EVENTS, fetchedAt: Date.now() };
-    return UPCOMING_EVENTS;
+    const now = new Date();
+    const upcoming = UPCOMING_EVENTS.filter((event) => {
+      const endOrStart = event.endDate ?? event.startDate;
+      return new Date(endOrStart) >= now;
+    });
+    upcomingCache = { events: upcoming, fetchedAt: Date.now() };
+    return upcoming;
   }
 
   const rows = await loadAllMarketEvents();
   const upcoming = rows.filter((row) => row.published && isEventUpcoming(row));
-  const events = upcoming.length > 0 ? mapRows(upcoming) : [];
+  const events = mapRows(upcoming);
 
-  cache = { events, fetchedAt: Date.now() };
+  upcomingCache = { events, fetchedAt: Date.now() };
+  return events;
+}
+
+export async function loadPublishedPastEvents(): Promise<MarketEvent[]> {
+  if (pastCache && Date.now() - pastCache.fetchedAt < CACHE_MS) {
+    return pastCache.events;
+  }
+
+  const supabase = createBusinessLogsAdminClient();
+  if (!supabase) {
+    const now = new Date();
+    const past = UPCOMING_EVENTS.filter((event) => {
+      const endOrStart = event.endDate ?? event.startDate;
+      return new Date(endOrStart) < now;
+    }).reverse();
+    pastCache = { events: past, fetchedAt: Date.now() };
+    return past;
+  }
+
+  const rows = await loadAllMarketEvents();
+  const past = rows
+    .filter((row) => row.published && isEventPast(row))
+    .sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime());
+  const events = mapRows(past);
+
+  pastCache = { events, fetchedAt: Date.now() };
   return events;
 }
 
 export function invalidateMarketEventsCache() {
-  cache = null;
+  upcomingCache = null;
+  pastCache = null;
 }
 
 export async function saveMarketEvent(input: MarketEventInput): Promise<MarketEventRow> {

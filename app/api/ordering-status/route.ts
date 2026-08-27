@@ -11,6 +11,7 @@ export async function GET() {
       ...status,
       settings: {
         orderingEnabled: settings.orderingEnabled,
+        drinksOrderingEnabled: settings.drinksOrderingEnabled,
         blockOrdersWhenClosed: settings.blockOrdersWhenClosed,
         preOrderWhenClosed: settings.preOrderWhenClosed,
         useWeekdayWeekendSchedule: settings.useWeekdayWeekendSchedule,

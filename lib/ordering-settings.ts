@@ -8,6 +8,8 @@ export type DayHours = {
 export type OrderingSettings = {
   /** Master switch — when false, no online ordering at all. */
   orderingEnabled: boolean;
+  /** When false, drinks (and Sip & Bite combos) cannot be ordered; snacks still can. */
+  drinksOrderingEnabled: boolean;
   /** When closed (by hours or force), block add-to-cart unless pre-order is on. */
   blockOrdersWhenClosed: boolean;
   /** When closed, allow cart + checkout with pickup at or after next open time. */
@@ -43,15 +45,32 @@ export type OrderingSettings = {
 export type OrderingStatus = {
   status: "open" | "closed" | "disabled";
   canAddToCart: boolean;
+  /** Drink / Sip & Bite add-to-cart (false when drinksOrderingEnabled is off). */
+  canAddDrinks: boolean;
+  /** Snack-only items (siomai) when the store otherwise accepts orders. */
+  canAddSnacks: boolean;
   isPreOrderOnly: boolean;
   /** True when closed specifically because market mode is on. */
   marketClosed: boolean;
+  /** True when drinks are paused but snacks (or overall ordering) may still be available. */
+  drinksPaused: boolean;
   opensAtLabel: string | null;
   closesAtLabel: string | null;
   /** Local datetime for pickup minimum (no timezone suffix). */
   nextOpenAt: string | null;
   message: string;
 };
+
+/** Siomai snacks only — Sip & Bite combos count as drinks. */
+export function isSnackOnlyCartItemName(name: string): boolean {
+  const n = name.trim().toLowerCase();
+  if (n.startsWith("sip & bite") || n.startsWith("sip and bite")) return false;
+  return n.includes("siomai");
+}
+
+export function cartContainsNonSnackItems(items: { name: string }[]): boolean {
+  return items.some((item) => !isSnackOnlyCartItemName(item.name));
+}
 
 const DEFAULT_TIMEZONE = "Pacific/Auckland";
 
@@ -88,6 +107,7 @@ export function defaultOrderingSettings(): OrderingSettings {
   };
   return {
     orderingEnabled: envBool("ORDERING_ENABLED", true),
+    drinksOrderingEnabled: envBool("ORDERING_DRINKS_ENABLED", true),
     blockOrdersWhenClosed: envBool("ORDERING_BLOCK_WHEN_CLOSED", true),
     preOrderWhenClosed: envBool("ORDERING_PREORDER_WHEN_CLOSED", true),
     forceClosed: envBool("ORDERING_FORCE_CLOSED", false),
@@ -312,6 +332,8 @@ export function mergeOrderingSettings(partial: unknown): OrderingSettings {
 
   return {
     orderingEnabled: typeof p.orderingEnabled === "boolean" ? p.orderingEnabled : base.orderingEnabled,
+    drinksOrderingEnabled:
+      typeof p.drinksOrderingEnabled === "boolean" ? p.drinksOrderingEnabled : base.drinksOrderingEnabled,
     blockOrdersWhenClosed:
       typeof p.blockOrdersWhenClosed === "boolean" ? p.blockOrdersWhenClosed : base.blockOrdersWhenClosed,
     preOrderWhenClosed:
@@ -339,13 +361,17 @@ export function computeOrderingStatus(settings: OrderingSettings, now = new Date
   const opensAtLabel = formatTimeLabel(todayHours.openTime, tz);
   const closesAtLabel = formatTimeLabel(todayHours.closeTime, tz);
   const nextOpenAt = computeNextOpenAt(settings, now);
+  const drinksEnabled = settings.drinksOrderingEnabled !== false;
 
   if (!settings.orderingEnabled) {
     return {
       status: "disabled",
       canAddToCart: false,
+      canAddDrinks: false,
+      canAddSnacks: false,
       isPreOrderOnly: false,
       marketClosed: false,
+      drinksPaused: !drinksEnabled,
       opensAtLabel,
       closesAtLabel,
       nextOpenAt,
@@ -361,8 +387,11 @@ export function computeOrderingStatus(settings: OrderingSettings, now = new Date
       return {
         status: "closed",
         canAddToCart: false,
+        canAddDrinks: false,
+        canAddSnacks: false,
         isPreOrderOnly: false,
         marketClosed: true,
+        drinksPaused: !drinksEnabled,
         opensAtLabel,
         closesAtLabel,
         nextOpenAt,
@@ -377,20 +406,29 @@ export function computeOrderingStatus(settings: OrderingSettings, now = new Date
     settings.forceOpen || (!settings.forceClosed && isWithinOpenHours(now, settings));
 
   if (physicallyOpen) {
+    const drinksPaused = !drinksEnabled;
     return {
       status: "open",
       canAddToCart: true,
+      canAddDrinks: drinksEnabled,
+      canAddSnacks: true,
       isPreOrderOnly: false,
       marketClosed: false,
+      drinksPaused,
       opensAtLabel,
       closesAtLabel,
       nextOpenAt,
-      message: `We're open until ${closesAtLabel}.`,
+      message: drinksPaused
+        ? `Drinks are paused for now — snacks (siomai) are still available. We're open until ${closesAtLabel}.`
+        : `We're open until ${closesAtLabel}.`,
     };
   }
 
   const canPreOrder = settings.preOrderWhenClosed;
   const canAddToCart = !settings.blockOrdersWhenClosed || canPreOrder;
+  const canAddDrinks = canAddToCart && drinksEnabled;
+  const canAddSnacks = canAddToCart;
+  const drinksPaused = !drinksEnabled;
 
   const nowMin = localMinutesSinceMidnight(now, tz);
   const openMin = parseHmToMinutes(todayHours.openTime);
@@ -411,6 +449,10 @@ export function computeOrderingStatus(settings: OrderingSettings, now = new Date
       : afterClose
         ? `We're closed for today. We open at ${nextOpenLabel} on our next open day.`
         : `We're closed. We open at ${opensAtLabel}.`;
+  } else if (drinksPaused && canPreOrder && beforeOpen) {
+    message = `Drinks are paused — snacks (siomai) can still be pre-ordered. We open at ${opensAtLabel}.`;
+  } else if (drinksPaused) {
+    message = `Drinks are paused for now — snacks (siomai) are still available to order.`;
   } else if (canPreOrder && beforeOpen) {
     message = `We're not open yet — we open at ${opensAtLabel}. You can pre-order below and choose a pickup time after we open.`;
   } else if (canPreOrder) {
@@ -422,8 +464,11 @@ export function computeOrderingStatus(settings: OrderingSettings, now = new Date
   return {
     status: "closed",
     canAddToCart,
+    canAddDrinks,
+    canAddSnacks,
     isPreOrderOnly: canAddToCart && canPreOrder,
     marketClosed: false,
+    drinksPaused,
     opensAtLabel,
     closesAtLabel,
     nextOpenAt,

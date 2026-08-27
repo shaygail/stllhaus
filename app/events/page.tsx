@@ -3,7 +3,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { EventCard } from "@/components/EventCard";
 import { buildEventsJsonLd } from "@/lib/event-schema";
-import { loadPublishedUpcomingEvents } from "@/lib/market-events-store";
+import {
+  loadPublishedPastEvents,
+  loadPublishedUpcomingEvents,
+} from "@/lib/market-events-store";
 
 export const metadata: Metadata = {
   title: "Events & Markets | STLL HAUS – Matcha & Coffee Bar, New Plymouth",
@@ -17,8 +20,11 @@ export const metadata: Metadata = {
 };
 
 export default async function EventsPage() {
-  const events = await loadPublishedUpcomingEvents();
-  const jsonLd = buildEventsJsonLd(events);
+  const [upcoming, past] = await Promise.all([
+    loadPublishedUpcomingEvents(),
+    loadPublishedPastEvents(),
+  ]);
+  const jsonLd = buildEventsJsonLd(upcoming);
 
   return (
     <>
@@ -65,16 +71,16 @@ export default async function EventsPage() {
           </div>
         </section>
 
-        {/* Event listings */}
+        {/* Upcoming event listings */}
         <section className="px-6 sm:px-12 lg:px-20 py-16 sm:py-24">
           <div className="max-w-5xl mx-auto">
             <p className="text-[10px] tracking-[0.35em] uppercase text-stll-muted mb-10">
               Upcoming Events
             </p>
 
-            {events.length > 0 ? (
+            {upcoming.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {events.map((event) => (
+                {upcoming.map((event) => (
                   <EventCard key={event.id} event={event} />
                 ))}
               </div>
@@ -94,6 +100,29 @@ export default async function EventsPage() {
             )}
           </div>
         </section>
+
+        {/* Past events */}
+        {past.length > 0 && (
+          <section className="px-6 sm:px-12 lg:px-20 pb-16 sm:pb-24 border-t border-stll-charcoal/10">
+            <div className="max-w-5xl mx-auto pt-16 sm:pt-24">
+              <p className="text-[10px] tracking-[0.35em] uppercase text-stll-muted mb-3">
+                Looking back
+              </p>
+              <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-stll-charcoal leading-tight mb-4">
+                Previous Markets
+              </h2>
+              <p className="text-sm text-stll-muted leading-relaxed max-w-lg mb-10">
+                Markets and pop-ups we&apos;ve poured at recently — thanks for stopping by.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {past.map((event) => (
+                  <EventCard key={event.id} event={event} variant="past" />
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* CTA */}
         <section className="bg-stll-charcoal text-white px-6 sm:px-12 lg:px-20 py-20 sm:py-28">

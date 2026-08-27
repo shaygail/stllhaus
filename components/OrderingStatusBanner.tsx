@@ -10,7 +10,10 @@ export function OrderingStatusBanner({
   status: OrderingStatusResponse | null;
   className?: string;
 }) {
-  if (!status || status.status === "open") return null;
+  if (!status) return null;
+
+  const drinksPausedOpen = status.status === "open" && status.drinksPaused;
+  if (status.status === "open" && !drinksPausedOpen) return null;
 
   const isPreOrder = status.isPreOrderOnly;
   const isMarket = status.marketClosed;
@@ -20,7 +23,7 @@ export function OrderingStatusBanner({
       className={`rounded-md border px-4 py-4 ${className} ${
         status.status === "disabled"
           ? "border-stll-charcoal/20 bg-stll-charcoal/5"
-          : isPreOrder || isMarket
+          : drinksPausedOpen || isPreOrder || isMarket
             ? "border-amber-700/25 bg-amber-50/80"
             : "border-stll-charcoal/20 bg-stll-charcoal/5"
       }`}
@@ -28,14 +31,22 @@ export function OrderingStatusBanner({
       <p className="text-[10px] tracking-[0.25em] uppercase text-stll-charcoal/80 mb-2">
         {status.status === "disabled"
           ? "Ordering paused"
-          : isMarket
-            ? "At a market"
-            : isPreOrder
-              ? "Pre-order"
-              : "Currently closed"}
+          : drinksPausedOpen
+            ? "Drinks paused"
+            : isMarket
+              ? "At a market"
+              : isPreOrder
+                ? "Pre-order"
+                : "Currently closed"}
       </p>
       <p className="text-sm text-stll-charcoal leading-relaxed">{status.message}</p>
-      {isPreOrder && (
+      {drinksPausedOpen && (
+        <p className="mt-2 text-xs text-stll-muted leading-relaxed">
+          Matcha, coffee, and Sip &amp; Bite combos are unavailable. You can still order snacks (siomai)
+          below.
+        </p>
+      )}
+      {isPreOrder && !drinksPausedOpen && (
         <>
           <p className="mt-2 text-xs text-stll-muted leading-relaxed">
             Add drinks below, then at checkout choose a pickup time at or after we open.

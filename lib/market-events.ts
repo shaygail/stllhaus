@@ -142,3 +142,7 @@ export function isEventUpcoming(row: MarketEventRow, now = new Date()): boolean 
   const endOrStart = row.end_date ?? row.start_date;
   return new Date(endOrStart) >= now;
 }
+
+export function isEventPast(row: MarketEventRow, now = new Date()): boolean {
+  return !isEventUpcoming(row, now);
+}

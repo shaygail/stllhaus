@@ -4,15 +4,19 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/components/CartContext";
 import { useOrderingStatus } from "@/hooks/useOrderingStatus";
+import { cartContainsNonSnackItems } from "@/lib/ordering-settings";
 
 export function Cart() {
   const router = useRouter();
   const { cart, removeItem, updateQuantity, total, clearCart } = useCart();
   const { data: orderingStatus } = useOrderingStatus();
+  const drinksBlockedInCart =
+    Boolean(orderingStatus?.drinksPaused) && cartContainsNonSnackItems(cart);
   const canCheckout =
-    !orderingStatus ||
-    orderingStatus.status === "open" ||
-    orderingStatus.isPreOrderOnly;
+    (!orderingStatus ||
+      orderingStatus.status === "open" ||
+      orderingStatus.isPreOrderOnly) &&
+    !drinksBlockedInCart;
 
   const goToCheckout = () => {
     if (!canCheckout) return;
@@ -96,6 +100,12 @@ export function Cart() {
       <p className="border-t border-stll-charcoal/10 pt-6 mt-2 text-[11px] text-stll-muted leading-relaxed">
         Pickup time, location, and payment are confirmed on the next step.
       </p>
+      {drinksBlockedInCart && (
+        <p className="mt-3 text-xs text-amber-800 leading-relaxed">
+          Drinks are paused right now. Remove drinks (and Sip &amp; Bite) to checkout — snacks like
+          siomai are still available.
+        </p>
+      )}
 
       <div className="border-t border-stll-charcoal/10 pt-6 mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <p className="text-lg font-black uppercase tracking-tight text-stll-charcoal">

@@ -5,6 +5,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CartProvider } from "@/components/CartContext";
 import { PriceUpdateNotice } from "@/components/PriceUpdateNotice";
+import { ClosedNotice } from "@/components/ClosedNotice";
 import { loadOrderingSettings } from "@/lib/ordering-settings-store";
 
 const inter = Inter({
@@ -43,6 +44,7 @@ export default async function RootLayout({
           <main className="flex-1">{children}</main>
           <Footer />
           <PriceUpdateNotice enabled={settings.priceUpdateNoticeEnabled} />
+          <ClosedNotice />
         </CartProvider>
       </body>
     </html>

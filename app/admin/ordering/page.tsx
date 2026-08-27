@@ -1,6 +1,7 @@
 "use client";
 
-import type { OrderingSettings } from "@/lib/ordering-settings";
+import type { ClosedDateRange, OrderingSettings } from "@/lib/ordering-settings";
+import { formatClosedDateRangeLabel } from "@/lib/ordering-settings";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
@@ -21,6 +22,7 @@ const defaultForm: OrderingSettings = {
   weekendHours: { openTime: "11:00", closeTime: "21:00" },
   singleHours: { openTime: "11:00", closeTime: "21:00" },
   closedDays: [],
+  closedDateRanges: [],
   priceUpdateNoticeEnabled: false,
 };
 
@@ -31,6 +33,9 @@ export default function AdminOrderingPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [newRangeStart, setNewRangeStart] = useState("");
+  const [newRangeEnd, setNewRangeEnd] = useState("");
+  const [newRangeLabel, setNewRangeLabel] = useState("");
 
   const loadSettings = useCallback(async () => {
     setError(null);
@@ -101,6 +106,37 @@ export default function AdminOrderingPage() {
       closedDays: prev.closedDays.includes(day)
         ? prev.closedDays.filter((d) => d !== day)
         : [...prev.closedDays, day].sort((a, b) => a - b),
+    }));
+  }
+
+  function addClosedDateRange() {
+    const start = newRangeStart.trim();
+    const end = (newRangeEnd.trim() || newRangeStart).trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) {
+      setError("Choose a valid start and end date for the closed period.");
+      return;
+    }
+    const ordered: ClosedDateRange = {
+      startDate: start <= end ? start : end,
+      endDate: start <= end ? end : start,
+      ...(newRangeLabel.trim() ? { label: newRangeLabel.trim().slice(0, 80) } : {}),
+    };
+    setForm((prev) => ({
+      ...prev,
+      closedDateRanges: [...prev.closedDateRanges, ordered].sort((a, b) =>
+        a.startDate.localeCompare(b.startDate)
+      ),
+    }));
+    setNewRangeStart("");
+    setNewRangeEnd("");
+    setNewRangeLabel("");
+    setError(null);
+  }
+
+  function removeClosedDateRange(index: number) {
+    setForm((prev) => ({
+      ...prev,
+      closedDateRanges: prev.closedDateRanges.filter((_, i) => i !== index),
     }));
   }
 
@@ -256,6 +292,106 @@ export default function AdminOrderingPage() {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="border border-stll-charcoal/10 bg-white/80 p-4 -mx-1 space-y-4">
+            <div>
+              <p className="text-[10px] tracking-[0.2em] uppercase text-stll-muted mb-1">
+                Closed from / until
+              </p>
+              <p className="text-xs text-stll-muted leading-relaxed">
+                Set the dates you are closed (e.g. holiday). Customers see a closed popup and cannot
+                order on these days. Use the same date in both fields for a single closed day.
+              </p>
+            </div>
+
+            {form.closedDateRanges.length > 0 && (
+              <ul className="space-y-2">
+                {form.closedDateRanges.map((range, index) => (
+                  <li
+                    key={`${range.startDate}-${range.endDate}-${index}`}
+                    className="flex flex-wrap items-center justify-between gap-3 border border-stll-charcoal/10 bg-white px-3 py-2.5"
+                  >
+                    <div>
+                      <p className="text-sm text-stll-charcoal">
+                        Closed {formatClosedDateRangeLabel(range)}
+                      </p>
+                      {range.label && (
+                        <p className="text-[10px] tracking-[0.15em] uppercase text-stll-muted mt-0.5">
+                          {range.label}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeClosedDateRange(index)}
+                      className="text-[10px] tracking-[0.2em] uppercase text-red-700 border border-red-200 px-3 py-1.5 hover:bg-red-50"
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label
+                  htmlFor="closed-range-start"
+                  className="block text-[10px] tracking-[0.2em] uppercase text-stll-muted mb-1.5"
+                >
+                  Closed from
+                </label>
+                <input
+                  id="closed-range-start"
+                  type="date"
+                  value={newRangeStart}
+                  onChange={(e) => {
+                    setNewRangeStart(e.target.value);
+                    if (!newRangeEnd) setNewRangeEnd(e.target.value);
+                  }}
+                  className="w-full px-3 py-2 text-sm border border-stll-charcoal/20 bg-white"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="closed-range-end"
+                  className="block text-[10px] tracking-[0.2em] uppercase text-stll-muted mb-1.5"
+                >
+                  Closed until
+                </label>
+                <input
+                  id="closed-range-end"
+                  type="date"
+                  value={newRangeEnd}
+                  onChange={(e) => setNewRangeEnd(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-stll-charcoal/20 bg-white"
+                />
+              </div>
+            </div>
+            <div>
+              <label
+                htmlFor="closed-range-label"
+                className="block text-[10px] tracking-[0.2em] uppercase text-stll-muted mb-1.5"
+              >
+                Note (optional)
+              </label>
+              <input
+                id="closed-range-label"
+                type="text"
+                value={newRangeLabel}
+                onChange={(e) => setNewRangeLabel(e.target.value)}
+                placeholder="Holiday break"
+                className="w-full px-3 py-2 text-sm border border-stll-charcoal/20 bg-white"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={addClosedDateRange}
+              className="px-6 py-2.5 text-[10px] tracking-[0.2em] uppercase border border-stll-charcoal/25 text-stll-charcoal hover:bg-stll-charcoal hover:text-white transition-colors"
+            >
+              Add closed dates
+            </button>
           </div>
 
           <button

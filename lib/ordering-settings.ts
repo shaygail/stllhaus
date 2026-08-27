@@ -5,6 +5,14 @@ export type DayHours = {
   closeTime: string;
 };
 
+/** Inclusive calendar dates (`YYYY-MM-DD`) when the store is fully closed. */
+export type ClosedDateRange = {
+  startDate: string;
+  endDate: string;
+  /** Optional note shown in the closed popup, e.g. "Holiday break". */
+  label?: string;
+};
+
 export type OrderingSettings = {
   /** Master switch — when false, no online ordering at all. */
   orderingEnabled: boolean;
@@ -34,6 +42,8 @@ export type OrderingSettings = {
   singleHours: DayHours;
   /** Days with no service: 0 = Sunday … 6 = Saturday */
   closedDays: number[];
+  /** Full-day closed periods (holidays, trips) — inclusive start/end dates. */
+  closedDateRanges: ClosedDateRange[];
   /** Show the price-update popup when visitors first open the site. */
   priceUpdateNoticeEnabled: boolean;
   /** @deprecated Use singleHours — kept for older saved JSON. */
@@ -52,6 +62,10 @@ export type OrderingStatus = {
   isPreOrderOnly: boolean;
   /** True when closed specifically because market mode is on. */
   marketClosed: boolean;
+  /** True when today falls in an admin closed date range. */
+  closedDateRangeActive: boolean;
+  /** Label for the active closed date range, if any. */
+  closedDateRangeLabel: string | null;
   /** True when drinks are paused but snacks (or overall ordering) may still be available. */
   drinksPaused: boolean;
   opensAtLabel: string | null;
@@ -126,6 +140,7 @@ export function defaultOrderingSettings(): OrderingSettings {
     },
     singleHours: single,
     closedDays: envClosedDays(),
+    closedDateRanges: [],
     priceUpdateNoticeEnabled: envBool("PRICE_UPDATE_NOTICE_ENABLED", false),
   };
 }
@@ -246,8 +261,73 @@ export function formatTimeLabel(hm: string, _timeZone?: string): string {
   return `${hour12}:${String(mi).padStart(2, "0")} ${period}`;
 }
 
+/** Accept `YYYY-MM-DD` only. */
+export function normalizeDateKey(raw: string | undefined | null): string | undefined {
+  const v = raw?.trim();
+  if (!v) return undefined;
+  const m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : undefined;
+}
+
+export function formatClosedDateLabel(dateKey: string): string {
+  const [y, mo, day] = dateKey.split("-");
+  const monthIdx = parseInt(mo ?? "1", 10) - 1;
+  const dayNum = parseInt(day ?? "1", 10);
+  const yearNum = parseInt(y ?? "0", 10);
+  const monthLabel = MONTH_LABELS[monthIdx] ?? "";
+  return monthLabel ? `${dayNum} ${monthLabel} ${yearNum}` : dateKey;
+}
+
+export function formatClosedDateRangeLabel(range: ClosedDateRange): string {
+  if (range.startDate === range.endDate) {
+    return formatClosedDateLabel(range.startDate);
+  }
+  return `${formatClosedDateLabel(range.startDate)} – ${formatClosedDateLabel(range.endDate)}`;
+}
+
+export function findActiveClosedDateRange(
+  settings: OrderingSettings,
+  now = new Date()
+): ClosedDateRange | null {
+  const key = localDateKey(now, settings.timezone);
+  return (
+    settings.closedDateRanges.find(
+      (range) => key >= range.startDate && key <= range.endDate
+    ) ?? null
+  );
+}
+
+export function isDateKeyClosed(dateKey: string, settings: OrderingSettings): boolean {
+  const probe = new Date(`${dateKey}T12:00:00`);
+  if (settings.closedDays.includes(localDayOfWeek(probe, settings.timezone))) return true;
+  return settings.closedDateRanges.some(
+    (range) => dateKey >= range.startDate && dateKey <= range.endDate
+  );
+}
+
 function isClosedDay(date: Date, settings: OrderingSettings): boolean {
-  return settings.closedDays.includes(localDayOfWeek(date, settings.timezone));
+  return isDateKeyClosed(localDateKey(date, settings.timezone), settings);
+}
+
+function normalizeClosedDateRanges(raw: unknown): ClosedDateRange[] {
+  if (!Array.isArray(raw)) return [];
+  const ranges: ClosedDateRange[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object") continue;
+    const row = entry as Record<string, unknown>;
+    let start = normalizeDateKey(typeof row.startDate === "string" ? row.startDate : "");
+    let end = normalizeDateKey(typeof row.endDate === "string" ? row.endDate : "");
+    if (!start || !end) continue;
+    if (end < start) {
+      const swap = start;
+      start = end;
+      end = swap;
+    }
+    const label =
+      typeof row.label === "string" && row.label.trim() ? row.label.trim().slice(0, 80) : undefined;
+    ranges.push({ startDate: start, endDate: end, ...(label ? { label } : {}) });
+  }
+  return ranges.sort((a, b) => a.startDate.localeCompare(b.startDate));
 }
 
 function isWithinHours(nowMin: number, hours: DayHours): boolean {
@@ -314,6 +394,10 @@ export function mergeOrderingSettings(partial: unknown): OrderingSettings {
         .filter((n) => Number.isFinite(n) && n >= 0 && n <= 6)
     : base.closedDays;
 
+  const closedDateRanges = Array.isArray(p.closedDateRanges)
+    ? normalizeClosedDateRanges(p.closedDateRanges)
+    : base.closedDateRanges;
+
   const parseHmField = (v: unknown, fallback: string) => {
     if (typeof v !== "string") return fallback;
     const m = v.trim().match(/^(\d{1,2}):(\d{2})/);
@@ -348,6 +432,7 @@ export function mergeOrderingSettings(partial: unknown): OrderingSettings {
     weekendHours: normalizeDayHours(p.weekendHours, base.weekendHours),
     singleHours: normalizeDayHours(p.singleHours, legacySingle),
     closedDays,
+    closedDateRanges,
     priceUpdateNoticeEnabled:
       typeof p.priceUpdateNoticeEnabled === "boolean"
         ? p.priceUpdateNoticeEnabled
@@ -362,6 +447,9 @@ export function computeOrderingStatus(settings: OrderingSettings, now = new Date
   const closesAtLabel = formatTimeLabel(todayHours.closeTime, tz);
   const nextOpenAt = computeNextOpenAt(settings, now);
   const drinksEnabled = settings.drinksOrderingEnabled !== false;
+  const activeClosedRange = findActiveClosedDateRange(settings, now);
+  const closedDateRangeActive = Boolean(activeClosedRange);
+  const closedDateRangeLabel = activeClosedRange?.label?.trim() || null;
 
   if (!settings.orderingEnabled) {
     return {
@@ -371,6 +459,8 @@ export function computeOrderingStatus(settings: OrderingSettings, now = new Date
       canAddSnacks: false,
       isPreOrderOnly: false,
       marketClosed: false,
+      closedDateRangeActive,
+      closedDateRangeLabel,
       drinksPaused: !drinksEnabled,
       opensAtLabel,
       closesAtLabel,
@@ -391,6 +481,8 @@ export function computeOrderingStatus(settings: OrderingSettings, now = new Date
         canAddSnacks: false,
         isPreOrderOnly: false,
         marketClosed: true,
+        closedDateRangeActive,
+        closedDateRangeLabel,
         drinksPaused: !drinksEnabled,
         opensAtLabel,
         closesAtLabel,
@@ -414,6 +506,8 @@ export function computeOrderingStatus(settings: OrderingSettings, now = new Date
       canAddSnacks: true,
       isPreOrderOnly: false,
       marketClosed: false,
+      closedDateRangeActive: false,
+      closedDateRangeLabel: null,
       drinksPaused,
       opensAtLabel,
       closesAtLabel,
@@ -424,7 +518,7 @@ export function computeOrderingStatus(settings: OrderingSettings, now = new Date
     };
   }
 
-  const canPreOrder = settings.preOrderWhenClosed;
+  const canPreOrder = settings.preOrderWhenClosed && !closedDateRangeActive && !settings.forceClosed;
   const canAddToCart = !settings.blockOrdersWhenClosed || canPreOrder;
   const canAddDrinks = canAddToCart && drinksEnabled;
   const canAddSnacks = canAddToCart;
@@ -441,9 +535,24 @@ export function computeOrderingStatus(settings: OrderingSettings, now = new Date
     nextOpenAt != null
       ? formatTimeLabel(nextOpenAt.split("T")[1] ?? todayHours.openTime, tz)
       : opensAtLabel;
+  const nextOpenDatePart = nextOpenAt?.split("T")[0];
+  const nextOpenDateLabel =
+    nextOpenDatePart && nextOpenDatePart !== localDateKey(now, tz)
+      ? formatClosedDateLabel(nextOpenDatePart)
+      : null;
 
   let message: string;
-  if (!canAddToCart) {
+  if (closedDateRangeActive && activeClosedRange) {
+    const rangeLabel = formatClosedDateRangeLabel(activeClosedRange);
+    const reason = closedDateRangeLabel ? ` (${closedDateRangeLabel})` : "";
+    message = nextOpenDateLabel
+      ? `We're closed ${rangeLabel}${reason}. We open again on ${nextOpenDateLabel} at ${nextOpenLabel}.`
+      : `We're closed ${rangeLabel}${reason}. Please check back soon.`;
+  } else if (settings.forceClosed) {
+    message = nextOpenDateLabel
+      ? `We're closed right now. We open again on ${nextOpenDateLabel} at ${nextOpenLabel}.`
+      : `We're closed right now. Please check back soon.`;
+  } else if (!canAddToCart) {
     message = closedToday
       ? `We're closed today. We open at ${nextOpenLabel} on our next open day.`
       : afterClose
@@ -468,6 +577,8 @@ export function computeOrderingStatus(settings: OrderingSettings, now = new Date
     canAddSnacks,
     isPreOrderOnly: canAddToCart && canPreOrder,
     marketClosed: false,
+    closedDateRangeActive,
+    closedDateRangeLabel,
     drinksPaused,
     opensAtLabel,
     closesAtLabel,
@@ -486,6 +597,15 @@ export function isPickupSlotAllowed(
   if (status.status === "disabled") {
     return { ok: false, detail: "Online ordering is currently unavailable." };
   }
+
+  const slotDateKey = normalizeDateKey(pickupTimeLocal.slice(0, 10));
+  if (slotDateKey && isDateKeyClosed(slotDateKey, settings)) {
+    return {
+      ok: false,
+      detail: "That pickup day falls on a closed date. Please choose another day.",
+    };
+  }
+
   if (status.status === "open") {
     return { ok: true };
   }

@@ -35,9 +35,11 @@ export function OrderingStatusBanner({
             ? "Drinks paused"
             : isMarket
               ? "At a market"
-              : isPreOrder
-                ? "Pre-order"
-                : "Currently closed"}
+              : status.closedDateRangeActive
+                ? "Closed period"
+                : isPreOrder
+                  ? "Pre-order"
+                  : "Currently closed"}
       </p>
       <p className="text-sm text-stll-charcoal leading-relaxed">{status.message}</p>
       {drinksPausedOpen && (

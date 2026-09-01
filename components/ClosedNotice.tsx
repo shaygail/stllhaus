@@ -100,6 +100,11 @@ export function ClosedNotice() {
           </p>
         )}
         <p className="mt-4 text-sm text-stll-charcoal/90 leading-relaxed">{status.message}</p>
+        {status.canAddSnacks && !status.canAddDrinks && (
+          <p className="mt-3 text-sm text-stll-charcoal/70 leading-relaxed">
+            Drinks aren&apos;t available right now — you can still order siomai from the menu.
+          </p>
+        )}
         {status.isPreOrderOnly && (
           <p className="mt-3 text-sm text-stll-charcoal/70 leading-relaxed">
             You can still place a pre-order now and choose a pickup time for when we&apos;re open.
@@ -130,7 +135,11 @@ export function ClosedNotice() {
             onClick={dismiss}
             className="w-full text-center px-8 py-3.5 text-[11px] tracking-[0.25em] uppercase border border-stll-charcoal/25 text-stll-charcoal hover:bg-stll-charcoal/5 transition-colors"
           >
-            {status.isPreOrderOnly ? "Pre-order on Menu" : "View Menu"}
+            {status.canAddSnacks && !status.canAddDrinks
+              ? "Order Siomai"
+              : status.isPreOrderOnly
+                ? "Pre-order on Menu"
+                : "View Menu"}
           </Link>
         </div>
       </div>

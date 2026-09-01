@@ -12,10 +12,15 @@ export function Cart() {
   const { data: orderingStatus } = useOrderingStatus();
   const drinksBlockedInCart =
     Boolean(orderingStatus?.drinksPaused) && cartContainsNonSnackItems(cart);
+  const snacksOnlyClosed =
+    orderingStatus?.status === "closed" &&
+    orderingStatus.canAddSnacks &&
+    orderingStatus.canAddDrinks === false;
   const canCheckout =
     (!orderingStatus ||
       orderingStatus.status === "open" ||
-      orderingStatus.isPreOrderOnly) &&
+      orderingStatus.isPreOrderOnly ||
+      snacksOnlyClosed) &&
     !drinksBlockedInCart;
 
   const goToCheckout = () => {

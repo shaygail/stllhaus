@@ -44,6 +44,8 @@ export type OrderingSettings = {
   closedDays: number[];
   /** Full-day closed periods (holidays, trips) — inclusive start/end dates. */
   closedDateRanges: ClosedDateRange[];
+  /** During closed date ranges, still allow siomai/snack orders (drinks stay blocked). */
+  snacksAllowedOnClosedDates: boolean;
   /** Show the price-update popup when visitors first open the site. */
   priceUpdateNoticeEnabled: boolean;
   /** @deprecated Use singleHours — kept for older saved JSON. */
@@ -141,6 +143,7 @@ export function defaultOrderingSettings(): OrderingSettings {
     singleHours: single,
     closedDays: envClosedDays(),
     closedDateRanges: [],
+    snacksAllowedOnClosedDates: envBool("ORDERING_SNACKS_ON_CLOSED_DATES", true),
     priceUpdateNoticeEnabled: envBool("PRICE_UPDATE_NOTICE_ENABLED", false),
   };
 }
@@ -433,6 +436,10 @@ export function mergeOrderingSettings(partial: unknown): OrderingSettings {
     singleHours: normalizeDayHours(p.singleHours, legacySingle),
     closedDays,
     closedDateRanges,
+    snacksAllowedOnClosedDates:
+      typeof p.snacksAllowedOnClosedDates === "boolean"
+        ? p.snacksAllowedOnClosedDates
+        : base.snacksAllowedOnClosedDates,
     priceUpdateNoticeEnabled:
       typeof p.priceUpdateNoticeEnabled === "boolean"
         ? p.priceUpdateNoticeEnabled
@@ -494,6 +501,61 @@ export function computeOrderingStatus(settings: OrderingSettings, now = new Date
     }
   }
 
+  // Holiday / closed date ranges — optionally snacks-only.
+  if (closedDateRangeActive && activeClosedRange && !settings.forceOpen) {
+    const rangeLabel = formatClosedDateRangeLabel(activeClosedRange);
+    const reason = closedDateRangeLabel ? ` (${closedDateRangeLabel})` : "";
+    const nextOpenDatePart = nextOpenAt?.split("T")[0];
+    const nextOpenLabel =
+      nextOpenAt != null
+        ? formatTimeLabel(nextOpenAt.split("T")[1] ?? todayHours.openTime, tz)
+        : opensAtLabel;
+    const nextOpenDateLabel =
+      nextOpenDatePart && nextOpenDatePart !== localDateKey(now, tz)
+        ? formatClosedDateLabel(nextOpenDatePart)
+        : null;
+    const reopen =
+      nextOpenDateLabel != null
+        ? ` We open again on ${nextOpenDateLabel} at ${nextOpenLabel}.`
+        : "";
+
+    if (settings.snacksAllowedOnClosedDates) {
+      return {
+        status: "closed",
+        canAddToCart: true,
+        canAddDrinks: false,
+        canAddSnacks: true,
+        isPreOrderOnly: false,
+        marketClosed: false,
+        closedDateRangeActive: true,
+        closedDateRangeLabel,
+        drinksPaused: true,
+        opensAtLabel,
+        closesAtLabel,
+        nextOpenAt,
+        message: `We're closed ${rangeLabel}${reason} for drinks — siomai snacks are still available to order.${reopen}`,
+      };
+    }
+
+    return {
+      status: "closed",
+      canAddToCart: false,
+      canAddDrinks: false,
+      canAddSnacks: false,
+      isPreOrderOnly: false,
+      marketClosed: false,
+      closedDateRangeActive: true,
+      closedDateRangeLabel,
+      drinksPaused: !drinksEnabled,
+      opensAtLabel,
+      closesAtLabel,
+      nextOpenAt,
+      message: nextOpenDateLabel
+        ? `We're closed ${rangeLabel}${reason}. We open again on ${nextOpenDateLabel} at ${nextOpenLabel}.`
+        : `We're closed ${rangeLabel}${reason}. Please check back soon.`,
+    };
+  }
+
   const physicallyOpen =
     settings.forceOpen || (!settings.forceClosed && isWithinOpenHours(now, settings));
 
@@ -542,13 +604,7 @@ export function computeOrderingStatus(settings: OrderingSettings, now = new Date
       : null;
 
   let message: string;
-  if (closedDateRangeActive && activeClosedRange) {
-    const rangeLabel = formatClosedDateRangeLabel(activeClosedRange);
-    const reason = closedDateRangeLabel ? ` (${closedDateRangeLabel})` : "";
-    message = nextOpenDateLabel
-      ? `We're closed ${rangeLabel}${reason}. We open again on ${nextOpenDateLabel} at ${nextOpenLabel}.`
-      : `We're closed ${rangeLabel}${reason}. Please check back soon.`;
-  } else if (settings.forceClosed) {
+  if (settings.forceClosed) {
     message = nextOpenDateLabel
       ? `We're closed right now. We open again on ${nextOpenDateLabel} at ${nextOpenLabel}.`
       : `We're closed right now. Please check back soon.`;
@@ -600,13 +656,20 @@ export function isPickupSlotAllowed(
 
   const slotDateKey = normalizeDateKey(pickupTimeLocal.slice(0, 10));
   if (slotDateKey && isDateKeyClosed(slotDateKey, settings)) {
-    return {
-      ok: false,
-      detail: "That pickup day falls on a closed date. Please choose another day.",
-    };
+    const snacksOkOnClosed = settings.snacksAllowedOnClosedDates;
+    if (!snacksOkOnClosed) {
+      return {
+        ok: false,
+        detail: "That pickup day falls on a closed date. Please choose another day.",
+      };
+    }
   }
 
   if (status.status === "open") {
+    return { ok: true };
+  }
+  // Snacks-only closed dates still accept orders (siomai).
+  if (status.status === "closed" && status.canAddSnacks && !status.canAddDrinks) {
     return { ok: true };
   }
   if (!status.isPreOrderOnly && status.status === "closed") {

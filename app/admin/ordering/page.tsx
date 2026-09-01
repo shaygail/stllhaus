@@ -23,6 +23,7 @@ const defaultForm: OrderingSettings = {
   singleHours: { openTime: "11:00", closeTime: "21:00" },
   closedDays: [],
   closedDateRanges: [],
+  snacksAllowedOnClosedDates: true,
   priceUpdateNoticeEnabled: false,
 };
 
@@ -300,10 +301,17 @@ export default function AdminOrderingPage() {
                 Closed from / until
               </p>
               <p className="text-xs text-stll-muted leading-relaxed">
-                Set the dates you are closed (e.g. holiday). Customers see a closed popup and cannot
-                order on these days. Use the same date in both fields for a single closed day.
+                Set the dates you are closed (e.g. this weekend or a holiday). Customers see a closed
+                popup. Use the same date in both fields for a single closed day.
               </p>
             </div>
+
+            <Toggle
+              label="Allow siomai / snacks on closed dates"
+              hint="When on, drinks stay unavailable but customers can still order siomai during closed periods."
+              checked={form.snacksAllowedOnClosedDates}
+              onChange={(v) => setForm((p) => ({ ...p, snacksAllowedOnClosedDates: v }))}
+            />
 
             {form.closedDateRanges.length > 0 && (
               <ul className="space-y-2">

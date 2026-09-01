@@ -77,10 +77,15 @@ export default function CheckoutForm() {
   const { data: orderingStatus } = useOrderingStatus();
   const drinksBlockedInCart =
     Boolean(orderingStatus?.drinksPaused) && cartContainsNonSnackItems(cart);
+  const snacksOnlyClosed =
+    orderingStatus?.status === "closed" &&
+    orderingStatus.canAddSnacks &&
+    orderingStatus.canAddDrinks === false;
   const canPlaceOrder =
     (!orderingStatus ||
       orderingStatus.status === "open" ||
-      orderingStatus.isPreOrderOnly) &&
+      orderingStatus.isPreOrderOnly ||
+      snacksOnlyClosed) &&
     !drinksBlockedInCart;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");

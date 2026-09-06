@@ -1,11 +1,26 @@
 import { HomeEventsSection } from "@/components/home/HomeEventsSection";
 import { HomeReviewsSection } from "@/components/home/HomeReviewsSection";
+import { buildBusinessJsonLd } from "@/lib/business-schema";
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 
+export const metadata: Metadata = {
+  title: "STLL HAUS | Matcha & Coffee Bar – New Plymouth, Taranaki",
+  description:
+    "STLL HAUS (stllhaus) — a home for quiet sips. Matcha, cold brew, ube drinks, and siomai for pickup orders and markets in New Plymouth / Taranaki. Order online at stllhaus.co.",
+  alternates: { canonical: "/" },
+};
+
 export default async function Home() {
+  const jsonLd = buildBusinessJsonLd();
+
   return (
     <div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* ─────────────────────────────────────────
           SECTION 1 · Full-screen hero
       ───────────────────────────────────────── */}
